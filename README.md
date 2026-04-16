@@ -172,32 +172,6 @@ id,text
 ...
 1449,...
 ```
-
-## Improvement Opportunities
-
-Based on the competition guidelines, promising directions for improvement include:
-
-### Model Architecture
-- **Transformer-based decoders**: Self-attention for long-range dependencies
-- **End-to-end models**: Direct neural→text without intermediate phoneme decoding
-- **Attention mechanisms**: Visual what/where the model focuses on
-
-### Data Augmentation
-- Temporal masking (mask random time windows)
-- Channel dropout (simulate dead electrodes)
-- Velocity augmentation (speed up/slow down sequences)
-
-### Language Modeling
-- **Neural language models**: Replace n-grams with learned distributions
-- **Corpus-aware LMs**: Detect speaking task at test-time
-- **Context fusion**: Combine multiple LM scores intelligently
-
-### Advanced Techniques
-- **Test-time adaptation**: Continuous finetuning on test sentences
-- **Ensemble methods**: Combine multiple model predictions
-- **Transfer learning**: Leverage Brain-to-Text 2024 (T12) dataset
-- **Tokenization alternatives**: Syllables or BPE instead of phonemes
-
 ## Dataset Description
 
 Each HDF5 file (`data_train.hdf5`, `data_val.hdf5`, `data_test.hdf5`) contains trials with:
