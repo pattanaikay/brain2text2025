@@ -20,9 +20,10 @@ class TextTokenizer:
         return "".join([self.int_to_char[t] for t in tokens])
 
 class BCI_Dataset(Dataset):
-    def __init__(self, file_trial_pairs, stats_path, sigma=1.5):
+    def __init__(self, file_trial_pairs, stats_path, tokenizer=None, sigma=1.5):
         self.file_trial_pairs = file_trial_pairs # List of (file_path, trial_name)
         self.sigma = sigma
+        self.tokenizer = tokenizer or TextTokenizer()
         
         with open(stats_path, 'r') as f:
             self.stats = json.load(f)
@@ -31,8 +32,31 @@ class BCI_Dataset(Dataset):
         file_path, trial_name = self.file_trial_pairs[idx]
         
         with h5py.File(file_path, 'r') as f:
-            data = f[trial_name]['tx1'][:]
-            # Convert to string or check labels as needed
+            trial_group = f[trial_name]
+            
+            # Try different possible neural data keys
+            if 'input_features' in trial_group:
+                data = trial_group['input_features'][:]
+            elif 'tx1' in trial_group:
+                data = trial_group['tx1'][:]
+            elif 'neural_features' in trial_group:
+                data = trial_group['neural_features'][:]
+            else:
+                raise KeyError(f"No recognized neural data key found in {trial_name}. Available keys: {list(trial_group.keys())}")
+            
+            # Load transcription if available
+            try:
+                if 'transcription' in trial_group:
+                    transcription = trial_group['transcription'][:]
+                    # Convert bytes to string if needed
+                    if isinstance(transcription, bytes):
+                        transcription = transcription.decode('utf-8')
+                    elif isinstance(transcription, np.ndarray):
+                        transcription = ''.join([chr(c) for c in transcription])
+                else:
+                    transcription = ""
+            except:
+                transcription = ""
             
         # 1. Z-Score Normalization
         mean = np.array(self.stats[file_path]['mean'])
@@ -44,7 +68,10 @@ class BCI_Dataset(Dataset):
         # 2. Gaussian Smoothing
         smoothed = gaussian_filter1d(normalized, sigma=self.sigma, axis=0)
         
-        return torch.tensor(smoothed, dtype=torch.float32)
+        # Encode transcription to token indices
+        target_tokens = torch.tensor(self.tokenizer.encode(transcription), dtype=torch.long)
+        
+        return torch.tensor(smoothed, dtype=torch.float32), target_tokens
 
     def __len__(self):
         return len(self.file_trial_pairs)
@@ -58,7 +85,7 @@ def bci_collate_fn(batch):
     """
     # 1. Separate signals and targets
     neural_signals = [item[0] for item in batch]
-    targets = [torch.tensor(item[1]) for item in batch]
+    targets = [item[1].clone().detach() if isinstance(item[1], torch.Tensor) else torch.tensor(item[1]) for item in batch]
 
     # 2. Track original lengths (Required for CTCLoss)
     # neural_signals are (Time, Features) -> length is at dim 0

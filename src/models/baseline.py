@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class BrainToTextModel(nn.Module):
     def __init__(self, num_features=512, num_classes=28, hidden_size=512):
-        super(BrainToTextModel, self).init()
+        super(BrainToTextModel, self).__init__()
         
         # 1. Spatial-Temporal Convolutional Layers
         # We treat the 512 channels as the input 'channels' for the 1D CNN
