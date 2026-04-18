@@ -19,7 +19,7 @@ import h5py
 import random
 
 # 1. Configuration & Hyperparameters
-EPOCHS = 1
+EPOCHS = 15
 BATCH_SIZE = 16 
 LEARNING_RATE = 1e-4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,33 +40,36 @@ if not os.path.exists(H5_LIST_FILE):
 with open(H5_LIST_FILE, 'r') as f:
     h5_files = json.load(f)
 
-# Filter for training files (those with data_train.hdf5)
+# 1. Initialize separate lists for train and validation
 train_pairs = []
+val_pairs = []
+
 for h5_path in h5_files:
+    # Check for official training files
     if 'data_train.hdf5' in h5_path:
         with h5py.File(h5_path, 'r') as h5:
             train_pairs.extend([(h5_path, trial) for trial in h5.keys()])
+            
+    # Check for official validation files
+    elif 'data_val.hdf5' in h5_path:
+        with h5py.File(h5_path, 'r') as h5:
+            val_pairs.extend([(h5_path, trial) for trial in h5.keys()])
 
-if not train_pairs:
-    raise ValueError(f"No training pairs found. Check that h5_list_data.json contains paths with 'data_train.hdf5'")
+# 2. Safety check to ensure data was found
+if not train_pairs or not val_pairs:
+    raise ValueError("Missing training or validation pairs. Ensure h5_list_data.json contains both 'data_train.hdf5' and 'data_val.hdf5' paths.")
 
-print(f"Loaded {len(train_pairs)} training trials from {len([f for f in h5_files if 'data_train.hdf5' in f])} files")
+print(f"Loaded {len(train_pairs)} training trials and {len(val_pairs)} validation trials.")
 
-# --- NEW: Train/Val Split ---
-# We shuffle and take 10% for validation
-random.seed(42)
-random.shuffle(train_pairs)
-split_idx = int(len(train_pairs) * 0.9)
-train_subset = train_pairs[:split_idx]
-val_subset = train_pairs[split_idx:]
+# 3. Remove the random.shuffle and 90/10 split code blocks entirely
 
 session_stats_path = r"C:\Projects\Brain2Text2025\brain2text2025\src\preprocessing\session_stats.json"
 
-# Instantiate Datasets
-train_dataset = BCI_Dataset(file_trial_pairs=train_subset, stats_path=session_stats_path, tokenizer=tokenizer)
-val_dataset = BCI_Dataset(file_trial_pairs=val_subset, stats_path=session_stats_path, tokenizer=tokenizer)
+# 4. Instantiate Datasets using the official pairs directly
+train_dataset = BCI_Dataset(file_trial_pairs=train_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
+val_dataset = BCI_Dataset(file_trial_pairs=val_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
 
-# DataLoaders (num_workers=0 for debugging, set to 4+ for production)
+# DataLoaders remain the same
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
 

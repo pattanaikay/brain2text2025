@@ -71,7 +71,7 @@ class BCI_Dataset(Dataset):
         # Encode transcription to token indices
         target_tokens = torch.tensor(self.tokenizer.encode(transcription), dtype=torch.long)
         
-        return torch.tensor(smoothed, dtype=torch.float32), target_tokens
+        return torch.tensor(smoothed, dtype=torch.float32), target_tokens, trial_name, idx
 
     def __len__(self):
         return len(self.file_trial_pairs)
@@ -79,13 +79,17 @@ class BCI_Dataset(Dataset):
 
 def bci_collate_fn(batch):
     """
-    batch: list of tuples (neural_signal, target_tokens)
+    batch: list of tuples (neural_signal, target_tokens, trial_name, idx)
     neural_signal shape: (Time, 512)
     target_tokens: List[int]
+    trial_name: str
+    idx: int
     """
-    # 1. Separate signals and targets
+    # 1. Separate signals, targets, trial_names, and indices
     neural_signals = [item[0] for item in batch]
     targets = [item[1].clone().detach() if isinstance(item[1], torch.Tensor) else torch.tensor(item[1]) for item in batch]
+    trial_names = [item[2] for item in batch]
+    indices = [item[3] for item in batch]
 
     # 2. Track original lengths (Required for CTCLoss)
     # neural_signals are (Time, Features) -> length is at dim 0
@@ -100,3 +104,23 @@ def bci_collate_fn(batch):
     padded_targets = pad_sequence(targets, batch_first=True, padding_value=0)
 
     return padded_neural, padded_targets, input_lengths, target_lengths
+
+
+def test_collate_fn(batch):
+    """
+    Collate function for test data (no targets).
+    batch: list of tuples (neural_signal, target_tokens, trial_name, idx)
+    Returns: (neural_signals, trial_names, indices)
+    """
+    # 1. Separate signals, trial_names, and indices
+    neural_signals = [item[0] for item in batch]
+    trial_names = [item[2] for item in batch]
+    indices = [item[3] for item in batch]
+
+    # 2. Track original lengths for model inference
+    input_lengths = torch.tensor([s.size(0) for s in neural_signals], dtype=torch.long)
+
+    # 3. Pad neural signals with zeros
+    padded_neural = pad_sequence(neural_signals, batch_first=True, padding_value=0.0)
+
+    return padded_neural, trial_names, indices

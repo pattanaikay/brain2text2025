@@ -1,7 +1,0 @@
-t15_copyTask_neuralData
-t15_pretrained_rnn_baseline
-h5_list_data.json
-session_stats.json
-__pycache__
-checkpoint_epoch_1.pth
-best_model.pth
