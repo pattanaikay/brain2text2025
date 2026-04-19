@@ -58,7 +58,7 @@ Brain2Text2025/
 
 ## Model Architecture
 
-The solution implements a **CNN-BiGRU hybrid architecture** for temporal sequence-to-sequence learning:
+The solution implements a **CNN-BiLSTM hybrid architecture** for temporal sequence-to-sequence learning:
 
 ### Architecture Details
 
@@ -71,7 +71,7 @@ CNN (Spatial-Temporal Feature Extraction)
   - Conv1d(512 → 512, kernel=3)
   - BatchNorm + ReLU
     ↓
-Bidirectional GRU (Sequence Modeling)
+Bidirectional LSTM (Sequence Modeling)
   - 2 layers, 512 hidden units
   - Bidirectional context
   - Dropout(0.3)
@@ -84,7 +84,7 @@ CTC Loss (Connectionist Temporal Classification)
 ### Key Features
 
 - **CNN Layers**: Learn spatial-temporal patterns across 512 neural channels
-- **BiGRU**: Capture bidirectional temporal dependencies in neural sequences
+- **BiLSTM**: Capture bidirectional temporal dependencies in neural sequences
 - **CTC Loss**: Handle variable-length sequences without frame-level alignment
 - **Mixed Precision Training**: Optimized for 6GB+ VRAM using AMP (Automatic Mixed Precision)
 
