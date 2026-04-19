@@ -22,65 +22,8 @@ import h5py
 EPOCHS = 20
 BATCH_SIZE = 16 
 LEARNING_RATE = 1e-4
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 2. Setup
-tokenizer = TextTokenizer()
-file_path = r"C:\Projects\Brain2Text2025\brain2text2025\approach #2- CNN + BiLSTM + ngram\src\utils\ngram_3gram.pkl"
-
-# 3. Load the model
-with open(file_path, 'rb') as f:
-    ngram_model = pickle.load(f)
-
-# Ensure your model is using LSTM (update this in src/models/baseline.py first)
-model = BrainToTextModel(num_classes=len(tokenizer.char_to_int)).to(DEVICE)
-optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-2)
-criterion = nn.CTCLoss(blank=0, zero_infinity=True)
-scaler = amp.GradScaler('cuda' if torch.cuda.is_available() else 'cpu')
-
-# Data Preparation - Load from h5_list_data.json
-H5_LIST_FILE = os.path.join(Path(__file__).parent.parent, 'src', 'utils', 'h5_list_data.json')
-
-if not os.path.exists(H5_LIST_FILE):
-    raise FileNotFoundError(f"h5_list_data.json not found at {H5_LIST_FILE}. Please run trainingdata_list.py first.")
-
-with open(H5_LIST_FILE, 'r') as f:
-    h5_files = json.load(f)
-
-# 4. Initialize separate lists for train and validation
-train_pairs = []
-val_pairs = []
-
-for h5_path in h5_files:
-    # Check for official training files
-    if 'data_train.hdf5' in h5_path:
-        with h5py.File(h5_path, 'r') as h5:
-            train_pairs.extend([(h5_path, trial) for trial in h5.keys()])
-            
-    # Check for official validation files
-    elif 'data_val.hdf5' in h5_path:
-        with h5py.File(h5_path, 'r') as h5:
-            val_pairs.extend([(h5_path, trial) for trial in h5.keys()])
-
-# 5. Safety check to ensure data was found
-if not train_pairs or not val_pairs:
-    raise ValueError("Missing training or validation pairs. Ensure h5_list_data.json contains both 'data_train.hdf5' and 'data_val.hdf5' paths.")
-
-print(f"Loaded {len(train_pairs)} training trials and {len(val_pairs)} validation trials.")
-
-# 6. Remove the random.shuffle and 90/10 split code blocks entirely
-
-session_stats_path = r"C:\Projects\Brain2Text2025\brain2text2025\approach #2- CNN + BiLSTM + ngram\src\preprocessing\session_stats.json"
-
-# 7. Instantiate Datasets using the official pairs directly
-train_dataset = BCI_Dataset(file_trial_pairs=train_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
-val_dataset = BCI_Dataset(file_trial_pairs=val_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
-
-# DataLoaders remain the same
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
-val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
-
-# 8. Validation Function
+# 2. Validation Function
 def validate(model, val_loader, tokenizer, device, ngram_model):
     model.eval()
     all_preds = []
@@ -108,8 +51,62 @@ def validate(model, val_loader, tokenizer, device, ngram_model):
     cer = calculate_cer(all_preds, all_targets)
     return cer
 
-# 9. The Training Loop
+# 3. The Training Loop
 def train():
+    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Setup
+    tokenizer = TextTokenizer()
+    file_path = r"C:\Projects\Brain2Text2025\brain2text2025\approach #2- CNN + BiLSTM + ngram\src\utils\ngram_3gram.pkl"
+
+    # Load the n-gram model
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"N-gram model not found at {file_path}")
+        
+    with open(file_path, 'rb') as f:
+        ngram_model = pickle.load(f)
+
+    # Model and Optimizer setup
+    model = BrainToTextModel(num_classes=len(tokenizer.char_to_int)).to(DEVICE)
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-2)
+    criterion = nn.CTCLoss(blank=0, zero_infinity=True)
+    scaler = amp.GradScaler('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Data Preparation - Load from h5_list_data.json
+    H5_LIST_FILE = os.path.join(Path(__file__).parent.parent, 'src', 'utils', 'h5_list_data.json')
+
+    if not os.path.exists(H5_LIST_FILE):
+        raise FileNotFoundError(f"h5_list_data.json not found at {H5_LIST_FILE}. Please run trainingdata_list.py first.")
+
+    with open(H5_LIST_FILE, 'r') as f:
+        h5_files = json.load(f)
+
+    train_pairs = []
+    val_pairs = []
+
+    for h5_path in h5_files:
+        if 'data_train.hdf5' in h5_path:
+            with h5py.File(h5_path, 'r') as h5:
+                train_pairs.extend([(h5_path, trial) for trial in h5.keys()])
+        elif 'data_val.hdf5' in h5_path:
+            with h5py.File(h5_path, 'r') as h5:
+                val_pairs.extend([(h5_path, trial) for trial in h5.keys()])
+
+    if not train_pairs or not val_pairs:
+        raise ValueError("Missing training or validation pairs.")
+
+    print(f"Loaded {len(train_pairs)} training trials and {len(val_pairs)} validation trials.")
+
+    session_stats_path = r"C:\Projects\Brain2Text2025\brain2text2025\approach #2- CNN + BiLSTM + ngram\src\preprocessing\session_stats.json"
+
+    # Instantiate Datasets
+    train_dataset = BCI_Dataset(file_trial_pairs=train_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
+    val_dataset = BCI_Dataset(file_trial_pairs=val_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
+
+    # DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
+
     best_cer = float('inf')
     
     for epoch in range(EPOCHS):
@@ -139,7 +136,7 @@ def train():
         avg_loss = total_loss / len(train_loader)
         print(f"==> Epoch {epoch+1} Complete. Avg Loss: {avg_loss:.4f}")
         
-        # --- FIXED: Passing ngram_model into validation ---
+        # Validation
         val_cer = validate(model, val_loader, tokenizer, DEVICE, ngram_model)
         print(f"Epoch {epoch+1} | Validation CER: {val_cer:.4f}")
         
