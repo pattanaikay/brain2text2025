@@ -6,7 +6,9 @@ class CharNGramModel:
         self.n = n
         # counts maps context string -> Counter of next characters
         self.counts = collections.defaultdict(collections.Counter)
+        self.totals = collections.defaultdict(int)
         self.vocabulary = set()
+        self.vocab_size = 0
 
     def train(self, sentences):
         """
@@ -31,11 +33,14 @@ class CharNGramModel:
                 context = padded[i : i + self.n - 1]
                 target = padded[i + self.n - 1]
                 self.counts[context][target] += 1
+                self.totals[context] += 1
                 self.vocabulary.add(target)
         
         # Ensure the padding character is in the vocabulary for smoothing calculations
         if self.n > 1:
             self.vocabulary.add("~")
+        
+        self.vocab_size = len(self.vocabulary)
 
     def get_char_log_prob(self, context, char):
         """
@@ -43,26 +48,21 @@ class CharNGramModel:
         The context is standardized to n-1 characters and padded if necessary.
         """
         # Case & Space Handling: Ensure inputs are lowercased
-        context = context.lower()
-        char = char.lower()
+        # context = context.lower() # Optimization: Assume caller handles this or context is already processed
+        # char = char.lower()
         
         # Standardize Context: Ensure retrieval consistently uses n-1 characters
-        # If context is longer than n-1, take the last n-1 characters.
-        # If shorter, pad with ~ on the left (matching the training prefix padding).
         if self.n > 1:
-            # Handle case where context is shorter than n-1 by rjust with ~
-            # and slice to get exactly n-1 characters if it's longer.
             context = context[-(self.n - 1):].rjust(self.n - 1, "~")
         else:
             context = ""
         
-        context_counts = self.counts[context]
-        total = sum(context_counts.values())
+        total = self.totals.get(context, 0)
+        char_count = self.counts[context].get(char, 0)
 
         # Simple Laplace smoothing
-        # Use vocabulary size for smoothing; default to 28 if empty
-        vocab_size = len(self.vocabulary) if self.vocabulary else 28
+        vocab_size = self.vocab_size if self.vocab_size else 28
         
         # Laplace smoothing with 0.1 epsilon
-        prob = (context_counts[char] + 0.1) / (total + 0.1 * vocab_size)
+        prob = (char_count + 0.1) / (total + 0.1 * vocab_size)
         return np.log(prob)

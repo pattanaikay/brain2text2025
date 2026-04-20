@@ -1,6 +1,6 @@
-# Brain-to-Text 2025: Neural Speech Decoding Challenge
+# Brain-to-Text 2025: Approach #2 - CNN + BiLSTM + N-gram Language Model
 
-This repository contains a solution for the **[Kaggle Brain-to-Text 2025 Competition](https://www.kaggle.com/competitions/brain-to-text-25)**, which aims to decode speech directly from intracortical neural activity.
+This repository contains Approach #2 for the **[Kaggle Brain-to-Text 2025 Competition](https://www.kaggle.com/competitions/brain-to-text-25)**, which aims to decode speech directly from intracortical neural activity. This approach enhances the CNN-BiLSTM architecture with n-gram language model integration for improved decoding accuracy.
 
 ## Overview
 
@@ -29,38 +29,45 @@ From the UC Davis Neuroprosthetics Lab, the dataset includes:
 ## Project Structure
 
 ```
-Brain2Text2025/
-├── brain2text2025/
-│   ├── data/                          # Data loading and analysis
-│   │   ├── dataloading.py            # HDF5 file parsing
-│   │   └── neuraldata_viz.py         # Visualization utilities
-│   │
-│   ├── src/                           # Core implementation
+approach #2- CNN + BiLSTM + ngram/
+├── data/                              # Data loading and analysis
+│   ├── dataloading.py                # HDF5 file parsing utilities
+│   └── neuraldata_viz.py             # Visualization utilities
+│
+├── src/                               # Core implementation
+│   ├── models/
+│   │   └── baseline.py               # CNN-BiLSTM architecture
+│   ├── preprocessing/
 │   │   ├── dataloader.py             # PyTorch Dataset and collate functions
-│   │   ├── models/
-│   │   │   └── baseline.py           # CNN-BiLSTM architecture
-│   │   └── preprocessing/
-│   │       ├── dataloader.py         # Additional data utilities
-│   │       └── utils.py              # Normalization, smoothing, stats
-│   │
-│   └── scripts/
-│       └── train.py                  # Training pipeline with mixed precision
+│   │   ├── compute_session_stats.py  # Session statistics computation
+│   │   ├── session_stats.json        # Precomputed session normalization stats
+│   │   └── utils.py                  # Normalization, smoothing, stats utilities
+│   └── utils/
+│       ├── decoders.py               # Greedy and beam search decoders
+│       ├── n_gram.py                 # N-gram language model (CharNGramModel)
+│       ├── ngram_3gram.pkl           # Pretrained 3-gram model
+│       ├── metrics.py                # WER and evaluation metrics
+│       ├── trainingdata_list.py      # Training data paths
+│       ├── h5_list_data.json         # HDF5 file paths
+│       └── inspect_pklfile.py        # Utility for inspecting pickle files
 │
-├── t15_copyTask_neuralData/           # Raw dataset (organized by session)
-│   └── hdf5_data_final/
-│       ├── t15.2023.08.11/
-│       ├── t15.2023.08.13/
-│       └── ... (45 total sessions through 2025)
+├── scripts/
+│   ├── train.py                      # CNN-BiLSTM neural model training
+│   ├── train_ngram.py                # N-gram language model training
+│   ├── submission.py                 # Generate test predictions and submission CSV
+│   ├── models/                       # Trained model checkpoints
+│   └── submissions/                  # Output CSV submissions
 │
-└── t15_pretrained_rnn_baseline/       # Baseline model checkpoints
-    └── checkpoint/
+├── diagnose_beam.py                  # Diagnostic tool for beam search decoder testing
+├── requirements.txt                  # Python dependencies
+└── README.md                         # This file
 ```
 
 ## Model Architecture
 
-The solution implements a **CNN-BiLSTM hybrid architecture** for temporal sequence-to-sequence learning:
+The solution implements a **CNN-BiLSTM hybrid architecture with integrated n-gram language modeling** for improved decoding accuracy:
 
-### Architecture Details
+### Neural Decoder Architecture
 
 ```
 Input: (Batch, Time, 512 neural channels)
@@ -81,12 +88,23 @@ Output: (Batch, Time, num_classes)
 CTC Loss (Connectionist Temporal Classification)
 ```
 
+### Language Model Integration
+
+This approach combines the neural decoder with a **character-level 3-gram language model**:
+
+- **N-gram Model**: CharNGramModel (trained on all sentences in training set)
+- **Decoding Strategy**: Beam search with n-gram scoring
+- **Beam Width**: Configurable (typically 10-20 for inference)
+- **Language Model Weight**: Adjustable via alpha parameter (0 ≤ alpha ≤ 1)
+
 ### Key Features
 
 - **CNN Layers**: Learn spatial-temporal patterns across 512 neural channels
 - **BiLSTM**: Capture bidirectional temporal dependencies in neural sequences
 - **CTC Loss**: Handle variable-length sequences without frame-level alignment
 - **Mixed Precision Training**: Optimized for 6GB+ VRAM using AMP (Automatic Mixed Precision)
+- **N-gram Language Model**: Character-level 3-gram model with smoothing
+- **Beam Search Decoder**: Combines neural model scores with language model probabilities
 
 ## Preprocessing Pipeline
 
@@ -109,15 +127,26 @@ Neural firing is stochastic. Gaussian filtering the time series acts as a low-pa
 
 ## Training
 
-### Configuration
+### Neural Model Configuration
 
 ```python
+# train.py parameters
 EPOCHS = 50
 BATCH_SIZE = 16
 LEARNING_RATE = 1e-4
 OPTIMIZER = AdamW (with weight decay: 1e-2)
 LOSS = CTC Loss (blank index: 0)
 DEVICE = CUDA (with AMP scaling)
+```
+
+### Language Model Training
+
+```python
+# train_ngram.py parameters
+N_GRAM_ORDER = 3  # 3-gram model
+TRAINING_DATA = All training set sentences
+VOCABULARY = Character-level vocabulary
+SMOOTHING = Laplace smoothing (add-one smoothing)
 ```
 
 ### Mixed Precision Training
@@ -150,27 +179,84 @@ pip install tqdm tensorboard  # Optional: for monitoring
 
 ### Running Training
 
-```python
-python brain2text2025/scripts/train.py
+**Step 1: Train the neural decoder**
+```bash
+python scripts/train.py
 ```
+Outputs: Model checkpoints saved to `scripts/models/`
+
+**Step 2: Train the n-gram language model** (optional but recommended)
+```bash
+python scripts/train_ngram.py
+```
+Outputs: N-gram model saved to `src/utils/ngram_3gram.pkl`
 
 ### Making Predictions
 
-1. Load trained model checkpoint
-2. Process test sessions from `t15_copyTask_neuralData/hdf5_data_final/`
-3. Generate phoneme predictions
-4. Apply language model rescoring (n-gram + LLM)
-5. Format output as CSV with columns: `[id, text]`
+**Generate test predictions with n-gram rescoring**:
+```bash
+python scripts/submission.py
+```
+
+This script performs the following pipeline:
+1. Load trained CNN-BiLSTM checkpoint from `scripts/models/best_model.pth`
+2. Load n-gram model from `src/utils/ngram_3gram.pkl`
+3. Process test sessions from HDF5 files
+4. For each test trial:
+   - Generate neural model logits
+   - Apply beam search decoder with n-gram integration
+   - Combine neural scores (CTC) with language model scores
+5. Format output as CSV and save to `scripts/submissions/submission.csv`
+
+### Decoder Options
+
+**Greedy Decoder** (fast, no language model):
+```python
+from src.utils.decoders import greedy_decoder
+result = greedy_decoder(logits, tokenizer)
+```
+
+**Beam Search Decoder** (slower, with n-gram LM):
+```python
+from src.utils.decoders import beam_search_decoder
+result = beam_search_decoder(logits, tokenizer, ngram_model, 
+                            beam_width=10, alpha=0.5)
+```
+- `beam_width`: Number of hypotheses to track (default: 10)
+- `alpha`: Language model weight scaling (0 = pure neural, 1 = full LM weight)
 
 ### Expected Output Format
 
-Submission CSV file with chronological test trials:
+Submission CSV file with chronological test trials (saved to `scripts/submissions/submission.csv`):
 ```
 id,text
 0,the quick brown fox
 1,jumps over the lazy dog
 ...
 1449,...
+```
+
+## Diagnostic Tools
+
+### Beam Search Diagnostic
+
+Test the beam search decoder performance:
+```bash
+python diagnose_beam.py
+```
+
+This utility:
+- Creates mock neural logits (500 timesteps × vocabulary size)
+- Loads the real n-gram model from `src/utils/ngram_3gram.pkl`
+- Runs beam search decoder with beam_width=10
+- Reports execution time and output length
+- Useful for profiling and debugging decoding pipeline
+
+### N-gram Model Inspection
+
+Inspect contents of pickle files:
+```bash
+python src/utils/inspect_pklfile.py
 ```
 ## Dataset Description
 
@@ -202,6 +288,45 @@ Card, N., Wairagkar, M., Iacobacci, C., et al. (2025). "Brain-to-text '25." Kagg
 - **Dataset (Dryad)**: https://doi.org/10.5061/dryad.dncjsxm85
 - **Competition Discussion**: Kaggle discussion board
 - **Contact**: nscard@health.ucdavis.edu
+
+## Approach Comparison
+
+### Approach #1: CNN + BiGRU (Baseline)
+- Single neural decoder with GRU layers
+- Greedy decoding only
+- Simpler pipeline with fewer components
+
+### Approach #2: CNN + BiLSTM + N-gram (This Approach)
+- CNN + BiLSTM neural decoder
+- Integrated character-level 3-gram language model
+- Beam search decoder with n-gram scoring
+- Improved accuracy through language model rescoring
+- More computationally intensive but better WER
+
+## N-gram Language Model Details
+
+### CharNGramModel Class
+
+Implementation in `src/utils/n_gram.py`:
+
+**Training**:
+- Processes all training sentences (lowercased, stripped)
+- Builds n-gram probability tables using context windows
+- Uses padding character '~' for sentence boundaries
+- Supports Laplace smoothing for unseen n-grams
+
+**Inference**:
+- `get_char_log_prob(context, char)`: Returns log-probability of character given context
+- Context automatically standardized to (n-1) characters
+- Handles OOV characters through smoothing
+
+**Example (3-gram)**:
+```
+Sentence: "hello"
+Padding: "~~hello"
+N-grams: ('~~', 'h'), ('~h', 'e'), ('he', 'l'), ('el', 'l'), ('ll', 'o')
+Context stored: ~~ → h, ~h → e, he → l, el → l, ll → o
+```
 
 ## License
 

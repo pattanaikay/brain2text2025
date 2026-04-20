@@ -29,8 +29,9 @@ def validate(model, val_loader, tokenizer, device, ngram_model):
     all_preds = []
     all_targets = []
     
+    print(f"Starting Validation (using Beam Search)...")
     with torch.no_grad():
-        for neural_inputs, targets, _, _ in val_loader:
+        for batch_idx, (neural_inputs, targets, _, _) in enumerate(val_loader):
             logits = model(neural_inputs.to(device))
             log_probs = logits.log_softmax(2)
             
@@ -47,6 +48,9 @@ def validate(model, val_loader, tokenizer, device, ngram_model):
                 target_text = tokenizer.decode(targets[i].tolist())
                 all_preds.append(pred_text)
                 all_targets.append(target_text)
+            
+            if batch_idx % 5 == 0:
+                print(f"  Validation Batch {batch_idx}/{len(val_loader)} processed.")
     
     cer = calculate_cer(all_preds, all_targets)
     return cer
