@@ -20,15 +20,28 @@ class TextTokenizer:
         return "".join([self.int_to_char[t] for t in tokens])
 
 class BCI_Dataset(Dataset):
-    def __init__(self, file_trial_pairs, stats_path, tokenizer=None, sigma=1.5):
+    def __init__(self, file_trial_pairs, stats_path, tokenizer=None, sigma=1.5, cache_data=False):
         self.file_trial_pairs = file_trial_pairs # List of (file_path, trial_name)
         self.sigma = sigma
         self.tokenizer = tokenizer or TextTokenizer()
+        self.cache_data = cache_data
+        self.cache = {}
         
         with open(stats_path, 'r') as f:
-            self.stats = json.load(f)
+            raw_stats = json.load(f)
+            
+        # Pre-process stats into numpy arrays for faster access
+        self.stats = {}
+        for file_path, stat in raw_stats.items():
+            mean = np.array(stat['mean'], dtype=np.float32)
+            std = np.array(stat['std'], dtype=np.float32)
+            std[std == 0] = 1e-8
+            self.stats[file_path] = (mean, std)
 
     def __getitem__(self, idx):
+        if self.cache_data and idx in self.cache:
+            return self.cache[idx]
+
         file_path, trial_name = self.file_trial_pairs[idx]
         
         with h5py.File(file_path, 'r') as f:
@@ -48,22 +61,21 @@ class BCI_Dataset(Dataset):
             try:
                 if 'transcription' in trial_group:
                     transcription = trial_group['transcription'][:]
-                    # Convert bytes to string if needed
-                    if isinstance(transcription, bytes):
+                    if isinstance(transcription, (bytes, np.bytes_)):
                         transcription = transcription.decode('utf-8')
                     elif isinstance(transcription, np.ndarray):
-                        transcription = ''.join([chr(c) for c in transcription])
+                        if transcription.dtype.kind in ['S', 'U']: # string types
+                             transcription = "".join([s.decode('utf-8') if isinstance(s, bytes) else s for s in transcription])
+                        else:
+                             transcription = "".join([chr(int(c)) for c in transcription])
                 else:
                     transcription = ""
             except:
                 transcription = ""
             
-        # 1. Z-Score Normalization
-        mean = np.array(self.stats[file_path]['mean'])
-        std = np.array(self.stats[file_path]['std'])
-        std[std == 0] = 1e-8 # Prevent division by zero
-        
-        normalized = (data - mean) / std
+        # 1. Z-Score Normalization using pre-calculated arrays
+        mean, std = self.stats[file_path]
+        normalized = (data.astype(np.float32) - mean) / std
         
         # 2. Gaussian Smoothing
         smoothed = gaussian_filter1d(normalized, sigma=self.sigma, axis=0)
@@ -71,7 +83,12 @@ class BCI_Dataset(Dataset):
         # Encode transcription to token indices
         target_tokens = torch.tensor(self.tokenizer.encode(transcription), dtype=torch.long)
         
-        return torch.tensor(smoothed, dtype=torch.float32), target_tokens, trial_name, idx
+        result = (torch.from_numpy(smoothed), target_tokens, trial_name, idx)
+        
+        if self.cache_data:
+            self.cache[idx] = result
+            
+        return result
 
     def __len__(self):
         return len(self.file_trial_pairs)

@@ -2,155 +2,263 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.amp as amp
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 import os
 import sys
 import json
+import time
+import logging
 from pathlib import Path
-import pickle  # For loading the trained N-gram model
+import pickle
+import matplotlib.pyplot as plt
+import h5py
+from dataclasses import dataclass, asdict
 
 # Add parent directory to path so we can import src
-sys.path.insert(0, str(Path(__file__).parent.parent))
+base_path = Path(__file__).parent.parent
+sys.path.insert(0, str(base_path))
 
-from src.utils.decoders import beam_search_decoder 
+from src.utils.decoders import beam_search_decoder
 from src.preprocessing.dataloader import BCI_Dataset, bci_collate_fn, TextTokenizer
 from src.models.baseline import BrainToTextModel
-from src.utils.metrics import calculate_cer
-import h5py
+from src.utils.metrics import calculate_cer, calculate_wer
 
-# 1. Configuration & Hyperparameters
-EPOCHS = 20
-BATCH_SIZE = 16 
-LEARNING_RATE = 1e-4
+@dataclass
+class Config:
+    epochs: int = 100
+    batch_size: int = 16
+    learning_rate: float = 1e-4
+    weight_decay: float = 1e-2
+    beam_width: int = 10
+    alpha: float = 0.5
+    num_workers: int = 4
+    cache_data: bool = True
+    model_dir: str = "models"
+    output_dir: str = "outputs"
 
-# 2. Validation Function
-def validate(model, val_loader, tokenizer, device, ngram_model):
+# Setup logging
+def setup_logging(output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    log_file = os.path.join(output_dir, 'train.log')
+    
+    # Configure logging to both file and console
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    return logging.getLogger(__name__)
+
+def greedy_decode(logits, tokenizer):
+    """Fast greedy decoder for training-time CER tracking."""
+    indices = torch.argmax(logits, dim=-1)
+    batch_preds = []
+    for i in range(indices.size(0)):
+        tokens = indices[i].cpu().tolist()
+        decoded_tokens = []
+        last_token = None
+        for t in tokens:
+            if t != 0 and t != last_token:
+                decoded_tokens.append(t)
+            last_token = t
+        batch_preds.append(tokenizer.decode(decoded_tokens))
+    return batch_preds
+
+def plot_metrics(history, output_dir):
+    """Visualization helper for training and validation metrics."""
+    epochs = range(1, len(history['train_loss']) + 1)
+    plt.figure(figsize=(16, 12))
+    
+    metrics = [
+        ('Loss', 'train_loss', 'val_loss'),
+        ('CER', 'train_cer', 'val_cer'),
+        ('WER', 'train_cer', 'val_wer'), # Comparing train CER with val WER
+        ('Val Metrics', 'val_cer', 'val_wer')
+    ]
+    
+    for i, (title, train_key, val_key) in enumerate(metrics, 1):
+        plt.subplot(2, 2, i)
+        plt.plot(epochs, history[train_key], label=f'Train {train_key.split("_")[1].upper()}')
+        plt.plot(epochs, history[val_key], label=f'Val {val_key.split("_")[1].upper()}')
+        plt.title(title)
+        plt.xlabel('Epochs')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.grid(True)
+    
+    plt.tight_layout()
+    plot_path = os.path.join(output_dir, 'training_metrics.png')
+    plt.savefig(plot_path)
+    plt.close()
+    return plot_path
+
+def validate(model, val_loader, tokenizer, device, ngram_model, criterion, config):
     model.eval()
     all_preds = []
     all_targets = []
+    total_loss = 0
     
-    print(f"Starting Validation (using Beam Search)...")
     with torch.no_grad():
-        for batch_idx, (neural_inputs, targets, _, _) in enumerate(val_loader):
-            logits = model(neural_inputs.to(device))
-            log_probs = logits.log_softmax(2)
+        for neural_inputs, targets, input_lengths, target_lengths in val_loader:
+            neural_inputs = neural_inputs.to(device)
+            targets = targets.to(device)
+            input_lengths = input_lengths.to(device)
+            target_lengths = target_lengths.to(device)
             
+            logits = model(neural_inputs)
+            
+            # Calculate validation loss
+            log_probs_loss = logits.transpose(0, 1).log_softmax(2)
+            loss = criterion(log_probs_loss, targets, input_lengths, target_lengths)
+            total_loss += loss.item()
+            
+            log_probs = logits.log_softmax(2)
             for i in range(log_probs.size(0)):
-                # Using your new beam search decoder
                 pred_text = beam_search_decoder(
                     log_probs[i], 
                     tokenizer, 
                     ngram_model, 
-                    beam_width=10, 
-                    alpha=0.5 
+                    beam_width=config.beam_width, 
+                    alpha=config.alpha 
                 )
-                
-                target_text = tokenizer.decode(targets[i].tolist())
+                target_text = tokenizer.decode(targets[i].cpu().tolist())
                 all_preds.append(pred_text)
                 all_targets.append(target_text)
-            
-            if batch_idx % 5 == 0:
-                print(f"  Validation Batch {batch_idx}/{len(val_loader)} processed.")
     
+    avg_loss = total_loss / len(val_loader)
     cer = calculate_cer(all_preds, all_targets)
-    return cer
+    wer = calculate_wer(all_preds, all_targets)
+    return avg_loss, cer, wer
 
-# 3. The Training Loop
 def train():
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    config = Config()
+    logger = setup_logging(config.output_dir)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Using device: {device}")
+    logger.info(f"Config: {asdict(config)}")
     
-    # Setup
     tokenizer = TextTokenizer()
-    file_path = r"C:\Projects\Brain2Text2025\brain2text2025\approach #2- CNN + BiLSTM + ngram\src\utils\ngram_3gram.pkl"
-
-    # Load the n-gram model
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"N-gram model not found at {file_path}")
+    ngram_path = base_path / "src" / "utils" / "ngram_3gram.pkl"
+    if not ngram_path.exists():
+        logger.error(f"N-gram model not found at {ngram_path}")
+        return
         
-    with open(file_path, 'rb') as f:
+    with open(ngram_path, 'rb') as f:
         ngram_model = pickle.load(f)
 
-    # Model and Optimizer setup
-    model = BrainToTextModel(num_classes=len(tokenizer.char_to_int)).to(DEVICE)
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-2)
+    model = BrainToTextModel(num_classes=len(tokenizer.char_to_int)).to(device)
+    optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6)
     criterion = nn.CTCLoss(blank=0, zero_infinity=True)
     scaler = amp.GradScaler('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Data Preparation - Load from h5_list_data.json
-    H5_LIST_FILE = os.path.join(Path(__file__).parent.parent, 'src', 'utils', 'h5_list_data.json')
-
-    if not os.path.exists(H5_LIST_FILE):
-        raise FileNotFoundError(f"h5_list_data.json not found at {H5_LIST_FILE}. Please run trainingdata_list.py first.")
-
-    with open(H5_LIST_FILE, 'r') as f:
+    # Data Preparation
+    h5_list_path = base_path / 'src' / 'utils' / 'h5_list_data.json'
+    with open(h5_list_path, 'r') as f:
         h5_files = json.load(f)
 
-    train_pairs = []
-    val_pairs = []
-
+    train_pairs, val_pairs = [], []
     for h5_path in h5_files:
-        if 'data_train.hdf5' in h5_path:
-            with h5py.File(h5_path, 'r') as h5:
-                train_pairs.extend([(h5_path, trial) for trial in h5.keys()])
-        elif 'data_val.hdf5' in h5_path:
-            with h5py.File(h5_path, 'r') as h5:
-                val_pairs.extend([(h5_path, trial) for trial in h5.keys()])
+        with h5py.File(h5_path, 'r') as h5:
+            trials = [(h5_path, trial) for trial in h5.keys()]
+            if 'data_train.hdf5' in str(h5_path):
+                train_pairs.extend(trials)
+            elif 'data_val.hdf5' in str(h5_path):
+                val_pairs.extend(trials)
 
-    if not train_pairs or not val_pairs:
-        raise ValueError("Missing training or validation pairs.")
+    logger.info(f"Loaded {len(train_pairs)} training trials and {len(val_pairs)} validation trials.")
+    session_stats_path = base_path / "src" / "preprocessing" / "session_stats.json"
 
-    print(f"Loaded {len(train_pairs)} training trials and {len(val_pairs)} validation trials.")
+    train_dataset = BCI_Dataset(train_pairs, str(session_stats_path), tokenizer, cache_data=config.cache_data)
+    val_dataset = BCI_Dataset(val_pairs, str(session_stats_path), tokenizer, cache_data=config.cache_data)
 
-    session_stats_path = r"C:\Projects\Brain2Text2025\brain2text2025\approach #2- CNN + BiLSTM + ngram\src\preprocessing\session_stats.json"
+    train_loader = DataLoader(
+        train_dataset, batch_size=config.batch_size, shuffle=True, 
+        collate_fn=bci_collate_fn, num_workers=config.num_workers, 
+        pin_memory=True, persistent_workers=config.num_workers > 0
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=config.batch_size, shuffle=False, 
+        collate_fn=bci_collate_fn, num_workers=config.num_workers, 
+        pin_memory=True, persistent_workers=config.num_workers > 0
+    )
 
-    # Instantiate Datasets
-    train_dataset = BCI_Dataset(file_trial_pairs=train_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
-    val_dataset = BCI_Dataset(file_trial_pairs=val_pairs, stats_path=session_stats_path, tokenizer=tokenizer)
-
-    # DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
-
-    best_cer = float('inf')
+    history = {'train_loss': [], 'val_loss': [], 'train_cer': [], 'val_cer': [], 'val_wer': []}
+    best_wer = float('inf')
+    start_time = time.time()
     
-    for epoch in range(EPOCHS):
-        model.train()
-        total_loss = 0
-        
-        for batch_idx, (neural_inputs, targets, input_lengths, target_lengths) in enumerate(train_loader):
-            neural_inputs = neural_inputs.to(DEVICE)
-            targets = targets.to(DEVICE)
+    model_dir = Path(config.model_dir)
+    model_dir.mkdir(exist_ok=True)
+
+    try:
+        for epoch in range(config.epochs):
+            epoch_start = time.time()
+            model.train()
+            total_train_loss = 0
+            train_preds, train_targets = [], []
             
-            optimizer.zero_grad()
+            for batch_idx, (neural_inputs, targets, input_lengths, target_lengths) in enumerate(train_loader):
+                neural_inputs, targets = neural_inputs.to(device), targets.to(device)
+                input_lengths, target_lengths = input_lengths.to(device), target_lengths.to(device)
+                
+                optimizer.zero_grad()
+                with torch.autocast(device_type=device.type if device.type != 'cpu' else 'cpu', enabled=device.type != 'cpu'):
+                    logits = model(neural_inputs)
+                    log_probs = logits.transpose(0, 1).log_softmax(2)
+                    loss = criterion(log_probs, targets, input_lengths, target_lengths)
 
-            with torch.autocast(device_type='cuda' if torch.cuda.is_available() else 'cpu'):
-                logits = model(neural_inputs)
-                log_probs = logits.transpose(0, 1).log_softmax(2)
-                loss = criterion(log_probs, targets, input_lengths, target_lengths)
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
 
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+                total_train_loss += loss.item()
+                with torch.no_grad():
+                    train_preds.extend(greedy_decode(logits, tokenizer))
+                    train_targets.extend([tokenizer.decode(t.cpu().tolist()) for t in targets])
 
-            total_loss += loss.item()
+            avg_train_loss = total_train_loss / len(train_loader)
+            avg_train_cer = calculate_cer(train_preds, train_targets)
+            
+            # Validation
+            avg_val_loss, avg_val_cer, avg_val_wer = validate(model, val_loader, tokenizer, device, ngram_model, criterion, config)
+            
+            for key, val in zip(history.keys(), [avg_train_loss, avg_val_loss, avg_train_cer, avg_val_cer, avg_val_wer]):
+                history[key].append(val)
+            
+            scheduler.step(avg_val_wer)
+            
+            logger.info(
+                f"Epoch {epoch+1}/{config.epochs} | "
+                f"Loss: {avg_train_loss:.4f}/{avg_val_loss:.4f} | "
+                f"CER: {avg_train_cer:.4f}/{avg_val_cer:.4f} | "
+                f"WER: {avg_val_wer:.4f} | "
+                f"LR: {optimizer.param_groups[0]['lr']:.2e} | "
+                f"Time: {(time.time()-epoch_start)/60:.2f}m"
+            )
+            
+            if avg_val_wer < best_wer:
+                best_wer = avg_val_wer
+                torch.save(model.state_dict(), model_dir / "best_model_wer.pth")
+                logger.info(f"*** New Best WER: {best_wer:.4f}! Model saved ***")
+            
+            if (epoch + 1) % 10 == 0:
+                torch.save(model.state_dict(), model_dir / f"checkpoint_epoch_{epoch+1}.pth")
+                plot_metrics(history, config.output_dir)
 
-            if batch_idx % 10 == 0:
-                print(f"Epoch {epoch+1} | Batch {batch_idx}/{len(train_loader)} | Loss: {loss.item():.4f}")
-
-        avg_loss = total_loss / len(train_loader)
-        print(f"==> Epoch {epoch+1} Complete. Avg Loss: {avg_loss:.4f}")
-        
-        # Validation
-        val_cer = validate(model, val_loader, tokenizer, DEVICE, ngram_model)
-        print(f"Epoch {epoch+1} | Validation CER: {val_cer:.4f}")
-        
-        if val_cer < best_cer:
-            best_cer = val_cer
-            if not os.path.exists('models'): os.makedirs('models')
-            torch.save(model.state_dict(), "models/best_model.pth")
-            print(f"*** New Best CER! Model saved ***")
-        
-        torch.save(model.state_dict(), f"models/checkpoint_epoch_{epoch+1}.pth")
+    except KeyboardInterrupt:
+        logger.info("Training interrupted by user.")
+    
+    total_time = time.time() - start_time
+    logger.info(f"Training Complete! Total Time: {total_time/3600:.2f}h | Best Val WER: {best_wer:.4f}")
+    
+    # Final saving
+    plot_path = plot_metrics(history, config.output_dir)
+    with open(os.path.join(config.output_dir, 'history.json'), 'w') as f:
+        json.dump(history, f)
+    logger.info(f"History and plots saved to {config.output_dir}")
 
 if __name__ == "__main__":
     train()
