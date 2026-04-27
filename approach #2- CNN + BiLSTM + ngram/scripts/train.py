@@ -178,9 +178,9 @@ def train():
     preprocessed_file = base_path / config.preprocessed_path
     if config.use_preprocessed and preprocessed_file.exists():
         logger.info(f"Using preprocessed data from {preprocessed_file}")
-        # Construct unique names matching the preprocessing format (filename__trialname)
-        train_trial_names = [f"{os.path.basename(p[0])}__{p[1]}" for p in train_pairs]
-        val_trial_names = [f"{os.path.basename(p[0])}__{p[1]}" for p in val_pairs]
+        # Construct unique names matching the preprocessing format (session_file__trialname)
+        train_trial_names = [f"{os.path.basename(os.path.dirname(p[0]))}_{os.path.basename(p[0])}__{p[1]}" for p in train_pairs]
+        val_trial_names = [f"{os.path.basename(os.path.dirname(p[0]))}_{os.path.basename(p[0])}__{p[1]}" for p in val_pairs]
         
         train_dataset = Preprocessed_BCI_Dataset(
             str(preprocessed_file), train_trial_names, tokenizer, cache_data=config.cache_data

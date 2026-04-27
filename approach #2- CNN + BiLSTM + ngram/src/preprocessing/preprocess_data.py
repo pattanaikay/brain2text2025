@@ -83,8 +83,9 @@ def preprocess_to_h5(h5_list_path, stats_path, output_h5_path, sigma=1.5):
                         pass
                     
                     # 5. Save to new H5
-                    # Create unique group names using filename__trialname format
-                    group_name = f"{os.path.basename(file_path)}__{trial_name}"
+                    # Create unique group names using session_file__trialname format
+                    session_id = os.path.basename(os.path.dirname(file_path))
+                    group_name = f"{session_id}_{os.path.basename(file_path)}__{trial_name}"
                     
                     g = out_f.create_group(group_name)
                     g.create_dataset('neural', data=smoothed, compression="gzip")

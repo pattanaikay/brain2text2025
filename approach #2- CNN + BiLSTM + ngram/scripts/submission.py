@@ -67,26 +67,33 @@ if __name__ == '__main__':
     test_pairs = []
     for h5_path in h5_files:
         if 'data_test.hdf5' in str(h5_path):
+            session_name = os.path.basename(os.path.dirname(h5_path))
             with h5py.File(h5_path, 'r') as h5:
                 for trial in h5.keys():
                     trial_obj = h5[trial]
                     if isinstance(trial_obj, h5py.Group):
-                        test_pairs.append((h5_path, trial))
+                        # Use a tuple that includes session for sorting and uniqueness
+                        test_pairs.append((str(h5_path), trial, session_name))
 
-    # Deduplicate to keep only unique (file_path, trial_name) pairs
-    test_pairs = list(set(test_pairs))
+    # Sort and deduplicate to ensure deterministic order
+    test_pairs = sorted(list(set(test_pairs)))
     print(f"Loaded {len(test_pairs)} unique test trials")
 
-    # Create a mapping from index to trial_name for predictions
-    unique_ids_map = {i: pair[1] for i, pair in enumerate(test_pairs)}
+    # Create unique IDs and update test_pairs to (h5_path, trial) for the Dataset
+    unique_ids_map = {}
+    dataset_pairs = []
+    for i, (h5_path, trial, session) in enumerate(test_pairs):
+        unique_id = f"{session}_{trial}"
+        unique_ids_map[i] = unique_id
+        dataset_pairs.append((h5_path, trial))
     
-    if not test_pairs:
+    if not dataset_pairs:
         raise ValueError("No test trials found in data_test.hdf5 files.")
 
     session_stats_path = base_path / "src" / "preprocessing" / "session_stats.json"
 
     # Instantiate Dataset & DataLoader
-    test_dataset = BCI_Dataset(file_trial_pairs=test_pairs, stats_path=str(session_stats_path), tokenizer=tokenizer)
+    test_dataset = BCI_Dataset(file_trial_pairs=dataset_pairs, stats_path=str(session_stats_path), tokenizer=tokenizer)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=test_collate_fn, num_workers=0, pin_memory=True)
 
     # Load the model
