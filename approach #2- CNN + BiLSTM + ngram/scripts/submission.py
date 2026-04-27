@@ -26,7 +26,7 @@ def generate_submission(model, test_loader, tokenizer, device, unique_ids_map, n
 
     print(f"Generating submission entries...")
     with torch.no_grad():
-        for batch_idx, (neural_inputs, indices) in enumerate(test_loader):
+        for batch_idx, (neural_inputs, trial_names, indices) in enumerate(test_loader):
             logits = model(neural_inputs.to(device))
             
             # Loop through the batch
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     # Instantiate Dataset & DataLoader
     test_dataset = BCI_Dataset(file_trial_pairs=test_pairs, stats_path=str(session_stats_path), tokenizer=tokenizer)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=test_collate_fn, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=test_collate_fn, num_workers=0, pin_memory=True)
 
     # Load the model
     model = BrainToTextModel(num_classes=len(tokenizer.char_to_int)).to(device)

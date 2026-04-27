@@ -19,7 +19,7 @@ base_path = Path(__file__).parent.parent
 sys.path.insert(0, str(base_path))
 
 from src.utils.decoders import beam_search_decoder
-from src.preprocessing.dataloader import BCI_Dataset, bci_collate_fn, TextTokenizer
+from src.preprocessing.dataloader import BCI_Dataset, Preprocessed_BCI_Dataset, bci_collate_fn, TextTokenizer
 from src.models.baseline import BrainToTextModel
 from src.utils.metrics import calculate_cer, calculate_wer
 
@@ -31,8 +31,10 @@ class Config:
     weight_decay: float = 1e-2
     beam_width: int = 10
     alpha: float = 0.5
-    num_workers: int = 4
+    num_workers: int = 0  # Set to 0 for stability on Windows
     cache_data: bool = True
+    use_preprocessed: bool = True
+    preprocessed_path: str = "data/preprocessed_data.h5"
     model_dir: str = "models"
     output_dir: str = "outputs"
 
@@ -172,8 +174,26 @@ def train():
     logger.info(f"Loaded {len(train_pairs)} training trials and {len(val_pairs)} validation trials.")
     session_stats_path = base_path / "src" / "preprocessing" / "session_stats.json"
 
-    train_dataset = BCI_Dataset(train_pairs, str(session_stats_path), tokenizer, cache_data=config.cache_data)
-    val_dataset = BCI_Dataset(val_pairs, str(session_stats_path), tokenizer, cache_data=config.cache_data)
+    # Decide which dataset class to use
+    preprocessed_file = base_path / config.preprocessed_path
+    if config.use_preprocessed and preprocessed_file.exists():
+        logger.info(f"Using preprocessed data from {preprocessed_file}")
+        # Construct unique names matching the preprocessing format (filename__trialname)
+        train_trial_names = [f"{os.path.basename(p[0])}__{p[1]}" for p in train_pairs]
+        val_trial_names = [f"{os.path.basename(p[0])}__{p[1]}" for p in val_pairs]
+        
+        train_dataset = Preprocessed_BCI_Dataset(
+            str(preprocessed_file), train_trial_names, tokenizer, cache_data=config.cache_data
+        )
+        val_dataset = Preprocessed_BCI_Dataset(
+            str(preprocessed_file), val_trial_names, tokenizer, cache_data=config.cache_data
+        )
+    else:
+        if config.use_preprocessed:
+            logger.warning(f"Preprocessed file not found at {preprocessed_file}. Falling back to raw data loading.")
+        
+        train_dataset = BCI_Dataset(train_pairs, str(session_stats_path), tokenizer, cache_data=config.cache_data)
+        val_dataset = BCI_Dataset(val_pairs, str(session_stats_path), tokenizer, cache_data=config.cache_data)
 
     train_loader = DataLoader(
         train_dataset, batch_size=config.batch_size, shuffle=True, 

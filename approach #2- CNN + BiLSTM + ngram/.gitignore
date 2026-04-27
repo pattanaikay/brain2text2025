@@ -21,3 +21,6 @@ checkpoint_epoch_15.pth
 checkpoint_epoch_16.pth
 best_model.pth
 submissions
+preprocessed_data.h5
+best_model_wer.pth 
+train.log 

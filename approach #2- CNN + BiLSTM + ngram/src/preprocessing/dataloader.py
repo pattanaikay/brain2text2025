@@ -92,6 +92,40 @@ class BCI_Dataset(Dataset):
 
     def __len__(self):
         return len(self.file_trial_pairs)
+
+class Preprocessed_BCI_Dataset(Dataset):
+    def __init__(self, preprocessed_h5_path, trial_list, tokenizer=None, cache_data=False):
+        """
+        trial_list: List of trial_names to include (e.g., from train or val split)
+        """
+        self.h5_path = preprocessed_h5_path
+        self.trial_list = trial_list
+        self.tokenizer = tokenizer or TextTokenizer()
+        self.cache_data = cache_data
+        self.cache = {}
+
+    def __getitem__(self, idx):
+        if self.cache_data and idx in self.cache:
+            return self.cache[idx]
+
+        trial_name = self.trial_list[idx]
+        
+        with h5py.File(self.h5_path, 'r') as f:
+            trial_group = f[trial_name]
+            smoothed = trial_group['neural'][:]
+            transcription = trial_group['transcription'][()]
+            if isinstance(transcription, (bytes, np.bytes_)):
+                transcription = transcription.decode('utf-8')
+
+        target_tokens = torch.tensor(self.tokenizer.encode(str(transcription)), dtype=torch.long)
+        result = (torch.from_numpy(smoothed), target_tokens, trial_name, idx)
+        
+        if self.cache_data:
+            self.cache[idx] = result
+        return result
+
+    def __len__(self):
+        return len(self.trial_list)
     
 
 def bci_collate_fn(batch):
