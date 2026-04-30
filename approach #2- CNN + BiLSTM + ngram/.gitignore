@@ -19,6 +19,10 @@ checkpoint_epoch_13.pth
 checkpoint_epoch_14.pth
 checkpoint_epoch_15.pth
 checkpoint_epoch_16.pth
+checkpoint_epoch_20.pth
+checkpoint_epoch_30.pth
+checkpoint_epoch_40.pth
+best_model_wer.pth
 best_model.pth
 submissions
 preprocessed_data.h5

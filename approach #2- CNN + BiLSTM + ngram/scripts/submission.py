@@ -8,30 +8,46 @@ import os
 import json
 import h5py
 import pickle
+from dataclasses import dataclass, asdict
 
 # Add parent directory to path so we can import src
 base_path = Path(__file__).parent.parent
 sys.path.insert(0, str(base_path))
 
-from src.preprocessing.dataloader import BCI_Dataset, test_collate_fn, TextTokenizer
+from src.preprocessing.dataloader import BCI_Dataset, Preprocessed_BCI_Dataset, test_collate_fn, TextTokenizer
 from src.models.baseline import BrainToTextModel
 from src.utils.decoders import beam_search_decoder
 
 # 1. Configuration & Hyperparameters
-BATCH_SIZE = 16 
+@dataclass
+class Config:
+    batch_size: int = 16
+    beam_width: int = 10
+    alpha: float = 0.5
+    use_preprocessed: bool = True
+    preprocessed_path: str = "data/preprocessed_data.h5"
+    cache_data: bool = True
 
-def generate_submission(model, test_loader, tokenizer, device, unique_ids_map, ngram_model):
+def generate_submission(model, test_loader, tokenizer, device, unique_ids_map, ngram_model, config):
     model.eval()
     results = []
 
-    print(f"Generating submission entries...")
+    print(f"Generating submission entries using beam_width={config.beam_width}, alpha={config.alpha}...")
     with torch.no_grad():
         for batch_idx, (neural_inputs, trial_names, indices) in enumerate(test_loader):
             logits = model(neural_inputs.to(device))
+            # Apply log_softmax as expected by beam_search_decoder
+            log_probs = logits.log_softmax(dim=2)
             
             # Loop through the batch
-            for i in range(logits.size(0)):
-                pred_text = beam_search_decoder(logits[i], tokenizer, ngram_model)
+            for i in range(log_probs.size(0)):
+                pred_text = beam_search_decoder(
+                    log_probs[i], 
+                    tokenizer, 
+                    ngram_model,
+                    beam_width=config.beam_width,
+                    alpha=config.alpha
+                )
                 idx = indices[i].item() if torch.is_tensor(indices[i]) else indices[i]
                 unique_id = unique_ids_map[idx]
                 results.append({
@@ -52,6 +68,7 @@ def generate_submission(model, test_loader, tokenizer, device, unique_ids_map, n
 
 
 if __name__ == '__main__':
+    config = Config()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = TextTokenizer()
 
@@ -79,22 +96,45 @@ if __name__ == '__main__':
     test_pairs = sorted(list(set(test_pairs)))
     print(f"Loaded {len(test_pairs)} unique test trials")
 
-    # Create unique IDs and update test_pairs to (h5_path, trial) for the Dataset
+    # Create unique IDs map for the final submission
     unique_ids_map = {}
-    dataset_pairs = []
     for i, (h5_path, trial, session) in enumerate(test_pairs):
         unique_id = f"{session}_{trial}"
         unique_ids_map[i] = unique_id
-        dataset_pairs.append((h5_path, trial))
     
-    if not dataset_pairs:
+    if not test_pairs:
         raise ValueError("No test trials found in data_test.hdf5 files.")
 
-    session_stats_path = base_path / "src" / "preprocessing" / "session_stats.json"
+    # Decide which dataset class to use
+    preprocessed_file = base_path / config.preprocessed_path
+    if config.use_preprocessed and preprocessed_file.exists():
+        print(f"Using preprocessed data from {preprocessed_file}")
+        # Construct unique names matching the preprocessing format (session_file__trialname)
+        test_trial_names = [f"{session}_{os.path.basename(h5_path)}__{trial}" for h5_path, trial, session in test_pairs]
+        test_dataset = Preprocessed_BCI_Dataset(
+            str(preprocessed_file), test_trial_names, tokenizer, cache_data=config.cache_data
+        )
+    else:
+        if config.use_preprocessed:
+            print(f"Preprocessed file not found at {preprocessed_file}. Falling back to raw data loading.")
+        
+        session_stats_path = base_path / "src" / "preprocessing" / "session_stats.json"
+        dataset_pairs = [(p[0], p[1]) for p in test_pairs]
+        test_dataset = BCI_Dataset(
+            file_trial_pairs=dataset_pairs, 
+            stats_path=str(session_stats_path), 
+            tokenizer=tokenizer,
+            cache_data=config.cache_data
+        )
 
-    # Instantiate Dataset & DataLoader
-    test_dataset = BCI_Dataset(file_trial_pairs=dataset_pairs, stats_path=str(session_stats_path), tokenizer=tokenizer)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=test_collate_fn, num_workers=0, pin_memory=True)
+    test_loader = DataLoader(
+        test_dataset, 
+        batch_size=config.batch_size, 
+        shuffle=False, 
+        collate_fn=test_collate_fn, 
+        num_workers=0, 
+        pin_memory=True
+    )
 
     # Load the model
     model = BrainToTextModel(num_classes=len(tokenizer.char_to_int)).to(device)
@@ -122,4 +162,4 @@ if __name__ == '__main__':
     with open(ngram_path, 'rb') as f:
         ngram_model = pickle.load(f)
 
-    generate_submission(model, test_loader, tokenizer, device, unique_ids_map, ngram_model)
+    generate_submission(model, test_loader, tokenizer, device, unique_ids_map, ngram_model, config)
