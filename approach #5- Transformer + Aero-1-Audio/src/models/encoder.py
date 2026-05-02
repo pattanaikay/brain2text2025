@@ -24,6 +24,8 @@ class BIT_Transformer(nn.Module):
         if session_ids:
             for sid in session_ids:
                 self.read_in[str(sid)] = nn.Linear(input_dim, input_dim)
+            # Always include a default fallback layer
+            self.read_in["default"] = nn.Linear(input_dim, input_dim)
         else:
             self.read_in["default"] = nn.Identity()
 
@@ -59,21 +61,23 @@ class BIT_Transformer(nn.Module):
                 # If it's a list, we might need to process items individually if they differ
                 if len(set(session_id)) == 1:
                     sid = str(session_id[0])
-                    x = self.read_in.get(sid, self.read_in.get("default", nn.Identity()))(x)
+                    layer = self.read_in[sid] if sid in self.read_in else self.read_in["default"]
+                    x = layer(x)
                 else:
                     # Mixed session batch - less efficient
                     new_x = []
                     for i in range(batch_size):
                         sid = str(session_id[i])
-                        layer = self.read_in.get(sid, self.read_in.get("default", nn.Identity()))
+                        layer = self.read_in[sid] if sid in self.read_in else self.read_in["default"]
                         new_x.append(layer(x[i:i+1]))
                     x = torch.cat(new_x, dim=0)
             else:
                 sid = str(session_id)
-                x = self.read_in.get(sid, self.read_in.get("default", nn.Identity()))(x)
+                layer = self.read_in[sid] if sid in self.read_in else self.read_in["default"]
+                x = layer(x)
         else:
             # Use default if no session_id provided
-            layer = self.read_in.get("default", nn.Identity())
+            layer = self.read_in["default"]
             x = layer(x)
 
         # 2. Time Patching (20ms -> 100ms)

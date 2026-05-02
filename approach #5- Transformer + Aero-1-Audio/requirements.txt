@@ -9,3 +9,5 @@ tqdm>=4.65.0
 jiwer>=3.0.3
 pandas>=2.0.0
 accelerate>=0.25.0
+torchview
+graphviz
