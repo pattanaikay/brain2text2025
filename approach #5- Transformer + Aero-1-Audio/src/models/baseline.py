@@ -9,7 +9,8 @@ from .projector import MLPProjector
 class ModalityAlignmentLoss(nn.Module):
     def __init__(self, temperature=0.07):
         super().__init__()
-        self.temperature = temperature
+        # Blueprint: Must use a learnable temperature parameter (tau)
+        self.temperature = nn.Parameter(torch.tensor(temperature))
 
     def forward(self, neural_embeds, text_embeds):
         """
@@ -25,7 +26,9 @@ class ModalityAlignmentLoss(nn.Module):
         text_embeds = F.normalize(text_embeds, p=2, dim=-1)
         
         # Cosine similarity matrix
-        logits = torch.matmul(neural_embeds, text_embeds.t()) / self.temperature
+        # Ensure temperature is strictly positive
+        tau = torch.clamp(self.temperature, min=1e-4)
+        logits = torch.matmul(neural_embeds, text_embeds.t()) / tau
         
         # Symmetric labels
         labels = torch.arange(batch_size, device=neural_embeds.device)

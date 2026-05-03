@@ -169,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("--ssl_checkpoint", type=str, default="scripts/models/ssl/best_encoder_ssl.pth")
     parser.add_argument("--session_stats", type=str, default=None, help="Path to session_stats.json")
     parser.add_argument("--epochs", type=int, default=600)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--val_interval", type=int, default=10)

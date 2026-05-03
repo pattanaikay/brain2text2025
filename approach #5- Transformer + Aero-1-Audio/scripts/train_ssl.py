@@ -41,6 +41,7 @@ def train_ssl(args):
     model = BIT_Transformer(session_ids=list(session_ids)).to(device)
     optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+    scaler = torch.cuda.amp.GradScaler(enabled=True)
 
     # 3. Training Loop
     best_loss = float('inf')
@@ -74,20 +75,23 @@ def train_ssl(args):
             # Temporary reconstruction head
             recon_head = nn.Linear(model.embed_dim, model.input_dim * model.patch_size).to(device)
             
-            encoded = model(masked_data, session_id=session_id) # (B, T_patch, 384)
-            reconstructed = recon_head(encoded) # (B, T_patch, 512 * 5)
-            
-            # Target is the original data, reshaped to patches
-            batch_size, time_steps, channels = neural_data.shape
-            pad_len = (model.patch_size - (time_steps % model.patch_size)) % model.patch_size
-            target_data = neural_data
-            if pad_len > 0:
-                target_data = torch.nn.functional.pad(target_data, (0, 0, 0, pad_len))
-            target_data = target_data.view(batch_size, -1, model.patch_size * channels)
-            
-            loss = nn.MSELoss()(reconstructed, target_data)
-            loss.backward()
-            optimizer.step()
+            with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                encoded = model(masked_data, session_id=session_id) # (B, T_patch, 384)
+                reconstructed = recon_head(encoded) # (B, T_patch, 512 * 5)
+                
+                # Target is the original data, reshaped to patches
+                batch_size, time_steps, channels = neural_data.shape
+                pad_len = (model.patch_size - (time_steps % model.patch_size)) % model.patch_size
+                target_data = neural_data
+                if pad_len > 0:
+                    target_data = torch.nn.functional.pad(target_data, (0, 0, 0, pad_len))
+                target_data = target_data.view(batch_size, -1, model.patch_size * channels)
+                
+                loss = nn.MSELoss()(reconstructed, target_data)
+                
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             
             total_loss += loss.item()
             pbar.set_postfix({'loss': loss.item()})
@@ -109,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--val_h5", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="scripts/models/ssl")
     parser.add_argument("--epochs", type=int, default=50)
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-4)
     args = parser.parse_args()
     train_ssl(args)
