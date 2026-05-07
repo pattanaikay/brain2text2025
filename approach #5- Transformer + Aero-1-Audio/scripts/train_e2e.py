@@ -9,6 +9,12 @@ from tqdm import tqdm
 import json
 import time
 import numpy as np
+from pathlib import Path
+import sys
+
+# Add parent directory to path so we can import src
+base_path = Path(__file__).parent.parent
+sys.path.insert(0, str(base_path))
 
 from src.models.baseline import BITModel
 from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_fn
@@ -45,8 +51,8 @@ def train_e2e(args):
     train_dataset = Preprocessed_BCI_Dataset(args.train_h5, train_trials, session_stats=session_stats)
     val_dataset = Preprocessed_BCI_Dataset(args.val_h5, val_trials, session_stats=session_stats)
     
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
 
     # 2. Model
     model = BITModel(session_ids=list(session_ids), quantize=True).to(device)

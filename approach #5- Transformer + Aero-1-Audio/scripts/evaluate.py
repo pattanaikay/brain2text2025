@@ -4,6 +4,12 @@ import argparse
 from tqdm import tqdm
 import pandas as pd
 import h5py
+from pathlib import Path
+import sys
+
+# Add parent directory to path so we can import src
+base_path = Path(__file__).parent.parent
+sys.path.insert(0, str(base_path))
 
 from src.models.baseline import BITModel
 from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_fn

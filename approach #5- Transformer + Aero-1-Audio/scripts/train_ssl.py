@@ -7,6 +7,12 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import argparse
 from tqdm import tqdm
 import json
+from pathlib import Path
+import sys
+
+# Add parent directory to path so we can import src
+base_path = Path(__file__).parent.parent
+sys.path.insert(0, str(base_path))
 
 from src.models.encoder import BIT_Transformer
 from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_fn
@@ -34,12 +40,15 @@ def train_ssl(args):
     train_dataset = Preprocessed_BCI_Dataset(args.train_h5, train_trials)
     val_dataset = Preprocessed_BCI_Dataset(args.val_h5, val_trials)
     
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=4, pin_memory=True)
 
     # 2. Model
     model = BIT_Transformer(session_ids=list(session_ids)).to(device)
-    optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
+    recon_head = nn.Linear(model.embed_dim, model.input_dim * model.patch_size).to(device)
+    
+    params = list(model.parameters()) + list(recon_head.parameters())
+    optimizer = AdamW(params, lr=args.lr, weight_decay=0.01)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
     scaler = torch.cuda.amp.GradScaler(enabled=True)
 
@@ -60,21 +69,21 @@ def train_ssl(args):
             # So I should apply masking AFTER the patch embedding? 
             # Or mask the raw features and then patch them.
             
-            # Let's mask the raw features for simplicity, but in blocks.
-            mask = torch.rand_like(neural_data) < 0.15
+            # Contiguous span masking (ratio=0.5) over the time dimension
+            B, T, C = neural_data.shape
+            mask = torch.zeros((B, T, 1), device=device, dtype=torch.bool)
+            mask_len = int(T * 0.5)
+            
+            for i in range(B):
+                start_idx = torch.randint(0, max(1, T - mask_len + 1), (1,)).item()
+                mask[i, start_idx:start_idx + mask_len, :] = True
+            
+            mask = mask.expand(-1, -1, C)
             masked_data = neural_data.clone()
             masked_data[mask] = 0
             
             optimizer.zero_grad()
             # Forward pass
-            # We want to reconstruct the masked parts
-            # But BIT_Transformer outputs embeddings.
-            # For SSL pretraining, we usually add a reconstruction head.
-            # I'll add a simple linear head for reconstruction.
-            
-            # Temporary reconstruction head
-            recon_head = nn.Linear(model.embed_dim, model.input_dim * model.patch_size).to(device)
-            
             with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                 encoded = model(masked_data, session_id=session_id) # (B, T_patch, 384)
                 reconstructed = recon_head(encoded) # (B, T_patch, 512 * 5)
@@ -112,6 +121,11 @@ if __name__ == "__main__":
     parser.add_argument("--train_h5", type=str, required=True)
     parser.add_argument("--val_h5", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="scripts/models/ssl")
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    args = parser.parse_args()
+    train_ssl(args)
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-4)

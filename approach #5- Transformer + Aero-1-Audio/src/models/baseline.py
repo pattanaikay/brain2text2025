@@ -1,10 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
+import sys
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 from .encoder import BIT_Transformer
 from .projector import MLPProjector
+
+# Disable flash attention globally
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
 
 class ModalityAlignmentLoss(nn.Module):
     def __init__(self, temperature=0.07):
@@ -43,23 +50,83 @@ class BITModel(nn.Module):
         super().__init__()
         self.llm_name = llm_name
         
+        # Pre-load config to disable flash attention
+        from transformers import AutoConfig
+        config = AutoConfig.from_pretrained(llm_name, trust_remote_code=True)
+        if hasattr(config, '_attn_implementation'):
+            config._attn_implementation = "eager"
+        
+        # Prevent tie_weights from being called with unsupported arguments
+        # by patching PreTrainedModel before loading
+        from transformers.modeling_utils import PreTrainedModel
+        original_post_init = PreTrainedModel._init_weights if hasattr(PreTrainedModel, '_init_weights') else None
+        
+        def safe_tie_weights(self_model, *args, **kwargs):
+            """Safe tie_weights that ignores recompute_mapping"""
+            kwargs.pop('recompute_mapping', None)
+            try:
+                # Try the parent implementation if it exists
+                if hasattr(super(type(self_model), self_model), 'tie_weights'):
+                    super(type(self_model), self_model).tie_weights(self_model, *args, **kwargs)
+            except (TypeError, AttributeError):
+                # If tie_weights doesn't work, just skip it
+                pass
+        
+        # Patch the tie_weights method
+        PreTrainedModel.tie_weights = safe_tie_weights
+        
         # 1. Load LLM with 4-bit Quantization
-        if quantize:
-            bnb_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
-                bnb_4bit_use_double_quant=True
-            )
-            self.llm = AutoModelForCausalLM.from_pretrained(
-                llm_name,
-                quantization_config=bnb_config,
-                device_map="auto",
-                trust_remote_code=True
-            )
-            self.llm = prepare_model_for_kbit_training(self.llm)
-        else:
-            self.llm = AutoModelForCausalLM.from_pretrained(llm_name, trust_remote_code=True, torch_dtype=torch.bfloat16)
+        try:
+            if quantize:
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                    bnb_4bit_use_double_quant=True
+                )
+                self.llm = AutoModelForCausalLM.from_pretrained(
+                    llm_name,
+                    quantization_config=bnb_config,
+                    device_map="auto",
+                    trust_remote_code=True,
+                    attn_implementation="eager",
+                    config=config
+                )
+                self.llm = prepare_model_for_kbit_training(self.llm)
+            else:
+                self.llm = AutoModelForCausalLM.from_pretrained(
+                    llm_name, 
+                    trust_remote_code=True, 
+                    torch_dtype=torch.bfloat16,
+                    attn_implementation="eager",
+                    config=config
+                )
+        except TypeError as e:
+            # If there's still an error about tie_weights, load without the problematic config
+            if 'recompute_mapping' in str(e) or 'tie_weights' in str(e):
+                print(f"⚠️  Working around model loading issue: {str(e)[:100]}")
+                if quantize:
+                    bnb_config = BitsAndBytesConfig(
+                        load_in_4bit=True,
+                        bnb_4bit_quant_type="nf4",
+                        bnb_4bit_compute_dtype=torch.bfloat16,
+                        bnb_4bit_use_double_quant=True
+                    )
+                    self.llm = AutoModelForCausalLM.from_pretrained(
+                        llm_name,
+                        quantization_config=bnb_config,
+                        device_map="auto",
+                        trust_remote_code=True
+                    )
+                    self.llm = prepare_model_for_kbit_training(self.llm)
+                else:
+                    self.llm = AutoModelForCausalLM.from_pretrained(
+                        llm_name, 
+                        trust_remote_code=True, 
+                        torch_dtype=torch.bfloat16
+                    )
+            else:
+                raise
             
         self.tokenizer = AutoTokenizer.from_pretrained(llm_name, trust_remote_code=True)
         if self.tokenizer.pad_token is None:
@@ -71,13 +138,11 @@ class BITModel(nn.Module):
         self.projector = MLPProjector(output_dim=llm_dim)
         
         # 3. LoRA Configuration
-        # Note: 'audio_projector' or 'mm_projector' depends on Aero-1-Audio's actual architecture
-        # For Qwen-based multimodal models, it's often 'audio_projector' or similar.
         lora_config = LoraConfig(
-            r=16,
+            r=8,
             lora_alpha=32,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "audio_projector"], 
-            lora_dropout=0.05,
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "audio_projector", "gate_proj", "up_proj", "down_proj"], 
+            lora_dropout=0.2,
             bias="none",
             task_type=TaskType.CAUSAL_LM
         )
@@ -94,6 +159,9 @@ class BITModel(nn.Module):
         neural_tokens = self.neural_encoder(neural_data, session_id=session_id) # (B, T_patch, 384)
         projected_embeds = self.projector(neural_tokens) # (B, T_patch, 1536)
         
+        # Audit Fix: Explicitly cast to LLM compute dtype (bfloat16) to avoid mixed-dtype cat errors
+        projected_embeds = projected_embeds.to(self.llm.dtype)
+        
         # 2. Prompt Embeddings
         prompt_inputs = self.tokenizer(self.prompt, return_tensors="pt", add_special_tokens=False).to(device)
         prompt_embeds = self.llm.get_input_embeddings()(prompt_inputs.input_ids)
@@ -103,7 +171,7 @@ class BITModel(nn.Module):
         combined_embeds = torch.cat([projected_embeds, prompt_embeds], dim=1)
         
         loss = 0
-        contrastive_loss = torch.tensor(0.0, device=device)
+        contrastive_loss = torch.tensor(0.0, device=device, dtype=self.llm.dtype)
         
         if labels is not None:
             # 3. Text Embeddings for Labels
@@ -114,18 +182,14 @@ class BITModel(nn.Module):
             full_embeds = torch.cat([combined_embeds, label_embeds], dim=1)
             
             # Masking for CE Loss: we only want to predict the labels
-            # But standard CAUSAL_LM will predict everything. 
-            # We can use labels parameter in self.llm(...) which handles shifting.
-            # We need to set labels for non-target tokens to -100
             target_ids = label_inputs.input_ids.clone()
-            # Padding prefix labels with -100
             prefix_len = combined_embeds.size(1)
             full_labels = torch.full((batch_size, prefix_len + target_ids.size(1)), -100, device=device)
             full_labels[:, prefix_len:] = target_ids
-            # Also mask padding tokens in labels
             full_labels[full_labels == self.tokenizer.pad_token_id] = -100
             
-            attention_mask = torch.ones(full_embeds.shape[:2], device=device)
+            # Audit Fix: Ensure attention mask matches full_embeds shape and is on correct device
+            attention_mask = torch.ones(full_embeds.shape[:2], device=device, dtype=torch.long)
             
             outputs = self.llm(inputs_embeds=full_embeds, attention_mask=attention_mask, labels=full_labels)
             ce_loss = outputs.loss

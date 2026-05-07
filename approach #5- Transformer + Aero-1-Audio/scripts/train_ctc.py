@@ -6,6 +6,12 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import argparse
 from tqdm import tqdm
+from pathlib import Path
+import sys
+
+# Add parent directory to path so we can import src
+base_path = Path(__file__).parent.parent
+sys.path.insert(0, str(base_path))
 
 from src.models.encoder import BIT_Transformer
 from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_fn
