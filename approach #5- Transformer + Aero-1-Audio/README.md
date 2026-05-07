@@ -18,8 +18,11 @@ approach #5- Transformer + Aero-1-Audio/
 ├── scripts/
 │   ├── train_ssl.py                  # Phase 1: Masked Neural Modeling (Pretraining)
 │   ├── train_e2e.py                  # Phase 2: End-to-End BIT Fine-tuning
+│   ├── train_ctc.py                  # Phase 3: CTC-Loss Phoneme Recognition
 │   ├── evaluate.py                   # Generate test predictions and calculate metrics (WER/CER)
 │   ├── plot_metrics.py               # Visualize training dynamics (Loss, WER, CER)
+│   ├── visualize_architecture.py     # Generate architecture visualizations using TorchView
+│   ├── dry_run.py                    # Preflight validation of model initialization and forward pass
 │   └── models/                       # Checkpoints
 │
 ├── src/                               # Core implementation
@@ -40,13 +43,17 @@ approach #5- Transformer + Aero-1-Audio/
 ## Model Architecture
 
 ### 1. Neural Encoder (`BIT_Transformer`)
-- **Type**: Transformer (7 layers, 6 heads, 384 dim)
-- **Patching**: 5x20ms bins $\rightarrow$ 1x100ms patch
-- **Drift Correction**: `nn.ModuleDict` of session-specific linear read-in layers
+- **Type**: Transformer with Rotary Position Embeddings (RoPE) (7 layers, 6 heads, 384 dim)
+- **Positional Encoding**: RoPE applied at each transformer block instead of fixed PE
+- **Patching**: 5x20ms bins $\rightarrow$ 1x100ms patch via LayerNorm-sandwich embedding
+- **Drift Correction**: Session-specific read-in layers using `nn.ModuleDict` for handling probe drift
+- **Preprocessing**: Z-score normalization per session + Gaussian smoothing (σ=1.5)
 
 ### 2. Modality Projector
-- **Architecture**: 3-layer MLP (`Linear -> ReLU -> Linear -> ReLU -> Linear`)
-- **Mapping**: Projects 384-dim neural tokens to 1536-dim LLM space
+- **Architecture**: 5-layer MLP (`Linear -> ReLU -> Linear -> ReLU -> Linear -> ReLU -> Linear -> ReLU -> Linear`)
+- **Hidden Dimension**: 1024
+- **Mapping**: Projects 384-dim neural tokens to 1536-dim LLM latent space
+- **Loss Function**: ModalityAlignmentLoss with learnable temperature parameter ($\tau$) for InfoNCE contrastive alignment
 
 ### 3. LLM Decoder (`Aero-1-Audio-1.5B`)
 - **Base Model**: Qwen-2.5-1.5B (Audio-tuned)
@@ -54,6 +61,12 @@ approach #5- Transformer + Aero-1-Audio/
 - **Adaptation**: LoRA on `q_proj, k_proj, v_proj, o_proj` and `audio_projector`
 
 ## Usage
+
+### 0. Preflight Validation
+Validate model initialization and forward pass (optional):
+```bash
+python scripts/dry_run.py
+```
 
 ### 1. Preparation
 Compute session statistics for Z-score normalization:
@@ -68,16 +81,23 @@ python scripts/train_ssl.py --train_h5 path/to/train.hdf5 --val_h5 path/to/val.h
 ```
 
 ### 3. Phase 2: End-to-End Fine-tuning
-Fine-tune the full BIT pipeline:
+Fine-tune the full BIT pipeline with joint CE + Contrastive loss:
 ```bash
 python scripts/train_e2e.py --train_h5 path/to/train.hdf5 --val_h5 path/to/val.hdf5 --ssl_checkpoint scripts/models/ssl/best_encoder_ssl.pth --session_stats session_stats.json
 ```
 
-### 4. Evaluation & Visualization
-Generate predictions and plots:
+### 4. Phase 3: CTC Phoneme Recognition (Alternative)
+Train with CTC loss for phoneme-level decoding:
+```bash
+python scripts/train_ctc.py --train_h5 path/to/train.hdf5 --val_h5 path/to/val.hdf5 --ssl_checkpoint scripts/models/ssl/best_encoder_ssl.pth
+```
+
+### 5. Evaluation & Visualization
+Generate predictions and visualizations:
 ```bash
 python scripts/evaluate.py --test_h5 path/to/test.hdf5 --checkpoint scripts/models/e2e/best_model_wer.pth
 python scripts/plot_metrics.py --history outputs/training_history.json
+python scripts/visualize_architecture.py  # Generate architecture diagrams
 ```
 
 ## References
