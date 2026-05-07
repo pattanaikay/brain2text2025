@@ -16,8 +16,13 @@ from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_f
 from src.utils.metrics import calculate_wer, calculate_cer
 from torch.utils.data import DataLoader
 
+from src.utils.logging_utils import setup_logging
+
 def evaluate(args):
+    os.makedirs(os.path.dirname(args.output_csv), exist_ok=True)
+    logger = setup_logging(os.path.dirname(args.output_csv), log_name="evaluation")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info(f"Using device: {device}")
     
     # 1. Load Data
     with h5py.File(args.test_h5, 'r') as f:
@@ -32,6 +37,7 @@ def evaluate(args):
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn)
 
     # 2. Model
+    logger.info(f"Loading model from {args.checkpoint}")
     model = BITModel(session_ids=list(session_ids), quantize=True).to(device)
     model.load_state_dict(torch.load(args.checkpoint, map_location=device))
     model.eval()
@@ -60,9 +66,9 @@ def evaluate(args):
     wer = calculate_wer(predictions, targets)
     cer = calculate_cer(predictions, targets)
     
-    print(f"\nEvaluation Results:")
-    print(f"WER: {wer:.4f}")
-    print(f"CER: {cer:.4f}")
+    logger.info("\nEvaluation Results:")
+    logger.info(f"WER: {wer:.4f}")
+    logger.info(f"CER: {cer:.4f}")
     
     # Save Results
     results_df = pd.DataFrame({

@@ -8,9 +8,8 @@ from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_tr
 from .encoder import BIT_Transformer
 from .projector import MLPProjector
 
-# Disable flash attention globally
+# Optimization for A100/A40: Enable Flash Attention if available
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
 
 class ModalityAlignmentLoss(nn.Module):
@@ -50,11 +49,14 @@ class BITModel(nn.Module):
         super().__init__()
         self.llm_name = llm_name
         
-        # Pre-load config to disable flash attention
+        # Use Flash Attention 2 for A100/A40
+        attn_implementation = "flash_attention_2" if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8 else "eager"
+        
+        # Pre-load config
         from transformers import AutoConfig
         config = AutoConfig.from_pretrained(llm_name, trust_remote_code=True)
         if hasattr(config, '_attn_implementation'):
-            config._attn_implementation = "eager"
+            config._attn_implementation = attn_implementation
         
         # Prevent tie_weights from being called with unsupported arguments
         # by patching PreTrainedModel before loading
@@ -89,7 +91,7 @@ class BITModel(nn.Module):
                     quantization_config=bnb_config,
                     device_map="auto",
                     trust_remote_code=True,
-                    attn_implementation="eager",
+                    attn_implementation=attn_implementation,
                     config=config
                 )
                 self.llm = prepare_model_for_kbit_training(self.llm)
@@ -98,7 +100,7 @@ class BITModel(nn.Module):
                     llm_name, 
                     trust_remote_code=True, 
                     torch_dtype=torch.bfloat16,
-                    attn_implementation="eager",
+                    attn_implementation=attn_implementation,
                     config=config
                 )
         except TypeError as e:
@@ -116,14 +118,16 @@ class BITModel(nn.Module):
                         llm_name,
                         quantization_config=bnb_config,
                         device_map="auto",
-                        trust_remote_code=True
+                        trust_remote_code=True,
+                        attn_implementation=attn_implementation
                     )
                     self.llm = prepare_model_for_kbit_training(self.llm)
                 else:
                     self.llm = AutoModelForCausalLM.from_pretrained(
                         llm_name, 
                         trust_remote_code=True, 
-                        torch_dtype=torch.bfloat16
+                        torch_dtype=torch.bfloat16,
+                        attn_implementation=attn_implementation
                     )
             else:
                 raise
@@ -217,6 +221,9 @@ class BITModel(nn.Module):
         with torch.no_grad():
             neural_tokens = self.neural_encoder(neural_data, session_id=session_id)
             projected_embeds = self.projector(neural_tokens)
+            
+            # Explicitly cast to LLM compute dtype to avoid mixed-dtype cat errors
+            projected_embeds = projected_embeds.to(self.llm.dtype)
             
             prompt_inputs = self.tokenizer(self.prompt, return_tensors="pt", add_special_tokens=False).to(neural_data.device)
             prompt_embeds = self.llm.get_input_embeddings()(prompt_inputs.input_ids)
