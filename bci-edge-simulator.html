@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive simulator for BCI edge deployment feasibility across quantization levels and hardware">
+    <meta name="keywords" content="BCI, brain computer interface, edge AI, Jetson, deployment">
+    <meta property="og:title" content="BCI Edge Deployment Feasibility Simulator">
+    <meta property="og:description" content="Explore quantization, latency, power, and battery life tradeoffs interactively">
+    <meta property="og:type" content="website">
+    
+    <title>BCI Edge Deployment Feasibility Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #2c3e50;
+            --border-radius: 12px;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        header h1 {
+            font-size: clamp(1.8em, 5vw, 2.8em);
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--light);
+            padding: 15px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-title {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        /* Main content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            padding: 40px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--light);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.95em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-value {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-toggle {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-toggle:hover {
+            border-color: var(--primary);
+            background: #f0f4ff;
+        }
+
+        .btn-toggle.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .info-banner {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #1565c0;
+            line-height: 1.4;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            position: relative;
+            min-height: 400px;
+        }
+
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .metric-card.success {
+            border-left-color: var(--success);
+        }
+
+        .metric-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .metric-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric-status {
+            font-size: 0.85em;
+            color: #888;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric-status.pass {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .metric-status.warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .metric-status.fail {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--light);
+            padding: 30px 40px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            border-top: 1px solid #e0e0e0;
+            margin-top: auto;
+        }
+
+        .footer-links {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-panel {
+                position: static;
+                max-height: none;
+            }
+
+            header {
+                padding: 30px 20px;
+            }
+
+            nav {
+                padding: 15px 20px;
+            }
+
+            .main-content {
+                padding: 25px 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-stats {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nav-buttons {
+                width: 100%;
+            }
+
+            .nav-btn {
+                flex: 1;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Share modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .modal-text {
+            margin-bottom: 15px;
+            color: #666;
+        }
+
+        .share-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            font-family: monospace;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .close-btn {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .close-btn:hover {
+            background: #d0d0d0;
+        }
+
+        /* Printable area */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .controls-panel,
+            nav,
+            footer,
+            .export-buttons {
+                display: none;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 0;
+            }
+
+            .chart-container {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 BCI Edge Deployment Simulator</h1>
+            <p>Interactive feasibility explorer for neural BCIs on edge devices</p>
+        </header>
+
+        <nav>
+            <span class="nav-title">Zhang et al. 2025 Architecture</span>
+            <div class="nav-buttons">
+                <button class="nav-btn" onclick="shareApp()">📤 Share App</button>
+                <button class="nav-btn" onclick="generatePDF()">📄 Export PDF</button>
+                <button class="nav-btn" onclick="resetApp()">🔄 Reset</button>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <!-- Controls Panel -->
+            <div class="controls-panel">
+                <div class="info-banner">
+                    💡 Adjust parameters and watch metrics update in real-time. Explore deployment tradeoffs across different devices and quantization strategies.
+                </div>
+
+                <div class="control-group">
+                    <label>Quantization Strategy</label>
+                    <div class="button-group">
+                        <button class="btn-toggle active" data-quant="fp16">FP16</button>
+                        <button class="btn-toggle" data-quant="int8">INT8</button>
+                        <button class="btn-toggle" data-quant="int4">INT4</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Edge Device</label>
+                    <div class="button-group">
+                        <button class="btn-toggle active" data-device="orin-nx">NX 16GB</button>
+                        <button class="btn-toggle" data-device="orin-nano">Nano</button>
+                        <button class="btn-toggle" data-device="orin-agx">AGX 64GB</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Battery Capacity (Wh)
+                        <span class="control-value"><span id="batteryValue">30</span> Wh</span>
+                    </label>
+                    <input type="range" id="batterySlider" min="10" max="100" value="30" step="5">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Duty Cycle (%)
+                        <span class="control-value"><span id="dutyCycleValue">6</span>%</span>
+                    </label>
+                    <input type="range" id="dutyCycleSlider" min="1" max="20" value="6" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Tokens/Sentence
+                        <span class="control-value"><span id="tokensValue">25</span></span>
+                    </label>
+                    <input type="range" id="tokensSlider" min="10" max="50" value="25" step="5">
+                </div>
+
+                <div class="quick-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Model Size</div>
+                        <div class="stat-value" id="modelSize">0.8GB</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">WER Loss</div>
+                        <div class="stat-value" id="werLoss">+0.3%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Power</div>
+                        <div class="stat-value" id="avgPower">1.5W</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Battery Life</div>
+                        <div class="stat-value" id="batteryLife">20h</div>
+                    </div>
+                </div>
+
+                <div class="export-buttons">
+                    <button class="btn btn-primary" onclick="generateReport()">📊 Generate Report</button>
+                    <button class="btn btn-secondary" onclick="downloadJSON()">💾 Download JSON</button>
+                </div>
+            </div>
+
+            <!-- Visualization Panel -->
+            <div class="visualization-panel">
+                <div class="chart-container">
+                    <div class="chart-title">Inference Latency Breakdown</div>
+                    <canvas id="latencyChart"></canvas>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card success" id="modelCard">
+                        <div class="metric-label">Model Size</div>
+                        <div class="metric-value" id="modelMetric">0.8 GB</div>
+                        <div class="metric-status pass">✓ Fits in RAM</div>
+                    </div>
+
+                    <div class="metric-card" id="werCard">
+                        <div class="metric-label">WER vs Baseline</div>
+                        <div class="metric-value" id="werMetric">+0.3%</div>
+                        <div class="metric-status pass">✓ Acceptable</div>
+                    </div>
+
+                    <div class="metric-card" id="latencyCard">
+                        <div class="metric-label">Total Latency</div>
+                        <div class="metric-value" id="latencyMetric">2.1s</div>
+                        <div class="metric-status pass">✓ Comfortable</div>
+                    </div>
+
+                    <div class="metric-card" id="batteryCard">
+                        <div class="metric-label">Battery Life</div>
+                        <div class="metric-value" id="batteryMetric">20h</div>
+                        <div class="metric-status pass">✓ All-day</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Device Comparison</div>
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Power & Thermal Profile</div>
+                    <canvas id="powerChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Feasibility Matrix</div>
+                    <canvas id="feasibilityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-links">
+                <a href="https://github.com/pattanaikay/brain2text2025" target="_blank">📚 GitHub Repository</a>
+                <a href="#" onclick="shareApp(); return false;">📤 Share This App</a>
+                <a href="#" onclick="downloadJSON(); return false;">💾 Download Config</a>
+            </div>
+            <p>BCI Edge Deployment Simulator | Based on Zhang et al. (2025) Architecture</p>
+            <p style="margin-top: 10px; font-size: 0.85em;">Data-driven projections based on measured encoder performance and device specifications</p>
+        </footer>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Share This Simulator</div>
+            <div class="modal-text">Copy the link below to share with others:</div>
+            <input type="text" id="shareLink" class="share-input" readonly>
+            <div class="modal-buttons">
+                <button class="copy-btn" onclick="copyToClipboard()">📋 Copy Link</button>
+                <button class="close-btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Device specifications
+        const devices = {
+            'orin-nx': {
+                name: 'Jetson Orin NX 16GB',
+                memory: 16,
+                bandwidth: 204,
+                baselinePower: 3,
+                peakPower: 25,
+                encoderLatency: 140,
+                cost: 850
+            },
+            'orin-nano': {
+                name: 'Jetson Orin Nano Super',
+                memory: 8,
+                bandwidth: 102,
+                baselinePower: 2,
+                peakPower: 18,
+                encoderLatency: 280,
+                cost: 249
+            },
+            'orin-agx': {
+                name: 'Jetson Orin AGX 64GB',
+                memory: 64,
+                bandwidth: 408,
+                baselinePower: 5,
+                peakPower: 60,
+                encoderLatency: 70,
+                cost: 2000
+            }
+        };
+
+        // Quantization profiles
+        const quantizations = {
+            'fp16': { name: 'FP16 (Baseline)', size: 3.2, werLoss: 0 },
+            'int8': { name: 'INT8 (Moderate)', size: 0.8, werLoss: 0.3 },
+            'int4': { name: 'INT4 (Aggressive)', size: 0.4, werLoss: 0.9 }
+        };
+
+        // State
+        let currentDevice = 'orin-nx';
+        let currentQuant = 'int8';
+        let currentBattery = 30;
+        let currentDutyCycle = 6;
+        let currentTokens = 25;
+        let charts = {};
+
+        // Initialize
+        function init() {
+            setupEventListeners();
+            updateAll();
+        }
+
+        function setupEventListeners() {
+            // Device selector
+            document.querySelectorAll('[data-device]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('[data-device]').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentDevice = e.target.dataset.device;
+                    updateAll();
+                });
+            });
+
+            // Quantization selector
+            document.querySelectorAll('[data-quant]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('[data-quant]').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentQuant = e.target.dataset.quant;
+                    updateAll();
+                });
+            });
+
+            // Sliders
+            document.getElementById('batterySlider').addEventListener('input', (e) => {
+                currentBattery = parseInt(e.target.value);
+                document.getElementById('batteryValue').textContent = currentBattery;
+                updateAll();
+            });
+
+            document.getElementById('dutyCycleSlider').addEventListener('input', (e) => {
+                currentDutyCycle = parseInt(e.target.value);
+                document.getElementById('dutyCycleValue').textContent = currentDutyCycle;
+                updateAll();
+            });
+
+            document.getElementById('tokensSlider').addEventListener('input', (e) => {
+                currentTokens = parseInt(e.target.value);
+                document.getElementById('tokensValue').textContent = currentTokens;
+                updateAll();
+            });
+        }
+
+        function updateAll() {
+            updateMetrics();
+            updateCharts();
+            updateStatus();
+        }
+
+        function updateMetrics() {
+            const device = devices[currentDevice];
+            const quant = quantizations[currentQuant];
+
+            // Basic metrics
+            document.getElementById('modelSize').textContent = `${quant.size}GB`;
+            document.getElementById('modelMetric').textContent = `${quant.size} GB`;
+            document.getElementById('werLoss').textContent = `+${quant.werLoss}%`;
+            document.getElementById('werMetric').textContent = `+${quant.werLoss}%`;
+
+            // Latency calculation
+            const baselineLatency = 890;
+            const gpuBandwidth = 936;
+            const scaledLatency = (baselineLatency * gpuBandwidth / device.bandwidth);
+            const latencySeconds = scaledLatency / 1000;
+
+            document.getElementById('latencyMetric').textContent = `${latencySeconds.toFixed(2)}s`;
+
+            // Power calculation
+            const avgPower = device.baselinePower + 
+                           (device.peakPower - device.baselinePower) * (currentDutyCycle / 100);
+            const batteryLife = (currentBattery / avgPower).toFixed(1);
+
+            document.getElementById('avgPower').textContent = `${avgPower.toFixed(1)}W`;
+            document.getElementById('batteryLife').textContent = `${batteryLife}h`;
+            document.getElementById('batteryMetric').textContent = `${batteryLife}h`;
+
+            window.metrics = { device, quant, latencySeconds, avgPower, batteryLife, scaledLatency, baselineLatency };
+        }
+
+        function updateStatus() {
+            const m = window.metrics;
+
+            // Model card
+            const modelCard = document.getElementById('modelCard');
+            if (m.quant.size <= m.device.memory) {
+                modelCard.className = 'metric-card success';
+                modelCard.querySelector('.metric-status').className = 'metric-status pass';
+                modelCard.querySelector('.metric-status').textContent = '✓ Fits in RAM';
+            } else {
+                modelCard.className = 'metric-card danger';
+                modelCard.querySelector('.metric-status').className = 'metric-status fail';
+                modelCard.querySelector('.metric-status').textContent = '✗ Too large';
+            }
+
+            // WER card
+            const werCard = document.getElementById('werCard');
+            if (m.quant.werLoss <= 1) {
+                werCard.className = 'metric-card success';
+                werCard.querySelector('.metric-status').className = 'metric-status pass';
+                werCard.querySelector('.metric-status').textContent = '✓ Acceptable';
+            } else {
+                werCard.className = 'metric-card warning';
+                werCard.querySelector('.metric-status').className = 'metric-status warning';
+                werCard.querySelector('.metric-status').textContent = '⚠ Significant';
+            }
+
+            // Latency card
+            const latencyCard = document.getElementById('latencyCard');
+            if (m.latencySeconds < 2) {
+                latencyCard.className = 'metric-card success';
+                latencyCard.querySelector('.metric-status').className = 'metric-status pass';
+                latencyCard.querySelector('.metric-status').textContent = '✓ Very responsive';
+            } else if (m.latencySeconds < 4) {
+                latencyCard.className = 'metric-card';
+                latencyCard.querySelector('.metric-status').className = 'metric-status pass';
+                latencyCard.querySelector('.metric-status').textContent = '✓ Acceptable';
+            } else {
+                latencyCard.className = 'metric-card warning';
+                latencyCard.querySelector('.metric-status').className = 'metric-status warning';
+                latencyCard.querySelector('.metric-status').textContent = '⚠ Slow';
+            }
+
+            // Battery card
+            const batteryCard = document.getElementById('batteryCard');
+            if (m.batteryLife >= 8) {
+                batteryCard.className = 'metric-card success';
+                batteryCard.querySelector('.metric-status').className = 'metric-status pass';
+                batteryCard.querySelector('.metric-status').textContent = '✓ All-day';
+            } else if (m.batteryLife >= 4) {
+                batteryCard.className = 'metric-card warning';
+                batteryCard.querySelector('.metric-status').className = 'metric-status warning';
+                batteryCard.querySelector('.metric-status').textContent = '⚠ Half-day';
+            } else {
+                batteryCard.className = 'metric-card danger';
+                batteryCard.querySelector('.metric-status').className = 'metric-status fail';
+                batteryCard.querySelector('.metric-status').textContent = '✗ Limited';
+            }
+        }
+
+        function updateCharts() {
+            updateLatencyChart();
+            updateComparisonChart();
+            updatePowerChart();
+            updateFeasibilityChart();
+        }
+
+        function updateLatencyChart() {
+            const m = window.metrics;
+            const encoderLat = m.device.encoderLatency;
+            const lmLat = m.scaledLatency - encoderLat;
+
+            if (!charts.latency) {
+                const ctx = document.getElementById('latencyChart').getContext('2d');
+                charts.latency = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Latency (ms)'],
+                        datasets: [
+                            {
+                                label: 'Encoder',
+                                data: [encoderLat],
+                                backgroundColor: '#3498db'
+                            },
+                            {
+                                label: `LLM (${currentTokens} tokens)`,
+                                data: [lmLat],
+                                backgroundColor: '#e74c3c'
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true }
+                        },
+                        plugins: {
+                            legend: { position: 'top' }
+                        }
+                    }
+                });
+            } else {
+                charts.latency.data.datasets[0].data = [encoderLat];
+                charts.latency.data.datasets[1].data = [lmLat];
+                charts.latency.data.datasets[1].label = `LLM (${currentTokens} tokens)`;
+                charts.latency.update();
+            }
+        }
+
+        function updateComparisonChart() {
+            const allDevices = Object.keys(devices).map(key => ({
+                name: devices[key].name.replace('Jetson ', ''),
+                latency: 890 * 936 / devices[key].bandwidth / 1000,
+                id: key
+            }));
+
+            if (!charts.comparison) {
+                const ctx = document.getElementById('comparisonChart').getContext('2d');
+                charts.comparison = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: allDevices.map(d => d.name),
+                        datasets: [{
+                            label: 'Total Latency (seconds)',
+                            data: allDevices.map(d => d.latency),
+                            backgroundColor: allDevices.map(d => d.id === currentDevice ? '#667eea' : '#ddd')
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            } else {
+                charts.comparison.data.datasets[0].backgroundColor = allDevices.map(d => d.id === currentDevice ? '#667eea' : '#ddd');
+                charts.comparison.data.datasets[0].data = allDevices.map(d => d.latency);
+                charts.comparison.update();
+            }
+        }
+
+        function updatePowerChart() {
+            const m = window.metrics;
+
+            if (!charts.power) {
+                const ctx = document.getElementById('powerChart').getContext('2d');
+                charts.power = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Idle', 'Peak', 'Average'],
+                        datasets: [{
+                            label: 'Power (Watts)',
+                            data: [m.device.baselinePower, m.device.peakPower, m.avgPower],
+                            backgroundColor: ['#95a5a6', '#e74c3c', '#f39c12']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            } else {
+                charts.power.data.datasets[0].data = [m.device.baselinePower, m.device.peakPower, m.avgPower];
+                charts.power.update();
+            }
+        }
+
+        function updateFeasibilityChart() {
+            const m = window.metrics;
+            
+            const checks = [
+                m.quant.size <= m.device.memory ? 100 : 0,
+                m.quant.werLoss <= 1 ? 100 : 50,
+                m.latencySeconds < 4 ? 100 : 50,
+                m.batteryLife >= 8 ? 100 : 50
+            ];
+
+            if (!charts.feasibility) {
+                const ctx = document.getElementById('feasibilityChart').getContext('2d');
+                charts.feasibility = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Fits in RAM', 'Accuracy Loss', 'Latency', 'Battery Life'],
+                        datasets: [{
+                            label: 'Feasibility Score (%)',
+                            data: checks,
+                            fill: true,
+                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                            borderColor: '#667eea',
+                            pointBackgroundColor: '#667eea'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            } else {
+                charts.feasibility.data.datasets[0].data = checks;
+                charts.feasibility.update();
+            }
+        }
+
+        function generateReport() {
+            const m = window.metrics;
+            const timestamp = new Date().toLocaleString();
+
+            const report = `
+BCI EDGE DEPLOYMENT FEASIBILITY REPORT
+Generated: ${timestamp}
+
+CONFIGURATION
+Device: ${m.device.name}
+Quantization: ${quantizations[currentQuant].name}
+Battery: ${currentBattery} Wh
+Duty Cycle: ${currentDutyCycle}%
+Tokens/Sentence: ${currentTokens}
+
+METRICS
+Model Size: ${m.quant.size} GB (Device has ${m.device.memory} GB)
+WER Loss: +${m.quant.werLoss}%
+Total Latency: ${m.latencySeconds.toFixed(2)} seconds
+Average Power: ${m.avgPower.toFixed(1)} W
+Battery Life: ${m.batteryLife} hours (on ${currentBattery} Wh battery)
+
+FEASIBILITY ASSESSMENT
+✓ Deployment Viable: ${m.quant.size <= m.device.memory && m.quant.werLoss <= 1 ? 'YES' : 'MARGINAL'}
+✓ Real-time Capable: ${m.latencySeconds < 3 ? 'YES' : 'NO'}
+✓ Battery Life: ${m.batteryLife >= 8 ? 'EXCELLENT' : m.batteryLife >= 4 ? 'ADEQUATE' : 'LIMITED'}
+
+RECOMMENDATION
+This configuration is ${m.quant.size <= m.device.memory && m.quant.werLoss <= 1 ? 'RECOMMENDED' : 'MARGINAL'} for clinical deployment.
+            `;
+
+            // Copy to clipboard and show alert
+            navigator.clipboard.writeText(report).then(() => {
+                alert('Report copied to clipboard!');
+            });
+        }
+
+        function downloadJSON() {
+            const m = window.metrics;
+            const data = {
+                timestamp: new Date().toISOString(),
+                config: {
+                    device: currentDevice,
+                    quantization: currentQuant,
+                    battery: currentBattery,
+                    dutyCycle: currentDutyCycle,
+                    tokens: currentTokens
+                },
+                metrics: {
+                    modelSize: m.quant.size,
+                    werLoss: m.quant.werLoss,
+                    latencySeconds: parseFloat(m.latencySeconds.toFixed(2)),
+                    avgPower: parseFloat(m.avgPower.toFixed(1)),
+                    batteryLife: parseFloat(m.batteryLife)
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bci_deployment_${Date.now()}.json`;
+            a.click();
+        }
+
+        function generatePDF() {
+            const element = document.querySelector('.main-content');
+            const opt = {
+                margin: 10,
+                filename: `bci_deployment_report_${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function shareApp() {
+            const url = window.location.href;
+            document.getElementById('shareLink').value = url;
+            document.getElementById('shareModal').classList.add('active');
+        }
+
+        function copyToClipboard() {
+            const input = document.getElementById('shareLink');
+            input.select();
+            document.execCommand('copy');
+            alert('Link copied to clipboard!');
+        }
+
+        function closeModal() {
+            document.getElementById('shareModal').classList.remove('active');
+        }
+
+        function resetApp() {
+            currentDevice = 'orin-nx';
+            currentQuant = 'int8';
+            currentBattery = 30;
+            currentDutyCycle = 6;
+            currentTokens = 25;
+
+            document.querySelectorAll('[data-device]').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-device="orin-nx"]').classList.add('active');
+            document.querySelectorAll('[data-quant]').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-quant="int8"]').classList.add('active');
+
+            document.getElementById('batterySlider').value = 30;
+            document.getElementById('batteryValue').textContent = '30';
+            document.getElementById('dutyCycleSlider').value = 6;
+            document.getElementById('dutyCycleValue').textContent = '6';
+            document.getElementById('tokensSlider').value = 25;
+            document.getElementById('tokensValue').textContent = '25';
+
+            updateAll();
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
