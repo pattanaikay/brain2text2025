@@ -11,7 +11,7 @@ import sys
 base_path = Path(__file__).parent.parent
 sys.path.insert(0, str(base_path))
 
-from src.models.baseline import BITModel
+from src.models.bit_e2e import BrainToTextE2E
 from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_fn
 from src.utils.metrics import calculate_wer, calculate_cer
 from torch.utils.data import DataLoader
@@ -38,7 +38,7 @@ def evaluate(args):
 
     # 2. Model
     logger.info(f"Loading model from {args.checkpoint}")
-    model = BITModel(session_ids=list(session_ids), quantize=True).to(device)
+    model = BrainToTextE2E(session_ids=list(session_ids), quantize=True).to(device)
     model.load_state_dict(torch.load(args.checkpoint, map_location=device))
     model.eval()
 

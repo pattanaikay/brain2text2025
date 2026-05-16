@@ -19,7 +19,7 @@ import traceback
 base_path = Path(__file__).parent.parent
 sys.path.insert(0, str(base_path))
 
-from src.models.baseline import BITModel
+from src.models.bit_e2e import BrainToTextE2E
 from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_fn
 from src.utils.metrics import calculate_wer, calculate_cer
 from src.utils.logging_utils import setup_logging
@@ -113,12 +113,13 @@ def _train_logic(args, logger):
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
 
     # 3. Model
-    model = BITModel(session_ids=list(session_ids), quantize=True).to(device)
+    quantize = not args.no_quantize
+    model = BrainToTextE2E(session_ids=list(session_ids), quantize=quantize).to(device)
     
-    # Load Pretrained SSL/CTC Encoder if available
-    if args.ssl_checkpoint and os.path.exists(args.ssl_checkpoint):
-        logger.info(f"Loading Pretrained Encoder from {args.ssl_checkpoint}")
-        checkpoint_data = torch.load(args.ssl_checkpoint, map_location=device)
+    # Load Pretrained Encoder if available
+    if args.pretrained_encoder and os.path.exists(args.pretrained_encoder):
+        logger.info(f"Loading Pretrained Encoder from {args.pretrained_encoder}")
+        checkpoint_data = torch.load(args.pretrained_encoder, map_location=device)
         
         state_dict = checkpoint_data.get('model_state_dict', checkpoint_data)
             
@@ -301,7 +302,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_h5", type=str, required=True)
     parser.add_argument("--val_h5", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="scripts/models/e2e")
-    parser.add_argument("--ssl_checkpoint", type=str, default="scripts/models/ctc/best_model_per.pth")
+    parser.add_argument("--pretrained_encoder", type=str, default="outputs/ctc/best_model_per.pth")
     parser.add_argument("--session_stats", type=str, default=None, help="Path to session_stats.json")
     parser.add_argument("--epochs", type=int, default=600)
     parser.add_argument("--batch_size", type=int, default=16)
@@ -310,5 +311,6 @@ if __name__ == "__main__":
     parser.add_argument("--val_interval", type=int, default=10)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--accumulation_steps", type=int, default=4, help="Number of steps to accumulate gradients")
+    parser.add_argument("--no_quantize", action="store_true", help="Disable quantization for local testing")
     args = parser.parse_args()
     train_e2e(args)

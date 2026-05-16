@@ -1,0 +1,144 @@
+2026-05-13 03:33:55,116 - root - INFO - Using device: cuda
+2026-05-13 03:33:56,942 - root - INFO - Detected 1 session IDs
+2026-05-13 03:33:57,967 - root - INFO - Using compute dtype: torch.bfloat16
+2026-05-13 03:34:30,823 - root - INFO - Epoch 1 Avg Loss: 0.1370
+2026-05-13 03:34:30,989 - root - INFO - New best SSL model saved at epoch 1
+2026-05-13 03:34:55,095 - root - INFO - Epoch 2 Avg Loss: 0.1129
+2026-05-13 03:34:55,302 - root - INFO - New best SSL model saved at epoch 2
+2026-05-13 03:35:19,572 - root - INFO - Epoch 3 Avg Loss: 0.1071
+2026-05-13 03:35:19,818 - root - INFO - New best SSL model saved at epoch 3
+2026-05-13 03:35:43,897 - root - INFO - Epoch 4 Avg Loss: 0.1036
+2026-05-13 03:35:44,140 - root - INFO - New best SSL model saved at epoch 4
+2026-05-13 03:36:08,093 - root - INFO - Epoch 5 Avg Loss: 0.0983
+2026-05-13 03:36:08,310 - root - INFO - New best SSL model saved at epoch 5
+2026-05-13 03:36:32,529 - root - INFO - Epoch 6 Avg Loss: 0.0937
+2026-05-13 03:36:32,779 - root - INFO - New best SSL model saved at epoch 6
+2026-05-13 03:36:56,653 - root - INFO - Epoch 7 Avg Loss: 0.0921
+2026-05-13 03:36:56,870 - root - INFO - New best SSL model saved at epoch 7
+2026-05-13 03:37:20,902 - root - INFO - Epoch 8 Avg Loss: 0.0886
+2026-05-13 03:37:21,108 - root - INFO - New best SSL model saved at epoch 8
+2026-05-13 03:37:45,259 - root - INFO - Epoch 9 Avg Loss: 0.0866
+2026-05-13 03:37:45,503 - root - INFO - New best SSL model saved at epoch 9
+2026-05-13 03:38:09,558 - root - INFO - Epoch 10 Avg Loss: 0.0857
+2026-05-13 03:38:09,760 - root - INFO - New best SSL model saved at epoch 10
+2026-05-13 03:38:33,913 - root - INFO - Epoch 11 Avg Loss: 0.0827
+2026-05-13 03:38:34,126 - root - INFO - New best SSL model saved at epoch 11
+2026-05-13 03:38:58,610 - root - INFO - Epoch 12 Avg Loss: 0.0805
+2026-05-13 03:38:58,817 - root - INFO - New best SSL model saved at epoch 12
+2026-05-13 03:39:22,925 - root - INFO - Epoch 13 Avg Loss: 0.0789
+2026-05-13 03:39:23,140 - root - INFO - New best SSL model saved at epoch 13
+2026-05-13 03:39:47,197 - root - INFO - Epoch 14 Avg Loss: 0.0775
+2026-05-13 03:39:47,436 - root - INFO - New best SSL model saved at epoch 14
+2026-05-13 03:40:11,678 - root - INFO - Epoch 15 Avg Loss: 0.0762
+2026-05-13 03:40:11,892 - root - INFO - New best SSL model saved at epoch 15
+2026-05-13 03:40:36,021 - root - INFO - Epoch 16 Avg Loss: 0.0756
+2026-05-13 03:40:36,229 - root - INFO - New best SSL model saved at epoch 16
+2026-05-13 03:41:00,336 - root - INFO - Epoch 17 Avg Loss: 0.0744
+2026-05-13 03:41:00,558 - root - INFO - New best SSL model saved at epoch 17
+2026-05-13 03:41:24,459 - root - INFO - Epoch 18 Avg Loss: 0.0737
+2026-05-13 03:41:24,670 - root - INFO - New best SSL model saved at epoch 18
+2026-05-13 03:41:48,967 - root - INFO - Epoch 19 Avg Loss: 0.0736
+2026-05-13 03:41:49,169 - root - INFO - New best SSL model saved at epoch 19
+2026-05-13 03:42:13,779 - root - INFO - Epoch 20 Avg Loss: 0.0720
+2026-05-13 03:42:13,974 - root - INFO - New best SSL model saved at epoch 20
+2026-05-13 03:42:38,217 - root - INFO - Epoch 21 Avg Loss: 0.0717
+2026-05-13 03:42:38,461 - root - INFO - New best SSL model saved at epoch 21
+2026-05-13 03:43:02,522 - root - INFO - Epoch 22 Avg Loss: 0.0711
+2026-05-13 03:43:02,717 - root - INFO - New best SSL model saved at epoch 22
+2026-05-13 03:43:26,970 - root - INFO - Epoch 23 Avg Loss: 0.0708
+2026-05-13 03:43:27,178 - root - INFO - New best SSL model saved at epoch 23
+2026-05-13 03:43:51,590 - root - INFO - Epoch 24 Avg Loss: 0.0699
+2026-05-13 03:43:51,802 - root - INFO - New best SSL model saved at epoch 24
+2026-05-13 03:44:15,757 - root - INFO - Epoch 25 Avg Loss: 0.0692
+2026-05-13 03:44:16,015 - root - INFO - New best SSL model saved at epoch 25
+2026-05-13 03:44:39,972 - root - INFO - Epoch 26 Avg Loss: 0.0696
+2026-05-13 03:45:04,249 - root - INFO - Epoch 27 Avg Loss: 0.0695
+2026-05-13 03:45:28,556 - root - INFO - Epoch 28 Avg Loss: 0.0686
+2026-05-13 03:45:28,765 - root - INFO - New best SSL model saved at epoch 28
+2026-05-13 03:45:52,580 - root - INFO - Epoch 29 Avg Loss: 0.0678
+2026-05-13 03:45:52,834 - root - INFO - New best SSL model saved at epoch 29
+2026-05-13 03:46:16,779 - root - INFO - Epoch 30 Avg Loss: 0.0684
+2026-05-13 03:46:41,363 - root - INFO - Epoch 31 Avg Loss: 0.0684
+2026-05-13 03:47:05,562 - root - INFO - Epoch 32 Avg Loss: 0.0680
+2026-05-13 03:47:30,293 - root - INFO - Epoch 33 Avg Loss: 0.0672
+2026-05-13 03:47:30,525 - root - INFO - New best SSL model saved at epoch 33
+2026-05-13 03:47:54,286 - root - INFO - Epoch 34 Avg Loss: 0.0676
+2026-05-13 03:48:18,781 - root - INFO - Epoch 35 Avg Loss: 0.0663
+2026-05-13 03:48:19,057 - root - INFO - New best SSL model saved at epoch 35
+2026-05-13 03:48:43,226 - root - INFO - Epoch 36 Avg Loss: 0.0678
+2026-05-13 03:49:07,765 - root - INFO - Epoch 37 Avg Loss: 0.0667
+2026-05-13 03:49:31,804 - root - INFO - Epoch 38 Avg Loss: 0.0659
+2026-05-13 03:49:32,032 - root - INFO - New best SSL model saved at epoch 38
+2026-05-13 03:49:55,969 - root - INFO - Epoch 39 Avg Loss: 0.0659
+2026-05-13 03:50:20,254 - root - INFO - Epoch 40 Avg Loss: 0.0663
+2026-05-13 03:50:44,509 - root - INFO - Epoch 41 Avg Loss: 0.0664
+2026-05-13 03:51:08,778 - root - INFO - Epoch 42 Avg Loss: 0.0667
+2026-05-13 03:51:33,192 - root - INFO - Epoch 43 Avg Loss: 0.0671
+2026-05-13 03:51:57,415 - root - INFO - Epoch 44 Avg Loss: 0.0657
+2026-05-13 03:51:57,642 - root - INFO - New best SSL model saved at epoch 44
+2026-05-13 03:52:21,632 - root - INFO - Epoch 45 Avg Loss: 0.0661
+2026-05-13 03:52:46,255 - root - INFO - Epoch 46 Avg Loss: 0.0668
+2026-05-13 03:53:10,546 - root - INFO - Epoch 47 Avg Loss: 0.0646
+2026-05-13 03:53:10,756 - root - INFO - New best SSL model saved at epoch 47
+2026-05-13 03:53:34,698 - root - INFO - Epoch 48 Avg Loss: 0.0659
+2026-05-13 03:53:58,863 - root - INFO - Epoch 49 Avg Loss: 0.0647
+2026-05-13 03:54:23,418 - root - INFO - Epoch 50 Avg Loss: 0.0652
+2026-05-13 03:54:47,838 - root - INFO - Epoch 51 Avg Loss: 0.0652
+2026-05-13 03:55:12,265 - root - INFO - Epoch 52 Avg Loss: 0.0641
+2026-05-13 03:55:12,496 - root - INFO - New best SSL model saved at epoch 52
+2026-05-13 03:55:36,754 - root - INFO - Epoch 53 Avg Loss: 0.0659
+2026-05-13 03:56:01,223 - root - INFO - Epoch 54 Avg Loss: 0.0654
+2026-05-13 03:56:25,589 - root - INFO - Epoch 55 Avg Loss: 0.0641
+2026-05-13 03:56:49,974 - root - INFO - Epoch 56 Avg Loss: 0.0648
+2026-05-13 03:57:14,806 - root - INFO - Epoch 57 Avg Loss: 0.0646
+2026-05-13 03:57:39,077 - root - INFO - Epoch 58 Avg Loss: 0.0645
+2026-05-13 03:58:03,234 - root - INFO - Epoch 59 Avg Loss: 0.0648
+2026-05-13 03:58:27,646 - root - INFO - Epoch 60 Avg Loss: 0.0643
+2026-05-13 03:58:51,671 - root - INFO - Epoch 61 Avg Loss: 0.0650
+2026-05-13 03:59:15,658 - root - INFO - Epoch 62 Avg Loss: 0.0638
+2026-05-13 03:59:15,897 - root - INFO - New best SSL model saved at epoch 62
+2026-05-13 03:59:39,896 - root - INFO - Epoch 63 Avg Loss: 0.0638
+2026-05-13 04:00:04,119 - root - INFO - Epoch 64 Avg Loss: 0.0636
+2026-05-13 04:00:04,391 - root - INFO - New best SSL model saved at epoch 64
+2026-05-13 04:00:28,673 - root - INFO - Epoch 65 Avg Loss: 0.0629
+2026-05-13 04:00:28,870 - root - INFO - New best SSL model saved at epoch 65
+2026-05-13 04:00:53,063 - root - INFO - Epoch 66 Avg Loss: 0.0634
+2026-05-13 04:01:17,421 - root - INFO - Epoch 67 Avg Loss: 0.0645
+2026-05-13 04:01:41,502 - root - INFO - Epoch 68 Avg Loss: 0.0631
+2026-05-13 04:02:06,276 - root - INFO - Epoch 69 Avg Loss: 0.0636
+2026-05-13 04:02:30,469 - root - INFO - Epoch 70 Avg Loss: 0.0652
+2026-05-13 04:02:54,645 - root - INFO - Epoch 71 Avg Loss: 0.0634
+2026-05-13 04:03:18,615 - root - INFO - Epoch 72 Avg Loss: 0.0634
+2026-05-13 04:03:43,160 - root - INFO - Epoch 73 Avg Loss: 0.0631
+2026-05-13 04:04:07,708 - root - INFO - Epoch 74 Avg Loss: 0.0616
+2026-05-13 04:04:07,964 - root - INFO - New best SSL model saved at epoch 74
+2026-05-13 04:04:31,938 - root - INFO - Epoch 75 Avg Loss: 0.0635
+2026-05-13 04:04:56,162 - root - INFO - Epoch 76 Avg Loss: 0.0632
+2026-05-13 04:05:20,668 - root - INFO - Epoch 77 Avg Loss: 0.0633
+2026-05-13 04:05:44,637 - root - INFO - Epoch 78 Avg Loss: 0.0621
+2026-05-13 04:06:08,726 - root - INFO - Epoch 79 Avg Loss: 0.0633
+2026-05-13 04:06:32,934 - root - INFO - Epoch 80 Avg Loss: 0.0635
+2026-05-13 04:06:57,052 - root - INFO - Epoch 81 Avg Loss: 0.0623
+2026-05-13 04:07:21,127 - root - INFO - Epoch 82 Avg Loss: 0.0622
+2026-05-13 04:07:45,180 - root - INFO - Epoch 83 Avg Loss: 0.0625
+2026-05-13 04:08:09,190 - root - INFO - Epoch 84 Avg Loss: 0.0632
+2026-05-13 04:08:33,191 - root - INFO - Epoch 85 Avg Loss: 0.0622
+2026-05-13 04:08:57,573 - root - INFO - Epoch 86 Avg Loss: 0.0607
+2026-05-13 04:08:57,781 - root - INFO - New best SSL model saved at epoch 86
+2026-05-13 04:09:21,813 - root - INFO - Epoch 87 Avg Loss: 0.0615
+2026-05-13 04:09:46,457 - root - INFO - Epoch 88 Avg Loss: 0.0617
+2026-05-13 04:10:11,574 - root - INFO - Epoch 89 Avg Loss: 0.0619
+2026-05-13 04:10:35,951 - root - INFO - Epoch 90 Avg Loss: 0.0618
+2026-05-13 04:11:00,155 - root - INFO - Epoch 91 Avg Loss: 0.0612
+2026-05-13 04:11:24,421 - root - INFO - Epoch 92 Avg Loss: 0.0624
+2026-05-13 04:11:48,628 - root - INFO - Epoch 93 Avg Loss: 0.0605
+2026-05-13 04:11:48,899 - root - INFO - New best SSL model saved at epoch 93
+2026-05-13 04:12:13,829 - root - INFO - Epoch 94 Avg Loss: 0.0604
+2026-05-13 04:12:14,081 - root - INFO - New best SSL model saved at epoch 94
+2026-05-13 04:12:38,203 - root - INFO - Epoch 95 Avg Loss: 0.0618
+2026-05-13 04:13:02,068 - root - INFO - Epoch 96 Avg Loss: 0.0621
+2026-05-13 04:13:26,306 - root - INFO - Epoch 97 Avg Loss: 0.0615
+2026-05-13 04:13:50,950 - root - INFO - Epoch 98 Avg Loss: 0.0616
+2026-05-13 04:14:15,459 - root - INFO - Epoch 99 Avg Loss: 0.0614
+2026-05-13 04:14:39,502 - root - INFO - Epoch 100 Avg Loss: 0.0609
+2026-05-13 04:14:39,694 - root - INFO - SSL Pretraining Complete.
