@@ -1,1283 +1,882 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Interactive simulator for BCI edge deployment feasibility across quantization levels and hardware">
-    <meta name="keywords" content="BCI, brain computer interface, edge AI, Jetson, deployment">
-    <meta property="og:title" content="BCI Edge Deployment Feasibility Simulator">
-    <meta property="og:description" content="Explore quantization, latency, power, and battery life tradeoffs interactively">
-    <meta property="og:type" content="website">
-    
-    <title>BCI Edge Deployment Feasibility Simulator</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2pdf@0.10.1/dist/html2pdf.bundle.min.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #667eea;
-            --primary-dark: #5568d3;
-            --secondary: #764ba2;
-            --success: #2ecc71;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --light: #f8f9fa;
-            --dark: #2c3e50;
-            --border-radius: 12px;
-            --shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        /* Header */
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        }
-
-        header h1 {
-            font-size: clamp(1.8em, 5vw, 2.8em);
-            margin-bottom: 10px;
-            font-weight: 700;
-            position: relative;
-            z-index: 1;
-        }
-
-        header p {
-            font-size: 1.1em;
-            opacity: 0.95;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Navigation */
-        nav {
-            background: var(--light);
-            padding: 15px 40px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .nav-btn {
-            padding: 8px 16px;
-            background: white;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9em;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-
-        .nav-btn:hover {
-            background: var(--primary);
-            color: white;
-        }
-
-        .nav-title {
-            font-weight: 600;
-            color: #666;
-            font-size: 0.95em;
-        }
-
-        /* Main content */
-        .main-content {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 30px;
-            padding: 40px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .controls-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            background: var(--light);
-            padding: 25px;
-            border-radius: var(--border-radius);
-            height: fit-content;
-            position: sticky;
-            top: 20px;
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .control-group label {
-            font-weight: 600;
-            color: var(--dark);
-            font-size: 0.95em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .control-value {
-            color: var(--primary);
-            font-weight: 700;
-            font-size: 1.05em;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-            transition: all 0.2s ease;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.15);
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-            transition: all 0.2s ease;
-        }
-
-        input[type="range"]::-moz-range-thumb:hover {
-            transform: scale(1.15);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .btn-toggle {
-            flex: 1;
-            min-width: 80px;
-            padding: 10px 12px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85em;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        .btn-toggle:hover {
-            border-color: var(--primary);
-            background: #f0f4ff;
-        }
-
-        .btn-toggle.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .quick-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border-left: 5px solid var(--primary);
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 0.8em;
-            color: #666;
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .stat-value {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .info-banner {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 0.85em;
-            color: #1565c0;
-            line-height: 1.4;
-        }
-
-        .export-buttons {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-        }
-
-        .btn {
-            padding: 12px 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9em;
-            transition: all 0.3s ease;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-
-        /* Visualization Panel */
-        .visualization-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-
-        .chart-container {
-            background: white;
-            padding: 25px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            position: relative;
-            min-height: 400px;
-        }
-
-        .chart-title {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chart-title::before {
-            content: '';
-            display: inline-block;
-            width: 4px;
-            height: 24px;
-            background: var(--primary);
-            border-radius: 2px;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 25px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            border-left: 5px solid var(--primary);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            background: rgba(102, 126, 234, 0.05);
-            border-radius: 50%;
-            transform: translate(30%, -30%);
-        }
-
-        .metric-card.success {
-            border-left-color: var(--success);
-        }
-
-        .metric-card.warning {
-            border-left-color: var(--warning);
-        }
-
-        .metric-card.danger {
-            border-left-color: var(--danger);
-        }
-
-        .metric-label {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 8px;
-            font-weight: 500;
-            position: relative;
-            z-index: 1;
-        }
-
-        .metric-value {
-            font-size: 2em;
-            font-weight: 700;
-            color: var(--dark);
-            margin-bottom: 8px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .metric-status {
-            font-size: 0.85em;
-            color: #888;
-            position: relative;
-            z-index: 1;
-        }
-
-        .metric-status.pass {
-            color: var(--success);
-            font-weight: 600;
-        }
-
-        .metric-status.warning {
-            color: var(--warning);
-            font-weight: 600;
-        }
-
-        .metric-status.fail {
-            color: var(--danger);
-            font-weight: 600;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--light);
-            padding: 30px 40px;
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            border-top: 1px solid #e0e0e0;
-            margin-top: auto;
-        }
-
-        .footer-links {
-            margin-bottom: 15px;
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .controls-panel {
-                position: static;
-                max-height: none;
-            }
-
-            header {
-                padding: 30px 20px;
-            }
-
-            nav {
-                padding: 15px 20px;
-            }
-
-            .main-content {
-                padding: 25px 20px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 1.8em;
-            }
-
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-stats {
-                grid-template-columns: 1fr;
-            }
-
-            nav {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .nav-buttons {
-                width: 100%;
-            }
-
-            .nav-btn {
-                flex: 1;
-            }
-        }
-
-        /* Loading state */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        /* Share modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            max-width: 500px;
-            width: 90%;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .modal-title {
-            font-size: 1.5em;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: var(--dark);
-        }
-
-        .modal-text {
-            margin-bottom: 15px;
-            color: #666;
-        }
-
-        .share-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 0.9em;
-            margin-bottom: 15px;
-            font-family: monospace;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .copy-btn {
-            background: var(--primary);
-            color: white;
-        }
-
-        .copy-btn:hover {
-            background: var(--primary-dark);
-        }
-
-        .close-btn {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .close-btn:hover {
-            background: #d0d0d0;
-        }
-
-        /* Printable area */
-        @media print {
-            body {
-                background: white;
-            }
-
-            .controls-panel,
-            nav,
-            footer,
-            .export-buttons {
-                display: none;
-            }
-
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 10px;
-                padding: 0;
-            }
-
-            .chart-container {
-                box-shadow: none;
-                border: 1px solid #ddd;
-                page-break-inside: avoid;
-            }
-        }
-    </style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="description" content="Interactive BCI edge deployment feasibility simulator across quantization levels and hardware targets"/>
+<title>Neural Lab v4.0 | Clinical Edge Simulator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary":               "#006970",
+          "primary-container":     "#e0f7f9",
+          "on-primary-container":  "#002022",
+          "secondary":             "#6750a4",
+          "secondary-container":   "#eaddff",
+          "on-secondary-container":"#21005d",
+          "background":            "#f8fafc",
+          "surface":               "#ffffff",
+          "surface-variant":       "#f1f5f9",
+          "on-surface":            "#1e293b",
+          "on-surface-variant":    "#64748b",
+          "outline":               "#cbd5e1",
+          "outline-variant":       "#e2e8f0",
+          "success-neon":          "#059669",
+          "warning":               "#d97706",
+          "error":                 "#b91c1c"
+        },
+        borderRadius: {
+          DEFAULT: "0.125rem",
+          lg:      "0.25rem",
+          xl:      "0.5rem",
+          full:    "0.75rem"
+        },
+        spacing: {
+          "margin-desktop": "48px",
+          "margin-mobile":  "16px",
+          "unit":           "4px",
+          "gutter":         "24px",
+          "sidebar-width":  "280px",
+          "max-width":      "1440px"
+        },
+        fontFamily: {
+          "label-mono":        ["JetBrains Mono", "monospace"],
+          "body-lg":           ["Inter", "sans-serif"],
+          "display-lg":        ["Hanken Grotesk", "sans-serif"],
+          "display-lg-mobile": ["Hanken Grotesk", "sans-serif"],
+          "label-caps":        ["Hanken Grotesk", "sans-serif"],
+          "headline-md":       ["Hanken Grotesk", "sans-serif"],
+          "body-md":           ["Inter", "sans-serif"]
+        },
+        fontSize: {
+          "label-mono":        ["12px", { lineHeight:"16px", letterSpacing:"0.05em", fontWeight:"500" }],
+          "body-lg":           ["18px", { lineHeight:"28px", fontWeight:"400" }],
+          "display-lg":        ["48px", { lineHeight:"56px", letterSpacing:"-0.02em", fontWeight:"700" }],
+          "display-lg-mobile": ["32px", { lineHeight:"40px", letterSpacing:"-0.02em", fontWeight:"700" }],
+          "label-caps":        ["11px", { lineHeight:"12px", letterSpacing:"0.1em", fontWeight:"800" }],
+          "headline-md":       ["24px", { lineHeight:"32px", fontWeight:"600" }],
+          "body-md":           ["16px", { lineHeight:"24px", fontWeight:"400" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    background-color: #f8fafc;
+    background-image: radial-gradient(circle, rgba(0,105,112,0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Glass panel */
+  .glass-panel {
+    background: rgba(255,255,255,0.95);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0/0.05), 0 2px 4px -2px rgb(0 0 0/0.05);
+  }
+
+  /* Pulsing live dot */
+  .pulse-dot {
+    animation: pulse-anim 2s cubic-bezier(0.4,0,0.6,1) infinite;
+  }
+  @keyframes pulse-anim {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.5; transform:scale(1.25); }
+  }
+
+  /* Slider thumb */
+  .custom-range { -webkit-appearance:none; appearance:none; }
+  .custom-range::-webkit-slider-thumb {
+    -webkit-appearance:none; appearance:none;
+    width:16px; height:16px;
+    background:#ffffff; border:2px solid #006970; border-radius:50%;
+    cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.12);
+    transition: box-shadow 0.15s;
+  }
+  .custom-range::-webkit-slider-thumb:hover { box-shadow:0 0 0 4px rgba(0,105,112,0.12); }
+  .custom-range::-moz-range-thumb {
+    width:16px; height:16px;
+    background:#ffffff; border:2px solid #006970; border-radius:50%;
+    cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.12);
+  }
+
+  /* Precision toggle active state */
+  .btn-quant { transition:all 0.15s ease; cursor:pointer; }
+  .btn-quant.active {
+    border-color:#006970 !important;
+    color:#006970 !important;
+    background:rgba(0,105,112,0.06);
+  }
+
+  /* Mini progress bar transition */
+  .mini-bar { transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Daemon log scrollbar */
+  #daemonLog::-webkit-scrollbar { width:4px; }
+  #daemonLog::-webkit-scrollbar-track { background:transparent; }
+  #daemonLog::-webkit-scrollbar-thumb { background:#475569; border-radius:2px; }
+
+  /* Nav active underline */
+  .nav-active { border-bottom:2px solid #006970; padding-bottom:2px; }
+
+  @media (max-width:768px) {
+    .sidebar-fixed { position:static !important; height:auto !important; width:100% !important; }
+    main { margin-left:0 !important; }
+  }
+</style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>🧠 BCI Edge Deployment Simulator</h1>
-            <p>Interactive feasibility explorer for neural BCIs on edge devices</p>
-        </header>
+<body class="font-body-md text-on-surface">
 
-        <nav>
-            <span class="nav-title">Zhang et al. 2025 Architecture</span>
-            <div class="nav-buttons">
-                <button class="nav-btn" onclick="shareApp()">📤 Share App</button>
-                <button class="nav-btn" onclick="generatePDF()">📄 Export PDF</button>
-                <button class="nav-btn" onclick="resetApp()">🔄 Reset</button>
-            </div>
-        </nav>
+<!-- ─── Top Navigation Bar ─────────────────────────────────── -->
+<header class="bg-surface/90 backdrop-blur-md border-b border-outline-variant sticky top-0 z-50 w-full h-16">
+  <div class="flex items-center justify-between px-margin-desktop h-full w-full max-w-max-width mx-auto">
 
-        <div class="main-content">
-            <!-- Controls Panel -->
-            <div class="controls-panel">
-                <div class="info-banner">
-                    💡 Adjust parameters and watch metrics update in real-time. Explore deployment tradeoffs across different devices and quantization strategies.
-                </div>
-
-                <div class="control-group">
-                    <label>Quantization Strategy</label>
-                    <div class="button-group">
-                        <button class="btn-toggle active" data-quant="fp16">FP16</button>
-                        <button class="btn-toggle" data-quant="int8">INT8</button>
-                        <button class="btn-toggle" data-quant="int4">INT4</button>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label>Edge Device</label>
-                    <div class="button-group">
-                        <button class="btn-toggle active" data-device="orin-nx">NX 16GB</button>
-                        <button class="btn-toggle" data-device="orin-nano">Nano</button>
-                        <button class="btn-toggle" data-device="orin-agx">AGX 64GB</button>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label>
-                        Battery Capacity (Wh)
-                        <span class="control-value"><span id="batteryValue">30</span> Wh</span>
-                    </label>
-                    <input type="range" id="batterySlider" min="10" max="100" value="30" step="5">
-                </div>
-
-                <div class="control-group">
-                    <label>
-                        Duty Cycle (%)
-                        <span class="control-value"><span id="dutyCycleValue">6</span>%</span>
-                    </label>
-                    <input type="range" id="dutyCycleSlider" min="1" max="20" value="6" step="1">
-                </div>
-
-                <div class="control-group">
-                    <label>
-                        Tokens/Sentence
-                        <span class="control-value"><span id="tokensValue">25</span></span>
-                    </label>
-                    <input type="range" id="tokensSlider" min="10" max="50" value="25" step="5">
-                </div>
-
-                <div class="quick-stats">
-                    <div class="stat-item">
-                        <div class="stat-label">Model Size</div>
-                        <div class="stat-value" id="modelSize">0.8GB</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">WER Loss</div>
-                        <div class="stat-value" id="werLoss">+0.3%</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Avg Power</div>
-                        <div class="stat-value" id="avgPower">1.5W</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Battery Life</div>
-                        <div class="stat-value" id="batteryLife">20h</div>
-                    </div>
-                </div>
-
-                <div class="export-buttons">
-                    <button class="btn btn-primary" onclick="generateReport()">📊 Generate Report</button>
-                    <button class="btn btn-secondary" onclick="downloadJSON()">💾 Download JSON</button>
-                </div>
-            </div>
-
-            <!-- Visualization Panel -->
-            <div class="visualization-panel">
-                <div class="chart-container">
-                    <div class="chart-title">Inference Latency Breakdown</div>
-                    <canvas id="latencyChart"></canvas>
-                </div>
-
-                <div class="metrics-grid">
-                    <div class="metric-card success" id="modelCard">
-                        <div class="metric-label">Model Size</div>
-                        <div class="metric-value" id="modelMetric">0.8 GB</div>
-                        <div class="metric-status pass">✓ Fits in RAM</div>
-                    </div>
-
-                    <div class="metric-card" id="werCard">
-                        <div class="metric-label">WER vs Baseline</div>
-                        <div class="metric-value" id="werMetric">+0.3%</div>
-                        <div class="metric-status pass">✓ Acceptable</div>
-                    </div>
-
-                    <div class="metric-card" id="latencyCard">
-                        <div class="metric-label">Total Latency</div>
-                        <div class="metric-value" id="latencyMetric">2.1s</div>
-                        <div class="metric-status pass">✓ Comfortable</div>
-                    </div>
-
-                    <div class="metric-card" id="batteryCard">
-                        <div class="metric-label">Battery Life</div>
-                        <div class="metric-value" id="batteryMetric">20h</div>
-                        <div class="metric-status pass">✓ All-day</div>
-                    </div>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-title">Device Comparison</div>
-                    <canvas id="comparisonChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-title">Power & Thermal Profile</div>
-                    <canvas id="powerChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-title">Feasibility Matrix</div>
-                    <canvas id="feasibilityChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <footer>
-            <div class="footer-links">
-                <a href="https://github.com/pattanaikay/brain2text2025" target="_blank">📚 GitHub Repository</a>
-                <a href="#" onclick="shareApp(); return false;">📤 Share This App</a>
-                <a href="#" onclick="downloadJSON(); return false;">💾 Download Config</a>
-            </div>
-            <p>BCI Edge Deployment Simulator | Based on Zhang et al. (2025) Architecture</p>
-            <p style="margin-top: 10px; font-size: 0.85em;">Data-driven projections based on measured encoder performance and device specifications</p>
-        </footer>
+    <div class="flex items-center gap-8">
+      <span class="font-display-lg text-headline-md tracking-tighter text-primary select-none">Brain2Text 2025</span>
+      <nav class="hidden md:flex items-center gap-6">
+        <a class="text-on-surface-variant font-body-md hover:text-primary transition-colors" href="#">Hypothesis</a>
+        <a class="text-primary nav-active font-body-md" href="#">Simulator</a>
+        <a class="text-on-surface-variant font-body-md hover:text-primary transition-colors" href="#">Deep-Dives</a>
+        <a class="text-on-surface-variant font-body-md hover:text-primary transition-colors" href="#">Metrics</a>
+      </nav>
     </div>
 
-    <!-- Share Modal -->
-    <div id="shareModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-title">Share This Simulator</div>
-            <div class="modal-text">Copy the link below to share with others:</div>
-            <input type="text" id="shareLink" class="share-input" readonly>
-            <div class="modal-buttons">
-                <button class="copy-btn" onclick="copyToClipboard()">📋 Copy Link</button>
-                <button class="close-btn" onclick="closeModal()">Close</button>
-            </div>
-        </div>
+    <div class="flex items-center gap-3">
+      <div class="hidden lg:flex items-center gap-2">
+        <button onclick="generateReport()" class="flex items-center gap-2 px-4 py-1.5 border border-primary text-primary font-label-caps text-label-caps uppercase hover:bg-primary/5 transition-all active:scale-95">
+          <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+          Export PDF
+        </button>
+        <button onclick="downloadJSON()" class="flex items-center gap-2 px-4 py-1.5 border border-primary text-primary font-label-caps text-label-caps uppercase hover:bg-primary/5 transition-all active:scale-95">
+          <span class="material-symbols-outlined text-[16px]">download</span>
+          Download CSV
+        </button>
+      </div>
+      <button class="p-2 hover:bg-surface-variant rounded-full transition-all">
+        <span class="material-symbols-outlined text-on-surface-variant">settings</span>
+      </button>
+      <button class="p-2 hover:bg-surface-variant rounded-full transition-all">
+        <span class="material-symbols-outlined text-on-surface-variant">account_circle</span>
+      </button>
     </div>
 
-    <script>
-        // Device specifications
-        const devices = {
-            'orin-nx': {
-                name: 'Jetson Orin NX 16GB',
-                memory: 16,
-                bandwidth: 204,
-                baselinePower: 3,
-                peakPower: 25,
-                encoderLatency: 140,
-                cost: 850
+  </div>
+</header>
+
+<!-- ─── Configuration Sidebar ─────────────────────────────── -->
+<aside class="sidebar-fixed fixed left-0 top-16 h-[calc(100vh-64px)] w-sidebar-width bg-surface border-r border-outline-variant shadow-sm flex flex-col p-6 gap-6 overflow-y-auto z-40">
+
+  <!-- Identity -->
+  <div class="flex flex-col gap-1">
+    <h2 class="font-label-caps text-label-caps uppercase tracking-widest text-primary">System Config</h2>
+    <p id="sessionId" class="font-label-mono text-[10px] text-on-surface-variant">Active Session: 0x9AF2</p>
+  </div>
+
+  <!-- Hardware Target -->
+  <div class="flex flex-col gap-3">
+    <label class="font-label-caps text-label-caps uppercase text-on-surface-variant">Hardware Target</label>
+    <select id="deviceSelect" class="bg-surface-variant/50 border-0 border-b-2 border-outline-variant text-on-surface font-label-mono text-label-mono focus:border-primary focus:ring-0 px-2 py-2 cursor-pointer">
+      <option value="orin-nx">Jetson Orin NX 16GB</option>
+      <option value="orin-nano">Jetson Orin Nano Super</option>
+      <option value="orin-agx">Jetson Orin AGX 64GB</option>
+    </select>
+  </div>
+
+  <!-- Precision Mapping -->
+  <div class="flex flex-col gap-3">
+    <label class="font-label-caps text-label-caps uppercase text-on-surface-variant">Precision Mapping</label>
+    <div class="grid grid-cols-3 gap-2">
+      <button class="btn-quant p-2 border border-outline text-on-surface-variant font-label-mono text-[10px] hover:border-primary hover:text-primary" data-quant="fp16">FP16</button>
+      <button class="btn-quant active p-2 border border-outline font-label-mono text-[10px]" data-quant="int8">INT8</button>
+      <button class="btn-quant p-2 border border-outline text-on-surface-variant font-label-mono text-[10px] hover:border-primary hover:text-primary" data-quant="int4">INT4</button>
+    </div>
+  </div>
+
+  <!-- Sliders -->
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <label class="font-label-caps text-label-caps uppercase text-on-surface-variant">Battery Cap.</label>
+        <span id="batteryDisplay" class="font-label-mono text-label-mono text-primary">30 Wh</span>
+      </div>
+      <input id="batterySlider" type="range" min="10" max="100" value="30" step="5"
+             class="custom-range w-full h-[2px] bg-outline-variant rounded-full cursor-pointer"/>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <label class="font-label-caps text-label-caps uppercase text-on-surface-variant">Duty Cycle</label>
+        <span id="dutyCycleDisplay" class="font-label-mono text-label-mono text-primary">6%</span>
+      </div>
+      <input id="dutyCycleSlider" type="range" min="1" max="20" value="6" step="1"
+             class="custom-range w-full h-[2px] bg-outline-variant rounded-full cursor-pointer"/>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <label class="font-label-caps text-label-caps uppercase text-on-surface-variant">Output Length</label>
+        <span id="tokensDisplay" class="font-label-mono text-label-mono text-primary">25 tokens</span>
+      </div>
+      <input id="tokensSlider" type="range" min="10" max="50" value="25" step="5"
+             class="custom-range w-full h-[2px] bg-outline-variant rounded-full cursor-pointer"/>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <button onclick="runExperiment()"
+          class="mt-auto bg-primary text-white font-label-caps text-label-caps py-4 tracking-widest uppercase hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[.98] flex items-center justify-center gap-2">
+    <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'FILL' 1">play_circle</span>
+    New Experiment
+  </button>
+
+</aside>
+
+<!-- ─── Main Content ───────────────────────────────────────── -->
+<main class="ml-sidebar-width p-margin-desktop max-w-[calc(1440px-280px)]">
+
+  <!-- Page Header -->
+  <div class="flex items-start justify-between mb-8">
+    <div>
+      <h1 class="font-display-lg text-display-lg text-on-surface leading-tight">Neural Simulation Live</h1>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="w-2 h-2 rounded-full bg-success-neon pulse-dot"></span>
+        <span id="pipelineLabel" class="font-label-mono text-on-surface-variant uppercase text-[10px] tracking-wider">
+          Processing Pipeline Alpha-9
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI Metric Cards ─────────────────────────────────── -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-gutter">
+
+    <!-- Model Size -->
+    <div class="glass-panel p-6 flex flex-col gap-4">
+      <div class="flex justify-between items-start">
+        <span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Model Size</span>
+        <span class="material-symbols-outlined text-primary text-[20px]">memory</span>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span id="kpiModelVal" class="font-display-lg text-headline-md text-on-surface">0.8</span>
+        <span class="font-label-mono text-on-surface-variant">GB</span>
+      </div>
+      <div class="h-1 bg-surface-variant w-full overflow-hidden rounded-full">
+        <div id="kpiModelBar" class="mini-bar h-full bg-primary rounded-full" style="width:5%"></div>
+      </div>
+      <span id="kpiModelSub" class="font-label-mono text-[10px] text-success-neon font-semibold">Fits in RAM</span>
+    </div>
+
+    <!-- WER Loss -->
+    <div class="glass-panel p-6 flex flex-col gap-4">
+      <div class="flex justify-between items-start">
+        <span class="font-label-caps text-label-caps uppercase text-on-surface-variant">WER Loss</span>
+        <span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span id="kpiWerVal" class="font-display-lg text-headline-md text-on-surface">+0.3%</span>
+      </div>
+      <div class="h-1 bg-surface-variant w-full overflow-hidden rounded-full">
+        <div id="kpiWerBar" class="mini-bar h-full bg-primary rounded-full" style="width:15%"></div>
+      </div>
+      <span id="kpiWerSub" class="font-label-mono text-[10px] text-success-neon font-semibold">↓ Clinically Acceptable</span>
+    </div>
+
+    <!-- Inference Latency -->
+    <div class="glass-panel p-6 flex flex-col gap-4">
+      <div class="flex justify-between items-start">
+        <span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Latency</span>
+        <span class="material-symbols-outlined text-primary text-[20px]">timer</span>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span id="kpiLatVal" class="font-display-lg text-headline-md text-on-surface">4.1</span>
+        <span class="font-label-mono text-on-surface-variant">s</span>
+      </div>
+      <div class="flex gap-1 h-1">
+        <div id="kpiLatBar1" class="mini-bar h-full bg-primary rounded-full" style="width:33%"></div>
+        <div id="kpiLatBar2" class="mini-bar h-full bg-slate-200 rounded-full" style="width:67%"></div>
+      </div>
+      <span id="kpiLatSub" class="font-label-mono text-[10px] text-on-surface-variant">Orin NX · INT8 Profile</span>
+    </div>
+
+    <!-- Est. Battery -->
+    <div class="glass-panel p-6 flex flex-col gap-4">
+      <div class="flex justify-between items-start">
+        <span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Est. Battery</span>
+        <span class="material-symbols-outlined text-primary text-[20px]">battery_charging_full</span>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span id="kpiBatVal" class="font-display-lg text-headline-md text-on-surface">20.0</span>
+        <span class="font-label-mono text-on-surface-variant">Hrs</span>
+      </div>
+      <div class="h-1 bg-surface-variant w-full overflow-hidden rounded-full">
+        <div id="kpiBatBar" class="mini-bar h-full bg-success-neon rounded-full" style="width:83%"></div>
+      </div>
+      <span id="kpiBatSub" class="font-label-mono text-[10px] text-on-surface-variant">Jetson Orin NX Profile</span>
+    </div>
+
+  </div>
+
+  <!-- ── Row 1: Latency Breakdown + Power Trend ────────────── -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-gutter">
+
+    <!-- Latency Breakdown (1 col) -->
+    <div class="lg:col-span-1 glass-panel p-6 flex flex-col gap-6">
+      <div>
+        <h3 class="font-label-caps text-label-caps uppercase text-primary">Latency Breakdown</h3>
+        <p class="font-label-mono text-[10px] text-on-surface-variant mt-1">Encoder vs LLM Transformer</p>
+      </div>
+
+      <div class="flex flex-col gap-8 flex-1 justify-center">
+
+        <!-- Stage 1 -->
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between font-label-mono text-[11px] text-on-surface">
+            <span>S1 — Neural Encoder</span>
+            <span id="encLatMs" class="font-semibold text-primary">140ms</span>
+          </div>
+          <div class="h-8 bg-surface-variant relative overflow-hidden">
+            <div id="encLatBar" class="mini-bar absolute inset-y-0 left-0 bg-primary/25" style="width:35%"></div>
+            <div class="absolute inset-0 border border-primary/10 pointer-events-none"></div>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between font-label-mono text-[11px] text-on-surface">
+            <span>S2 — LLM Stage</span>
+            <span id="llmLatMs" class="font-semibold text-primary">750ms</span>
+          </div>
+          <div class="h-8 bg-surface-variant relative overflow-hidden">
+            <div id="llmLatBar" class="mini-bar absolute inset-y-0 left-0 bg-primary/45" style="width:65%"></div>
+            <div class="absolute inset-0 border border-primary/20 pointer-events-none"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-4 border-t border-outline-variant flex justify-between items-center">
+        <span class="font-label-mono text-[10px] text-on-surface-variant">Total · End-to-End</span>
+        <span id="totalLatMs" class="font-label-mono text-[10px] text-primary font-bold">890ms</span>
+      </div>
+    </div>
+
+    <!-- Power Consumption Trend (2 col) — Chart.js -->
+    <div class="lg:col-span-2 glass-panel p-6 flex flex-col gap-4">
+      <div class="flex justify-between items-start flex-wrap gap-2">
+        <div>
+          <h3 class="font-label-caps text-label-caps uppercase text-primary">Power Consumption Trend</h3>
+          <p class="font-label-mono text-[10px] text-on-surface-variant mt-1">Live Power Draw (Watts) over Session</p>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-0.5 bg-primary"></span>
+            <span class="font-label-mono text-[10px] text-on-surface-variant">Computed</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-0.5 bg-slate-300"></span>
+            <span class="font-label-mono text-[10px] text-on-surface-variant">Baseline</span>
+          </div>
+        </div>
+      </div>
+      <div class="relative flex-1" style="min-height:300px;">
+        <canvas id="powerChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Row 2: Device Comparison + Feasibility Radar ─────── -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-gutter">
+
+    <!-- Device Comparison (2 col) -->
+    <div class="lg:col-span-2 glass-panel p-6 flex flex-col gap-4">
+      <div>
+        <h3 class="font-label-caps text-label-caps uppercase text-primary">Device Comparison</h3>
+        <p class="font-label-mono text-[10px] text-on-surface-variant mt-1">Inference Latency Across Hardware Targets</p>
+      </div>
+      <div class="relative" style="height:200px;">
+        <canvas id="comparisonChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Feasibility Matrix (1 col) -->
+    <div class="lg:col-span-1 glass-panel p-6 flex flex-col gap-4">
+      <div>
+        <h3 class="font-label-caps text-label-caps uppercase text-primary">Feasibility Matrix</h3>
+        <p class="font-label-mono text-[10px] text-on-surface-variant mt-1">Deployment Score by Dimension</p>
+      </div>
+      <div class="relative flex-1" style="height:200px;">
+        <canvas id="feasibilityChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── System Daemon Log ─────────────────────────────────── -->
+  <div class="glass-panel p-5 bg-slate-900">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="material-symbols-outlined text-primary text-[16px]">terminal</span>
+      <span class="font-label-caps text-label-caps uppercase tracking-wider text-primary">System Daemon Log</span>
+      <span class="ml-auto font-label-mono text-[10px] text-slate-500" id="logCount">0 entries</span>
+    </div>
+    <div id="daemonLog" class="font-label-mono text-[12px] flex flex-col gap-1 max-h-[148px] overflow-y-auto">
+      <p class="text-slate-400"><span class="text-slate-600">[ -- : -- : -- ]</span>&nbsp; Awaiting experiment initialization…</p>
+    </div>
+    <p class="text-primary/70 animate-pulse mt-3 font-label-mono text-[12px]">&gt; Ready for new configuration commands.</p>
+  </div>
+
+</main>
+
+<!-- ─── Footer ────────────────────────────────────────────── -->
+<footer class="bg-surface-variant border-t border-outline-variant w-full mt-20">
+  <div class="flex flex-col md:flex-row justify-between items-center py-gutter px-margin-desktop w-full max-w-max-width mx-auto">
+    <span class="font-body-md text-on-surface-variant text-[13px]">
+      © 2025 Neural Decoding Initiative. Licensed for Clinical Research.
+    </span>
+    <div class="flex gap-6 mt-4 md:mt-0 flex-wrap">
+      <a class="font-label-mono text-[11px] text-on-surface-variant hover:text-primary transition-colors underline decoration-primary/30" href="#">Ethics Statement</a>
+      <a class="font-label-mono text-[11px] text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/pattanaikay/brain2text2025" target="_blank" rel="noopener">GitHub Repository</a>
+      <a class="font-label-mono text-[11px] text-on-surface-variant hover:text-primary transition-colors" href="#">Publication DOI</a>
+      <a class="font-label-mono text-[11px] text-on-surface-variant hover:text-primary transition-colors" href="#">Data Privacy</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── JavaScript ─────────────────────────────────────────── -->
+<script>
+  /* ── Chart.js light-theme defaults ─────────────────────── */
+  Chart.defaults.color          = '#64748b';
+  Chart.defaults.borderColor    = '#e2e8f0';
+  Chart.defaults.font.family    = "'JetBrains Mono', monospace";
+  Chart.defaults.font.size      = 11;
+
+  const C_PRIMARY    = '#006970';
+  const C_PRIMARY_BG = 'rgba(0,105,112,0.08)';
+  const C_GRID       = '#f1f5f9';
+  const C_TICK       = '#94a3b8';
+  const C_TT_BG     = '#ffffff';
+
+  /* ── Device & Quantization Data ─────────────────────────── */
+  const devices = {
+    'orin-nx':   { name:'Jetson Orin NX 16GB',   shortName:'Orin NX 16GB',   memory:16, bandwidth:204, baselinePower:3, peakPower:25, encoderLatency:140 },
+    'orin-nano': { name:'Jetson Orin Nano Super', shortName:'Orin Nano',      memory:8,  bandwidth:102, baselinePower:2, peakPower:18, encoderLatency:280 },
+    'orin-agx':  { name:'Jetson Orin AGX 64GB',  shortName:'Orin AGX 64GB',  memory:64, bandwidth:408, baselinePower:5, peakPower:60, encoderLatency:70  }
+  };
+
+  const quants = {
+    'fp16': { label:'FP16 (Baseline)',   size:3.2, werLoss:0.0 },
+    'int8': { label:'INT8 (Moderate)',   size:0.8, werLoss:0.3 },
+    'int4': { label:'INT4 (Aggressive)', size:0.4, werLoss:0.9 }
+  };
+
+  /* ── State ───────────────────────────────────────────────── */
+  let state = {
+    device:    'orin-nx',
+    quant:     'int8',
+    battery:   30,
+    dutyCycle: 6,
+    tokens:    25
+  };
+  let charts  = {};
+  let metrics = {};
+  let logCount = 0;
+
+  /* ── Helpers ─────────────────────────────────────────────── */
+  const $  = id  => document.getElementById(id);
+  const set = (id, v) => { $( id).textContent = v; };
+  const css = (id, prop, v) => { $(id).style[prop] = v; };
+
+  /* ── Daemon Log ───────────────────────────────────────────── */
+  function log(msg, level = 'info') {
+    const ts  = new Date().toISOString().split('T')[1].slice(0,8);
+    const el  = $('daemonLog');
+    const p   = document.createElement('p');
+    const colorMap = { ok:'text-emerald-400', warn:'text-amber-400', err:'text-red-400', info:'text-slate-300' };
+    const labelMap = { ok:'[ OK ]', warn:'[WARN]', err:'[ERR ]', info:'[INFO]' };
+    p.className = 'flex gap-2';
+    p.innerHTML = `<span class="text-slate-500 shrink-0">${ts}</span>`
+                + `<span class="${colorMap[level]} shrink-0">${labelMap[level]}</span>`
+                + `<span>${msg}</span>`;
+    el.insertBefore(p, el.firstChild);
+    if (el.children.length > 30) el.removeChild(el.lastChild);
+    logCount++;
+    set('logCount', `${logCount} entr${logCount === 1 ? 'y' : 'ies'}`);
+  }
+
+  /* ── Compute Metrics ─────────────────────────────────────── */
+  function compute() {
+    const dev   = devices[state.device];
+    const q     = quants[state.quant];
+    const scaledLat  = 890 * 936 / dev.bandwidth;          // ms
+    const latSec     = scaledLat / 1000;                    // s
+    const encLat     = dev.encoderLatency;                  // ms
+    const llmLat     = Math.max(0, scaledLat - encLat);    // ms
+    const avgPower   = dev.baselinePower + (dev.peakPower - dev.baselinePower) * (state.dutyCycle / 100);
+    const batLife    = state.battery / avgPower;            // hrs
+    metrics = { dev, q, scaledLat, latSec, encLat, llmLat, avgPower, batLife };
+  }
+
+  /* ── Update All ──────────────────────────────────────────── */
+  function updateAll() {
+    compute();
+    updateKPI();
+    updateLatencyBars();
+    updatePowerChart();
+    updateComparisonChart();
+    updateFeasibilityChart();
+    updatePipelineLabel();
+  }
+
+  /* ── Pipeline label ──────────────────────────────────────── */
+  function updatePipelineLabel() {
+    const { dev, q } = metrics;
+    set('pipelineLabel', `${dev.shortName}  ·  ${q.label}  ·  ${state.dutyCycle}% Duty Cycle`);
+  }
+
+  /* ── KPI Cards ───────────────────────────────────────────── */
+  function updateKPI() {
+    const { dev, q, latSec, avgPower, batLife } = metrics;
+
+    // — Model Size
+    const fitsRAM = q.size <= dev.memory;
+    const ramPct  = Math.min(100, (q.size / dev.memory) * 100).toFixed(1);
+    set('kpiModelVal', q.size.toFixed(1));
+    css('kpiModelBar', 'width', `${ramPct}%`);
+    const modelSub = $('kpiModelSub');
+    modelSub.textContent = fitsRAM ? 'Fits in RAM' : '⚠ Exceeds device RAM';
+    modelSub.className = `font-label-mono text-[10px] font-semibold ${fitsRAM ? 'text-success-neon' : 'text-error'}`;
+    $('kpiModelBar').className = `mini-bar h-full rounded-full ${fitsRAM ? 'bg-primary' : 'bg-error'}`;
+
+    // — WER Loss
+    const werOk  = q.werLoss <= 1;
+    const werPct = Math.min(100, q.werLoss * 55).toFixed(1);
+    set('kpiWerVal', `+${q.werLoss}%`);
+    css('kpiWerBar', 'width', `${werPct}%`);
+    const werSub = $('kpiWerSub');
+    werSub.textContent = q.werLoss === 0 ? '— Baseline · No loss'
+                       : werOk           ? `↓ ${q.werLoss}% · Clinically Acceptable`
+                                         : `↑ ${q.werLoss}% · Significant Degradation`;
+    werSub.className = `font-label-mono text-[10px] font-semibold ${werOk ? 'text-success-neon' : 'text-warning'}`;
+    $('kpiWerBar').className = `mini-bar h-full rounded-full ${werOk ? 'bg-primary' : 'bg-warning'}`;
+
+    // — Latency
+    const latOk  = latSec < 4;
+    const latPct = Math.min(95, (latSec / 10) * 100).toFixed(1);
+    set('kpiLatVal', latSec.toFixed(2));
+    css('kpiLatBar1', 'width', `${latPct}%`);
+    css('kpiLatBar2', 'width', `${(100 - parseFloat(latPct)).toFixed(1)}%`);
+    $('kpiLatBar1').className = `mini-bar h-full rounded-full ${latSec < 2 ? 'bg-primary' : latSec < 4 ? 'bg-warning' : 'bg-error'}`;
+    const latSub = $('kpiLatSub');
+    latSub.textContent = latSec < 2 ? `${dev.shortName} · Very Responsive`
+                       : latSec < 4 ? `${dev.shortName} · Acceptable`
+                                    : `${dev.shortName} · Too Slow`;
+    latSub.className = `font-label-mono text-[10px] ${latOk ? 'text-on-surface-variant' : 'text-warning'}`;
+
+    // — Battery
+    const batGood  = batLife >= 8;
+    const batWarn  = batLife >= 4;
+    const batPct   = Math.min(100, (batLife / 24) * 100).toFixed(1);
+    set('kpiBatVal', batLife.toFixed(1));
+    css('kpiBatBar', 'width', `${batPct}%`);
+    $('kpiBatBar').className = `mini-bar h-full rounded-full ${batGood ? 'bg-success-neon' : batWarn ? 'bg-warning' : 'bg-error'}`;
+    const batSub = $('kpiBatSub');
+    batSub.textContent = batGood ? `All-day · ${dev.shortName} Profile`
+                       : batWarn ? `Half-day · ${dev.shortName} Profile`
+                                 : `Limited · Consider larger battery`;
+    batSub.className = `font-label-mono text-[10px] ${batGood ? 'text-on-surface-variant' : batWarn ? 'text-warning' : 'text-error'}`;
+  }
+
+  /* ── Latency Breakdown Bars ──────────────────────────────── */
+  function updateLatencyBars() {
+    const { encLat, llmLat, scaledLat } = metrics;
+    const total  = scaledLat;
+    const encPct = Math.min(95, (encLat / total) * 100);
+    const llmPct = Math.min(95, (llmLat / total) * 100);
+    set('encLatMs',  `${Math.round(encLat)}ms`);
+    set('llmLatMs',  `${Math.round(llmLat)}ms`);
+    set('totalLatMs',`${Math.round(total)}ms`);
+    css('encLatBar', 'width', `${encPct.toFixed(1)}%`);
+    css('llmLatBar', 'width', `${llmPct.toFixed(1)}%`);
+  }
+
+  /* ── Power Chart ─────────────────────────────────────────── */
+  function buildPowerData() {
+    const { dev, avgPower } = metrics;
+    const n = 20;
+    const labels   = Array.from({length:n}, (_,i) => i === n-1 ? 'Now' : `-${(n-1-i)*6}s`);
+    const baseline = Array(n).fill(dev.baselinePower);
+    const computed = Array.from({length:n}, (_,i) => {
+      const spike = (i % 6 === 4) ? (dev.peakPower - avgPower) * 0.45 * Math.random() : 0;
+      return parseFloat((avgPower + spike).toFixed(2));
+    });
+    return { labels, baseline, computed };
+  }
+
+  function updatePowerChart() {
+    const { labels, baseline, computed } = buildPowerData();
+    const tooltipOpts = {
+      backgroundColor: C_TT_BG,
+      borderColor: '#e2e8f0', borderWidth: 1,
+      titleColor: '#1e293b', bodyColor: '#64748b', padding: 8
+    };
+    if (!charts.power) {
+      const ctx = $('powerChart').getContext('2d');
+      charts.power = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Computed (W)',
+              data: computed,
+              borderColor: C_PRIMARY,
+              borderWidth: 1.5,
+              pointRadius: 0,
+              tension: 0.45,
+              fill: true,
+              backgroundColor: C_PRIMARY_BG
             },
-            'orin-nano': {
-                name: 'Jetson Orin Nano Super',
-                memory: 8,
-                bandwidth: 102,
-                baselinePower: 2,
-                peakPower: 18,
-                encoderLatency: 280,
-                cost: 249
-            },
-            'orin-agx': {
-                name: 'Jetson Orin AGX 64GB',
-                memory: 64,
-                bandwidth: 408,
-                baselinePower: 5,
-                peakPower: 60,
-                encoderLatency: 70,
-                cost: 2000
+            {
+              label: 'Baseline (W)',
+              data: baseline,
+              borderColor: '#cbd5e1',
+              borderWidth: 1,
+              borderDash: [5, 4],
+              pointRadius: 0,
+              tension: 0,
+              fill: false
             }
-        };
-
-        // Quantization profiles
-        const quantizations = {
-            'fp16': { name: 'FP16 (Baseline)', size: 3.2, werLoss: 0 },
-            'int8': { name: 'INT8 (Moderate)', size: 0.8, werLoss: 0.3 },
-            'int4': { name: 'INT4 (Aggressive)', size: 0.4, werLoss: 0.9 }
-        };
-
-        // State
-        let currentDevice = 'orin-nx';
-        let currentQuant = 'int8';
-        let currentBattery = 30;
-        let currentDutyCycle = 6;
-        let currentTokens = 25;
-        let charts = {};
-
-        // Initialize
-        function init() {
-            setupEventListeners();
-            updateAll();
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 300 },
+          plugins: {
+            legend: { display: false },
+            tooltip: { ...tooltipOpts, callbacks: { label: c => `${c.parsed.y.toFixed(1)}W` } }
+          },
+          scales: {
+            x: { grid:{color:C_GRID}, ticks:{color:C_TICK, maxTicksLimit:6} },
+            y: { grid:{color:C_GRID}, ticks:{color:C_TICK, callback:v=>`${v}W`}, beginAtZero:true }
+          }
         }
+      });
+    } else {
+      charts.power.data.labels = labels;
+      charts.power.data.datasets[0].data = computed;
+      charts.power.data.datasets[1].data = baseline;
+      charts.power.update('none');
+    }
+  }
 
-        function setupEventListeners() {
-            // Device selector
-            document.querySelectorAll('[data-device]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('[data-device]').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentDevice = e.target.dataset.device;
-                    updateAll();
-                });
-            });
+  /* ── Device Comparison Chart ─────────────────────────────── */
+  function updateComparisonChart() {
+    const devKeys   = Object.keys(devices);
+    const latencies = devKeys.map(k => parseFloat((890 * 936 / devices[k].bandwidth / 1000).toFixed(2)));
+    const colors    = devKeys.map(k => k === state.device ? C_PRIMARY : 'rgba(0,105,112,0.18)');
+    const labels    = devKeys.map(k => devices[k].shortName);
 
-            // Quantization selector
-            document.querySelectorAll('[data-quant]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('[data-quant]').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentQuant = e.target.dataset.quant;
-                    updateAll();
-                });
-            });
-
-            // Sliders
-            document.getElementById('batterySlider').addEventListener('input', (e) => {
-                currentBattery = parseInt(e.target.value);
-                document.getElementById('batteryValue').textContent = currentBattery;
-                updateAll();
-            });
-
-            document.getElementById('dutyCycleSlider').addEventListener('input', (e) => {
-                currentDutyCycle = parseInt(e.target.value);
-                document.getElementById('dutyCycleValue').textContent = currentDutyCycle;
-                updateAll();
-            });
-
-            document.getElementById('tokensSlider').addEventListener('input', (e) => {
-                currentTokens = parseInt(e.target.value);
-                document.getElementById('tokensValue').textContent = currentTokens;
-                updateAll();
-            });
-        }
-
-        function updateAll() {
-            updateMetrics();
-            updateCharts();
-            updateStatus();
-        }
-
-        function updateMetrics() {
-            const device = devices[currentDevice];
-            const quant = quantizations[currentQuant];
-
-            // Basic metrics
-            document.getElementById('modelSize').textContent = `${quant.size}GB`;
-            document.getElementById('modelMetric').textContent = `${quant.size} GB`;
-            document.getElementById('werLoss').textContent = `+${quant.werLoss}%`;
-            document.getElementById('werMetric').textContent = `+${quant.werLoss}%`;
-
-            // Latency calculation
-            const baselineLatency = 890;
-            const gpuBandwidth = 936;
-            const scaledLatency = (baselineLatency * gpuBandwidth / device.bandwidth);
-            const latencySeconds = scaledLatency / 1000;
-
-            document.getElementById('latencyMetric').textContent = `${latencySeconds.toFixed(2)}s`;
-
-            // Power calculation
-            const avgPower = device.baselinePower + 
-                           (device.peakPower - device.baselinePower) * (currentDutyCycle / 100);
-            const batteryLife = (currentBattery / avgPower).toFixed(1);
-
-            document.getElementById('avgPower').textContent = `${avgPower.toFixed(1)}W`;
-            document.getElementById('batteryLife').textContent = `${batteryLife}h`;
-            document.getElementById('batteryMetric').textContent = `${batteryLife}h`;
-
-            window.metrics = { device, quant, latencySeconds, avgPower, batteryLife, scaledLatency, baselineLatency };
-        }
-
-        function updateStatus() {
-            const m = window.metrics;
-
-            // Model card
-            const modelCard = document.getElementById('modelCard');
-            if (m.quant.size <= m.device.memory) {
-                modelCard.className = 'metric-card success';
-                modelCard.querySelector('.metric-status').className = 'metric-status pass';
-                modelCard.querySelector('.metric-status').textContent = '✓ Fits in RAM';
-            } else {
-                modelCard.className = 'metric-card danger';
-                modelCard.querySelector('.metric-status').className = 'metric-status fail';
-                modelCard.querySelector('.metric-status').textContent = '✗ Too large';
+    if (!charts.comparison) {
+      const ctx = $('comparisonChart').getContext('2d');
+      charts.comparison = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ data:latencies, backgroundColor:colors, borderRadius:2, borderSkipped:false }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 300 },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: C_TT_BG, borderColor:'#e2e8f0', borderWidth:1,
+              titleColor:'#1e293b', bodyColor:'#64748b', padding:8,
+              callbacks: { label: c => ` ${c.parsed.x.toFixed(2)} s` }
             }
+          },
+          scales: {
+            x: { grid:{color:C_GRID}, ticks:{color:C_TICK, callback:v=>`${v}s`} },
+            y: { grid:{display:false}, ticks:{color:'#475569'} }
+          }
+        }
+      });
+    } else {
+      charts.comparison.data.datasets[0].data            = latencies;
+      charts.comparison.data.datasets[0].backgroundColor = colors;
+      charts.comparison.update('none');
+    }
+  }
 
-            // WER card
-            const werCard = document.getElementById('werCard');
-            if (m.quant.werLoss <= 1) {
-                werCard.className = 'metric-card success';
-                werCard.querySelector('.metric-status').className = 'metric-status pass';
-                werCard.querySelector('.metric-status').textContent = '✓ Acceptable';
-            } else {
-                werCard.className = 'metric-card warning';
-                werCard.querySelector('.metric-status').className = 'metric-status warning';
-                werCard.querySelector('.metric-status').textContent = '⚠ Significant';
+  /* ── Feasibility Radar ───────────────────────────────────── */
+  function updateFeasibilityChart() {
+    const { dev, q, latSec, batLife } = metrics;
+    const scores = [
+      q.size <= dev.memory ? 100 : Math.max(10, (dev.memory / q.size) * 60),
+      q.werLoss === 0 ? 100 : q.werLoss <= 1 ? 75 : 35,
+      latSec < 2 ? 100 : latSec < 4 ? 70 : 30,
+      batLife >= 12 ? 100 : batLife >= 8 ? 80 : batLife >= 4 ? 55 : 25
+    ].map(s => parseFloat(s.toFixed(1)));
+
+    if (!charts.feasibility) {
+      const ctx = $('feasibilityChart').getContext('2d');
+      charts.feasibility = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['RAM Fit', 'Accuracy', 'Latency', 'Battery'],
+          datasets: [{
+            data: scores,
+            fill: true,
+            backgroundColor: C_PRIMARY_BG,
+            borderColor: C_PRIMARY,
+            borderWidth: 1.5,
+            pointBackgroundColor: C_PRIMARY,
+            pointBorderColor: '#fff',
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 300 },
+          plugins: { legend:{ display:false } },
+          scales: {
+            r: {
+              beginAtZero: true, max: 100,
+              grid:         { color: '#e2e8f0' },
+              angleLines:   { color: '#e2e8f0' },
+              ticks:        { display: false },
+              pointLabels:  { color:'#64748b', font:{ family:"'JetBrains Mono',monospace", size:10 } }
             }
-
-            // Latency card
-            const latencyCard = document.getElementById('latencyCard');
-            if (m.latencySeconds < 2) {
-                latencyCard.className = 'metric-card success';
-                latencyCard.querySelector('.metric-status').className = 'metric-status pass';
-                latencyCard.querySelector('.metric-status').textContent = '✓ Very responsive';
-            } else if (m.latencySeconds < 4) {
-                latencyCard.className = 'metric-card';
-                latencyCard.querySelector('.metric-status').className = 'metric-status pass';
-                latencyCard.querySelector('.metric-status').textContent = '✓ Acceptable';
-            } else {
-                latencyCard.className = 'metric-card warning';
-                latencyCard.querySelector('.metric-status').className = 'metric-status warning';
-                latencyCard.querySelector('.metric-status').textContent = '⚠ Slow';
-            }
-
-            // Battery card
-            const batteryCard = document.getElementById('batteryCard');
-            if (m.batteryLife >= 8) {
-                batteryCard.className = 'metric-card success';
-                batteryCard.querySelector('.metric-status').className = 'metric-status pass';
-                batteryCard.querySelector('.metric-status').textContent = '✓ All-day';
-            } else if (m.batteryLife >= 4) {
-                batteryCard.className = 'metric-card warning';
-                batteryCard.querySelector('.metric-status').className = 'metric-status warning';
-                batteryCard.querySelector('.metric-status').textContent = '⚠ Half-day';
-            } else {
-                batteryCard.className = 'metric-card danger';
-                batteryCard.querySelector('.metric-status').className = 'metric-status fail';
-                batteryCard.querySelector('.metric-status').textContent = '✗ Limited';
-            }
+          }
         }
+      });
+    } else {
+      charts.feasibility.data.datasets[0].data = scores;
+      charts.feasibility.update('none');
+    }
+  }
 
-        function updateCharts() {
-            updateLatencyChart();
-            updateComparisonChart();
-            updatePowerChart();
-            updateFeasibilityChart();
-        }
+  /* ── Run Experiment (CTA) ────────────────────────────────── */
+  function runExperiment() {
+    const { dev, q, latSec, scaledLat, avgPower, batLife } = metrics;
+    const feasible = q.size <= dev.memory && q.werLoss <= 1 && latSec < 4;
+    log(`— New experiment triggered —`);
+    log(`Kernel loaded on ${dev.name} cluster 0…`, 'ok');
+    log(`Precision set to ${q.label} via TensorRT…`, 'ok');
+    log(`Connected to BCI array channel 0x${Math.floor(Math.random()*0xFFFF).toString(16).toUpperCase().padStart(4,'0')}…`, 'ok');
+    log(`Model: ${q.size} GB  |  WER Δ: +${q.werLoss}%  |  Latency: ${latSec.toFixed(2)}s (${Math.round(scaledLat)}ms)`);
+    log(`Power: ${avgPower.toFixed(1)}W avg  |  Battery: ${batLife.toFixed(1)}h on ${state.battery}Wh`, avgPower > dev.peakPower * 0.5 ? 'warn' : 'ok');
+    log(`Assessment: ${feasible ? 'DEPLOYMENT VIABLE — all constraints satisfied' : 'MARGINAL — review configuration'}`, feasible ? 'ok' : 'warn');
+    updateAll();
+  }
 
-        function updateLatencyChart() {
-            const m = window.metrics;
-            const encoderLat = m.device.encoderLatency;
-            const lmLat = m.scaledLatency - encoderLat;
+  /* ── Export ──────────────────────────────────────────────── */
+  function downloadJSON() {
+    const { q, latSec, avgPower, batLife } = metrics;
+    const payload = {
+      timestamp:  new Date().toISOString(),
+      config:     { device:state.device, quantization:state.quant, batteryWh:state.battery, dutyCyclePct:state.dutyCycle, tokens:state.tokens },
+      metrics:    { modelSizeGB:q.size, werLossPct:q.werLoss, latencySeconds:+latSec.toFixed(2), avgPowerW:+avgPower.toFixed(1), batteryLifeH:+batLife.toFixed(1) }
+    };
+    const a = Object.assign(document.createElement('a'), {
+      href:     URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' })),
+      download: `bci_sim_${Date.now()}.json`
+    });
+    a.click();
+    log('Configuration snapshot exported as JSON.', 'ok');
+  }
 
-            if (!charts.latency) {
-                const ctx = document.getElementById('latencyChart').getContext('2d');
-                charts.latency = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Latency (ms)'],
-                        datasets: [
-                            {
-                                label: 'Encoder',
-                                data: [encoderLat],
-                                backgroundColor: '#3498db'
-                            },
-                            {
-                                label: `LLM (${currentTokens} tokens)`,
-                                data: [lmLat],
-                                backgroundColor: '#e74c3c'
-                            }
-                        ]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { stacked: true },
-                            y: { stacked: true }
-                        },
-                        plugins: {
-                            legend: { position: 'top' }
-                        }
-                    }
-                });
-            } else {
-                charts.latency.data.datasets[0].data = [encoderLat];
-                charts.latency.data.datasets[1].data = [lmLat];
-                charts.latency.data.datasets[1].label = `LLM (${currentTokens} tokens)`;
-                charts.latency.update();
-            }
-        }
+  function generateReport() {
+    const { dev, q, latSec, avgPower, batLife } = metrics;
+    const feasible = q.size <= dev.memory && q.werLoss <= 1 && latSec < 4;
+    const txt = [
+      `BCI EDGE DEPLOYMENT FEASIBILITY REPORT`,
+      `Generated: ${new Date().toLocaleString()}`,
+      ``,
+      `CONFIGURATION`,
+      `  Device        : ${dev.name}`,
+      `  Precision     : ${q.label}`,
+      `  Battery       : ${state.battery} Wh`,
+      `  Duty Cycle    : ${state.dutyCycle}%`,
+      `  Tokens/Sentence: ${state.tokens}`,
+      ``,
+      `METRICS`,
+      `  Model Size    : ${q.size} GB  (RAM: ${dev.memory} GB)`,
+      `  WER Loss      : +${q.werLoss}%`,
+      `  Total Latency : ${latSec.toFixed(2)} s`,
+      `  Avg Power     : ${avgPower.toFixed(1)} W`,
+      `  Battery Life  : ${batLife.toFixed(1)} h`,
+      ``,
+      `ASSESSMENT  :  ${feasible ? 'DEPLOYMENT VIABLE' : 'MARGINAL — review config'}`
+    ].join('\n');
+    navigator.clipboard.writeText(txt)
+      .then(() => log('Report copied to clipboard.', 'ok'))
+      .catch(() => log('Clipboard write failed — check browser permissions.', 'warn'));
+  }
 
-        function updateComparisonChart() {
-            const allDevices = Object.keys(devices).map(key => ({
-                name: devices[key].name.replace('Jetson ', ''),
-                latency: 890 * 936 / devices[key].bandwidth / 1000,
-                id: key
-            }));
+  /* ── Event Listeners ─────────────────────────────────────── */
+  function setupListeners() {
+    // Device dropdown
+    $('deviceSelect').addEventListener('change', e => {
+      state.device = e.target.value;
+      updateAll();
+      log(`Hardware target → ${devices[state.device].name}`);
+    });
 
-            if (!charts.comparison) {
-                const ctx = document.getElementById('comparisonChart').getContext('2d');
-                charts.comparison = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: allDevices.map(d => d.name),
-                        datasets: [{
-                            label: 'Total Latency (seconds)',
-                            data: allDevices.map(d => d.latency),
-                            backgroundColor: allDevices.map(d => d.id === currentDevice ? '#667eea' : '#ddd')
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
-            } else {
-                charts.comparison.data.datasets[0].backgroundColor = allDevices.map(d => d.id === currentDevice ? '#667eea' : '#ddd');
-                charts.comparison.data.datasets[0].data = allDevices.map(d => d.latency);
-                charts.comparison.update();
-            }
-        }
+    // Precision toggles
+    document.querySelectorAll('[data-quant]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        document.querySelectorAll('[data-quant]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        state.quant = e.currentTarget.dataset.quant;
+        updateAll();
+        log(`Precision mode → ${quants[state.quant].label}`);
+      });
+    });
 
-        function updatePowerChart() {
-            const m = window.metrics;
+    // Battery slider
+    $('batterySlider').addEventListener('input', e => {
+      state.battery = parseInt(e.target.value);
+      set('batteryDisplay', `${state.battery} Wh`);
+      updateAll();
+    });
 
-            if (!charts.power) {
-                const ctx = document.getElementById('powerChart').getContext('2d');
-                charts.power = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Idle', 'Peak', 'Average'],
-                        datasets: [{
-                            label: 'Power (Watts)',
-                            data: [m.device.baselinePower, m.device.peakPower, m.avgPower],
-                            backgroundColor: ['#95a5a6', '#e74c3c', '#f39c12']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
-            } else {
-                charts.power.data.datasets[0].data = [m.device.baselinePower, m.device.peakPower, m.avgPower];
-                charts.power.update();
-            }
-        }
+    // Duty cycle slider
+    $('dutyCycleSlider').addEventListener('input', e => {
+      state.dutyCycle = parseInt(e.target.value);
+      set('dutyCycleDisplay', `${state.dutyCycle}%`);
+      updateAll();
+    });
 
-        function updateFeasibilityChart() {
-            const m = window.metrics;
-            
-            const checks = [
-                m.quant.size <= m.device.memory ? 100 : 0,
-                m.quant.werLoss <= 1 ? 100 : 50,
-                m.latencySeconds < 4 ? 100 : 50,
-                m.batteryLife >= 8 ? 100 : 50
-            ];
+    // Tokens slider
+    $('tokensSlider').addEventListener('input', e => {
+      state.tokens = parseInt(e.target.value);
+      set('tokensDisplay', `${state.tokens} tokens`);
+      updateAll();
+    });
+  }
 
-            if (!charts.feasibility) {
-                const ctx = document.getElementById('feasibilityChart').getContext('2d');
-                charts.feasibility = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: ['Fits in RAM', 'Accuracy Loss', 'Latency', 'Battery Life'],
-                        datasets: [{
-                            label: 'Feasibility Score (%)',
-                            data: checks,
-                            fill: true,
-                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                            borderColor: '#667eea',
-                            pointBackgroundColor: '#667eea'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            r: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
-            } else {
-                charts.feasibility.data.datasets[0].data = checks;
-                charts.feasibility.update();
-            }
-        }
-
-        function generateReport() {
-            const m = window.metrics;
-            const timestamp = new Date().toLocaleString();
-
-            const report = `
-BCI EDGE DEPLOYMENT FEASIBILITY REPORT
-Generated: ${timestamp}
-
-CONFIGURATION
-Device: ${m.device.name}
-Quantization: ${quantizations[currentQuant].name}
-Battery: ${currentBattery} Wh
-Duty Cycle: ${currentDutyCycle}%
-Tokens/Sentence: ${currentTokens}
-
-METRICS
-Model Size: ${m.quant.size} GB (Device has ${m.device.memory} GB)
-WER Loss: +${m.quant.werLoss}%
-Total Latency: ${m.latencySeconds.toFixed(2)} seconds
-Average Power: ${m.avgPower.toFixed(1)} W
-Battery Life: ${m.batteryLife} hours (on ${currentBattery} Wh battery)
-
-FEASIBILITY ASSESSMENT
-✓ Deployment Viable: ${m.quant.size <= m.device.memory && m.quant.werLoss <= 1 ? 'YES' : 'MARGINAL'}
-✓ Real-time Capable: ${m.latencySeconds < 3 ? 'YES' : 'NO'}
-✓ Battery Life: ${m.batteryLife >= 8 ? 'EXCELLENT' : m.batteryLife >= 4 ? 'ADEQUATE' : 'LIMITED'}
-
-RECOMMENDATION
-This configuration is ${m.quant.size <= m.device.memory && m.quant.werLoss <= 1 ? 'RECOMMENDED' : 'MARGINAL'} for clinical deployment.
-            `;
-
-            // Copy to clipboard and show alert
-            navigator.clipboard.writeText(report).then(() => {
-                alert('Report copied to clipboard!');
-            });
-        }
-
-        function downloadJSON() {
-            const m = window.metrics;
-            const data = {
-                timestamp: new Date().toISOString(),
-                config: {
-                    device: currentDevice,
-                    quantization: currentQuant,
-                    battery: currentBattery,
-                    dutyCycle: currentDutyCycle,
-                    tokens: currentTokens
-                },
-                metrics: {
-                    modelSize: m.quant.size,
-                    werLoss: m.quant.werLoss,
-                    latencySeconds: parseFloat(m.latencySeconds.toFixed(2)),
-                    avgPower: parseFloat(m.avgPower.toFixed(1)),
-                    batteryLife: parseFloat(m.batteryLife)
-                }
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `bci_deployment_${Date.now()}.json`;
-            a.click();
-        }
-
-        function generatePDF() {
-            const element = document.querySelector('.main-content');
-            const opt = {
-                margin: 10,
-                filename: `bci_deployment_report_${Date.now()}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-            };
-
-            html2pdf().set(opt).from(element).save();
-        }
-
-        function shareApp() {
-            const url = window.location.href;
-            document.getElementById('shareLink').value = url;
-            document.getElementById('shareModal').classList.add('active');
-        }
-
-        function copyToClipboard() {
-            const input = document.getElementById('shareLink');
-            input.select();
-            document.execCommand('copy');
-            alert('Link copied to clipboard!');
-        }
-
-        function closeModal() {
-            document.getElementById('shareModal').classList.remove('active');
-        }
-
-        function resetApp() {
-            currentDevice = 'orin-nx';
-            currentQuant = 'int8';
-            currentBattery = 30;
-            currentDutyCycle = 6;
-            currentTokens = 25;
-
-            document.querySelectorAll('[data-device]').forEach(b => b.classList.remove('active'));
-            document.querySelector('[data-device="orin-nx"]').classList.add('active');
-            document.querySelectorAll('[data-quant]').forEach(b => b.classList.remove('active'));
-            document.querySelector('[data-quant="int8"]').classList.add('active');
-
-            document.getElementById('batterySlider').value = 30;
-            document.getElementById('batteryValue').textContent = '30';
-            document.getElementById('dutyCycleSlider').value = 6;
-            document.getElementById('dutyCycleValue').textContent = '6';
-            document.getElementById('tokensSlider').value = 25;
-            document.getElementById('tokensValue').textContent = '25';
-
-            updateAll();
-        }
-
-        window.addEventListener('load', init);
-    </script>
+  /* ── Init ────────────────────────────────────────────────── */
+  window.addEventListener('load', () => {
+    setupListeners();
+    updateAll();
+    log(`Simulator initialized · Default config loaded.`, 'ok');
+    log(`Quant: ${quants[state.quant].label}  |  Device: ${devices[state.device].name}`);
+    log(`Session 0x9AF2 ready — adjust parameters or run a new experiment.`);
+  });
+</script>
 </body>
 </html>
