@@ -95,13 +95,13 @@ def train_ctc(args):
     else:
         logger.warning("No session_stats provided. Training might be unstable due to probe drift.")
 
-    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats)
-    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats)
+    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size, filter_ctc=True)
+    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size, filter_ctc=True)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
 
-    encoder = BIT_Transformer(session_ids=list(session_ids))
+    encoder = BIT_Transformer(session_ids=list(session_ids), patch_size=args.patch_size)
     if args.ssl_checkpoint and os.path.exists(args.ssl_checkpoint):
         logger.info(f"Loading SSL Pretrained Encoder from {args.ssl_checkpoint}")
         state_dict = torch.load(args.ssl_checkpoint, map_location=device)
@@ -265,13 +265,16 @@ def validate(model, val_loader, device, use_amp, compute_dtype):
                             decoded_seq.append(str(p))
                     prev_token = p
                 
-                predictions.append(" ".join(decoded_seq) if decoded_seq else "1")
+                # THE FIX: If empty, use a placeholder that doesn't match common phonemes
+                # or just an empty string if calculate_per handles it.
+                # Phoneme 1 might be a real phoneme, so using a very large number is safer.
+                predictions.append(" ".join(decoded_seq) if decoded_seq else "999")
                 
                 if 'phonemes' in batch:
                     tgt = batch['phonemes'][i][:batch['phoneme_lengths'][i]]
                     targets_list.append(" ".join([str(t.item()) for t in tgt]))
                 else:
-                    targets_list.append("1 2 3")
+                    targets_list.append("999")
                     
     return calculate_per(predictions, targets_list)
 
@@ -289,5 +292,6 @@ if __name__ == "__main__":
     parser.add_argument("--patience", type=int, default=50, help="Early stopping patience (validation intervals)")
     parser.add_argument("--use_amp", action="store_true", default=True)
     parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--patch_size", type=int, default=4, help="Patch size for temporal compression")
     args = parser.parse_args()
     train_ctc(args)

@@ -40,14 +40,14 @@ def train_ssl(args):
     
     logger.info(f"Detected {len(session_ids)} session IDs")
 
-    train_dataset = Preprocessed_BCI_Dataset(args.train_h5, train_trials)
-    val_dataset = Preprocessed_BCI_Dataset(args.val_h5, val_trials)
+    train_dataset = Preprocessed_BCI_Dataset(args.train_h5, train_trials, patch_size=args.patch_size)
+    val_dataset = Preprocessed_BCI_Dataset(args.val_h5, val_trials, patch_size=args.patch_size)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
 
     # 2. Model
-    model = BIT_Transformer(session_ids=list(session_ids)).to(device)
+    model = BIT_Transformer(session_ids=list(session_ids), patch_size=args.patch_size).to(device)
     recon_head = nn.Linear(model.embed_dim, model.input_dim * model.patch_size).to(device)
     
     params = list(model.parameters()) + list(recon_head.parameters())
@@ -147,6 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--patch_size", type=int, default=4, help="Patch size for temporal compression")
     args = parser.parse_args()
     train_ssl(args)
 

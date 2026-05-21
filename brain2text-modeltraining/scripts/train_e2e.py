@@ -24,7 +24,7 @@ from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_f
 from src.utils.metrics import calculate_wer, calculate_cer
 from src.utils.logging_utils import setup_logging
 
-def pause_instance(logger, instance_id="410414"):
+def pause_instance(logger, instance_id="413754"):
     """
     Sends a request to JarvisLabs to pause the instance.
     """
@@ -106,15 +106,15 @@ def _train_logic(args, logger):
             except Exception as e:
                 logger.error(f"Failed to parse session stats: {e}")
 
-    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats)
-    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats)
+    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size)
+    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
 
     # 3. Model
     quantize = not args.no_quantize
-    model = BrainToTextE2E(session_ids=list(session_ids), quantize=quantize).to(device)
+    model = BrainToTextE2E(session_ids=list(session_ids), quantize=quantize, patch_size=args.patch_size).to(device)
     
     # Load Pretrained Encoder if available
     if args.pretrained_encoder and os.path.exists(args.pretrained_encoder):
@@ -131,9 +131,15 @@ def _train_logic(args, logger):
                 new_state_dict[k] = v
         
         # Use strict=False to handle session read-in mismatches gracefully
-        model.neural_encoder.load_state_dict(new_state_dict, strict=False)
+        load_result = model.neural_encoder.load_state_dict(new_state_dict, strict=False)
+        logger.info(f"Encoder load — {len(load_result.missing_keys)} missing keys (expected: per-session read-in for new sessions)")
+        if load_result.missing_keys:
+            logger.info(f"  missing_keys (sample): {load_result.missing_keys[:5]}{'...' if len(load_result.missing_keys) > 5 else ''}")
+        logger.info(f"Encoder load — {len(load_result.unexpected_keys)} unexpected keys (should be 0 except CTC head)")
+        if load_result.unexpected_keys:
+            logger.info(f"  unexpected_keys (sample): {load_result.unexpected_keys[:5]}{'...' if len(load_result.unexpected_keys) > 5 else ''}")
 
-    optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
+    optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
     
     compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
@@ -225,37 +231,43 @@ def _train_logic(args, logger):
         avg_loss = total_loss / len(train_loader)
         history['train_loss'].append(avg_loss)
         logger.info(f"Epoch {epoch} Avg Loss: {avg_loss:.4f} (CE: {total_ce/len(train_loader):.4f}, Cntr: {total_contrastive/len(train_loader):.4f})")
-        
+
+        # --- PER-EPOCH CHECKPOINT (for granular pause/resume) ---
+        checkpoint = {
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'best_wer': best_wer,
+            'history': history,
+        }
+        torch.save(checkpoint, checkpoint_path)
+
         # Validation
         if epoch % args.val_interval == 0:
             val_wer, val_cer, val_loss_avg = validate(model, val_loader, device, compute_dtype)
             logger.info(f"Validation Epoch {epoch}: WER={val_wer:.4f}, CER={val_cer:.4f}, Loss={val_loss_avg:.4f}")
-            
+
             history['val_wer'].append(val_wer)
             history['val_cer'].append(val_cer)
             history['val_loss'].append(val_loss_avg)
-            
+
             scheduler.step(val_wer)
-            
-            # Save Checkpoint
-            checkpoint = {
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'scheduler_state_dict': scheduler.state_dict(),
-                'best_wer': best_wer,
-                'history': history
-            }
+
+            # Refresh the latest checkpoint with post-validation history/best_wer
+            checkpoint['best_wer'] = best_wer
+            checkpoint['history'] = history
             torch.save(checkpoint, checkpoint_path)
-            
+            logger.info(f"Saved checkpoint to {checkpoint_path}")
+
             if val_wer < best_wer:
                 best_wer = val_wer
                 patience_counter = 0
                 torch.save(model.state_dict(), os.path.join(args.output_dir, "best_model_wer.pth"))
-                logger.info("New Best Model Saved!")
+                logger.info("New Best Model Saved (best_model_wer.pth)!")
             else:
                 patience_counter += 1
-            
+
             if patience_counter >= args.patience:
                 logger.info("Early stopping triggered.")
                 break
@@ -273,6 +285,9 @@ def _train_logic(args, logger):
             torch.save(model.state_dict(), os.path.join(args.output_dir, f"checkpoint_epoch_{epoch}.pth"))
 
 def validate(model, val_loader, device, compute_dtype):
+    if len(val_loader) == 0:
+        return 1.0, 1.0, 0.0
+    
     model.eval()
     predictions = []
     targets = []
@@ -290,6 +305,13 @@ def validate(model, val_loader, device, compute_dtype):
             total_loss += loss.item()
             
             preds = model.generate(neural_data, session_id=session_id, neural_lengths=neural_lengths)
+
+            # Print first 2 predictions of this validation pass for sanity check
+            if not predictions:
+                for p, t in zip(preds[:2], labels[:2]):
+                    print(f"[VAL] target: '{t}'", flush=True)
+                    print(f"[VAL] pred:   '{p}'", flush=True)
+
             predictions.extend(preds)
             targets.extend(labels)
             
@@ -304,13 +326,15 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="scripts/models/e2e")
     parser.add_argument("--pretrained_encoder", type=str, default="outputs/ctc/best_model_per.pth")
     parser.add_argument("--session_stats", type=str, default=None, help="Path to session_stats.json")
-    parser.add_argument("--epochs", type=int, default=600)
+    parser.add_argument("--epochs", type=int, default=150)
     parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=5e-5)
+    parser.add_argument("--weight_decay", type=float, default=1e-5)
     parser.add_argument("--patience", type=int, default=50)
-    parser.add_argument("--val_interval", type=int, default=10)
+    parser.add_argument("--val_interval", type=int, default=5)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--accumulation_steps", type=int, default=4, help="Number of steps to accumulate gradients")
     parser.add_argument("--no_quantize", action="store_true", help="Disable quantization for local testing")
+    parser.add_argument("--patch_size", type=int, default=4, help="Patch size for temporal compression")
     args = parser.parse_args()
     train_e2e(args)
