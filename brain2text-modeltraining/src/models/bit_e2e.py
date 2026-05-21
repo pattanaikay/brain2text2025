@@ -4,28 +4,6 @@ import torch.nn.functional as F
 import os
 import sys
 
-# --- MONKEY PATCHES FOR AERO-1-AUDIO COMPATIBILITY ---
-import transformers.modeling_utils
-import transformers.models.qwen2_audio.modeling_qwen2_audio as modeling_qwen
-
-# 1. Mock missing FlashAttention class (since we use SDPA)
-if not hasattr(modeling_qwen, 'Qwen2AudioFlashAttention2'):
-    class Dummy(nn.Module):
-        def __init__(self, *args, **kwargs):
-            super().__init__()
-    modeling_qwen.Qwen2AudioFlashAttention2 = Dummy
-
-# 2. Fix the 'recompute_mapping' and 'missing_keys' bug in tie_weights for custom models
-original_init_weights = transformers.modeling_utils.PreTrainedModel.init_weights
-def patched_init_weights(self, *args, **kwargs):
-    original_tie_weights = self.tie_weights
-    def safe_tie_weights(*t_args, **t_kwargs):
-        return original_tie_weights() 
-    self.tie_weights = safe_tie_weights
-    return original_init_weights(self, *args, **kwargs)
-transformers.modeling_utils.PreTrainedModel.init_weights = patched_init_weights
-# -----------------------------------------------------
-
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 from .encoder import BIT_Transformer
@@ -51,7 +29,7 @@ class ModalityAlignmentLoss(nn.Module):
         return (loss_n + loss_t) / 2
 
 class BrainToTextE2E(nn.Module):
-    def __init__(self, llm_name="lmms-lab/Aero-1-Audio-1.5B", session_ids=None, quantize=True, patch_size=4):
+    def __init__(self, llm_name="Qwen/Qwen2.5-1.5B-Instruct", session_ids=None, quantize=True, patch_size=4):
         super().__init__()
         self.llm_name = llm_name
         
@@ -81,39 +59,6 @@ class BrainToTextE2E(nn.Module):
                 attn_implementation=attn_implementation
             )
 
-        # 1.5. Patch Aero's prepare_inputs_for_generation to handle cache_position=None.
-        # HF's _prefill (transformers >=4.46) calls prepare_inputs_for_generation with
-        # cache_position=None during prefill when only inputs_embeds is provided.
-        # Aero's modeling_aero.py:461 indexes cache_position[0] unconditionally, which
-        # raises TypeError. We compute a default cache_position from input shapes.
-        #
-        # IMPORTANT: HF's _prepare_model_inputs (utils.py:647) introspects this
-        # function's signature via inspect.signature(...).parameters.keys() to verify
-        # that "inputs_embeds" is a named parameter. A bare *args/**kwargs wrapper
-        # hides the parameter and triggers "doesn't have its forwarding implemented".
-        # So we declare input_ids and inputs_embeds explicitly.
-        if hasattr(self.llm, 'prepare_inputs_for_generation'):
-            _original_prepare = self.llm.prepare_inputs_for_generation
-            _patch_fired = [False]
-            def _safe_prepare_inputs(input_ids=None, inputs_embeds=None, **kwargs):
-                if kwargs.get('cache_position') is None:
-                    if not _patch_fired[0]:
-                        print("[PATCH] cache_position was None — injecting default", flush=True)
-                        _patch_fired[0] = True
-                    past_kv = kwargs.get('past_key_values')
-                    past_len = 0
-                    if past_kv is not None and hasattr(past_kv, 'get_seq_length'):
-                        past_len = past_kv.get_seq_length()
-                    if input_ids is not None:
-                        cur_len, dev = input_ids.shape[1], input_ids.device
-                    elif inputs_embeds is not None:
-                        cur_len, dev = inputs_embeds.shape[1], inputs_embeds.device
-                    else:
-                        cur_len, dev = 1, torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-                    kwargs['cache_position'] = torch.arange(past_len, past_len + cur_len, device=dev)
-                return _original_prepare(input_ids=input_ids, inputs_embeds=inputs_embeds, **kwargs)
-            self.llm.prepare_inputs_for_generation = _safe_prepare_inputs
-
         self.tokenizer = AutoTokenizer.from_pretrained(llm_name, trust_remote_code=True)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -129,10 +74,12 @@ class BrainToTextE2E(nn.Module):
         self.projector = MLPProjector(output_dim=llm_dim)
         
         # 3. LoRA Configuration (Zhang et al. 2025, Appendix table: r=8, alpha=32, dropout=0.2)
+        # NOTE: removed "audio_projector" target — that module only exists in Aero.
+        # Base Qwen2.5 has the standard 7 LoRA targets.
         lora_config = LoraConfig(
             r=8,
             lora_alpha=32,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "audio_projector", "gate_proj", "up_proj", "down_proj"],
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
             lora_dropout=0.2,
             bias="none",
             task_type=TaskType.CAUSAL_LM

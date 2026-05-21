@@ -1,0 +1,1 @@
+timestamp	run_id	model	seed	subject	budget_minutes	epochs	steps	metric	mean_pearson	rmse	params	peak_vram_mb	train_seconds	status	notes

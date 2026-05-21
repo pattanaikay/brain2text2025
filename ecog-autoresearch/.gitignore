@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+
+data/
+runs/
+plots/
+checkpoints/
+
+*.pt
+*.pth
+*.ckpt
+*.npz
+*.npy

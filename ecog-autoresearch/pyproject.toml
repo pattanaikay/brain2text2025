@@ -1,0 +1,19 @@
+[project]
+name = "ecog-autoresearch"
+version = "0.1.0"
+description = "Laptop-sized autoresearch harness for ECoG finger-flexion HRM and NeuroMoE experiments."
+requires-python = ">=3.10"
+dependencies = [
+  "torch",
+  "numpy",
+  "pandas",
+  "matplotlib",
+  "scikit-learn",
+  "mne",
+  "braindecode",
+  "tqdm",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
