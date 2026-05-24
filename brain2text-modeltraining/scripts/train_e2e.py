@@ -106,8 +106,8 @@ def _train_logic(args, logger):
             except Exception as e:
                 logger.error(f"Failed to parse session stats: {e}")
 
-    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size)
-    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size)
+    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size, augment=True)
+    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size, augment=False)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
@@ -116,28 +116,34 @@ def _train_logic(args, logger):
     quantize = not args.no_quantize
     model = BrainToTextE2E(session_ids=list(session_ids), quantize=quantize, patch_size=args.patch_size).to(device)
     
-    # Load Pretrained Encoder if available
+    # Load Pretrained Encoder (and CTC head) if available
     if args.pretrained_encoder and os.path.exists(args.pretrained_encoder):
         logger.info(f"Loading Pretrained Encoder from {args.pretrained_encoder}")
         checkpoint_data = torch.load(args.pretrained_encoder, map_location=device)
-        
+
         state_dict = checkpoint_data.get('model_state_dict', checkpoint_data)
-            
-        new_state_dict = {}
+
+        encoder_state_dict = {}
+        ctc_head_state_dict = {}
         for k, v in state_dict.items():
             if k.startswith('encoder.'):
-                new_state_dict[k.replace('encoder.', '')] = v
+                encoder_state_dict[k.replace('encoder.', '')] = v
+            elif k.startswith('head.'):
+                ctc_head_state_dict[k.replace('head.', '')] = v
             else:
-                new_state_dict[k] = v
-        
+                encoder_state_dict[k] = v
+
         # Use strict=False to handle session read-in mismatches gracefully
-        load_result = model.neural_encoder.load_state_dict(new_state_dict, strict=False)
+        load_result = model.neural_encoder.load_state_dict(encoder_state_dict, strict=False)
         logger.info(f"Encoder load — {len(load_result.missing_keys)} missing keys (expected: per-session read-in for new sessions)")
         if load_result.missing_keys:
             logger.info(f"  missing_keys (sample): {load_result.missing_keys[:5]}{'...' if len(load_result.missing_keys) > 5 else ''}")
         logger.info(f"Encoder load — {len(load_result.unexpected_keys)} unexpected keys (should be 0 except CTC head)")
         if load_result.unexpected_keys:
             logger.info(f"  unexpected_keys (sample): {load_result.unexpected_keys[:5]}{'...' if len(load_result.unexpected_keys) > 5 else ''}")
+        if ctc_head_state_dict:
+            model.ctc_head.load_state_dict(ctc_head_state_dict, strict=False)
+            logger.info(f"Loaded CTC head with {len(ctc_head_state_dict)} keys")
 
     optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
@@ -188,6 +194,38 @@ def _train_logic(args, logger):
         if 'history' in checkpoint:
             history = checkpoint['history']
 
+    # ---- SMOKE TEST: verify forward+backward+generate works on a single batch ----
+    try:
+        logger.info("Running smoke test before main training...")
+        smoke_batch = next(iter(val_loader))
+        smoke_neural = smoke_batch['neural'][:1].to(device)
+        smoke_lengths = smoke_batch['neural_lengths'][:1].to(device)
+        smoke_labels = smoke_batch['text'][:1]
+        smoke_session = smoke_batch['session_id'][:1]
+        smoke_phonemes = smoke_batch.get('phonemes', None)
+        smoke_phon_lens = smoke_batch.get('phoneme_lengths', None)
+        if smoke_phonemes is not None:
+            smoke_phonemes = smoke_phonemes[:1].to(device)
+            smoke_phon_lens = smoke_phon_lens[:1].to(device)
+
+        with torch.autocast(device_type='cuda', dtype=compute_dtype):
+            l, ce, cntr, ctc = model(smoke_neural, labels=smoke_labels,
+                                      session_id=smoke_session,
+                                      neural_lengths=smoke_lengths,
+                                      phonemes=smoke_phonemes,
+                                      phoneme_lengths=smoke_phon_lens)
+        l.backward()
+        model.zero_grad()
+
+        with torch.no_grad():
+            preds = model.generate(smoke_neural, session_id=smoke_session,
+                                    neural_lengths=smoke_lengths)
+        logger.info(f"Smoke test PASSED. Pred: '{preds[0][:80]}'")
+    except Exception as e:
+        logger.error(f"SMOKE TEST FAILED: {e}")
+        logger.error(traceback.format_exc())
+        return
+
     # 4. Training Loop
     patience_counter = 0
     accumulation_steps = args.accumulation_steps
@@ -197,7 +235,8 @@ def _train_logic(args, logger):
         total_loss = 0
         total_ce = 0
         total_contrastive = 0
-        
+        total_ctc = 0
+
         optimizer.zero_grad()
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs}")
         for i, batch in enumerate(pbar):
@@ -205,32 +244,43 @@ def _train_logic(args, logger):
             neural_lengths = batch['neural_lengths'].to(device)
             labels = batch['text']
             session_id = batch['session_id']
-            
+
+            phonemes = batch.get('phonemes')
+            phoneme_lengths = batch.get('phoneme_lengths')
+            if phonemes is not None:
+                phonemes = phonemes.to(device)
+                phoneme_lengths = phoneme_lengths.to(device)
+
             with torch.autocast(device_type='cuda', dtype=compute_dtype):
-                loss, ce_loss, contrastive_loss = model(neural_data, labels=labels, session_id=session_id, neural_lengths=neural_lengths)
-                # Scale loss for accumulation
+                loss, ce_loss, contrastive_loss, ctc_loss = model(
+                    neural_data, labels=labels, session_id=session_id,
+                    neural_lengths=neural_lengths,
+                    phonemes=phonemes, phoneme_lengths=phoneme_lengths
+                )
                 loss = loss / accumulation_steps
-            
+
             loss.backward()
-            
+
             if (i + 1) % accumulation_steps == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
-            
+
             total_loss += loss.item() * accumulation_steps
             total_ce += ce_loss.item()
             total_contrastive += contrastive_loss.item()
-            
+            total_ctc += ctc_loss.item()
+
             pbar.set_postfix({
                 'loss': f"{loss.item() * accumulation_steps:.4f}",
                 'ce': f"{ce_loss.item():.4f}",
+                'ctc': f"{ctc_loss.item():.4f}",
                 'cntr': f"{contrastive_loss.item():.4f}"
             })
 
         avg_loss = total_loss / len(train_loader)
         history['train_loss'].append(avg_loss)
-        logger.info(f"Epoch {epoch} Avg Loss: {avg_loss:.4f} (CE: {total_ce/len(train_loader):.4f}, Cntr: {total_contrastive/len(train_loader):.4f})")
+        logger.info(f"Epoch {epoch} Avg Loss: {avg_loss:.4f} (CE: {total_ce/len(train_loader):.4f}, CTC: {total_ctc/len(train_loader):.4f}, Cntr: {total_contrastive/len(train_loader):.4f})")
 
         # --- PER-EPOCH CHECKPOINT (for granular pause/resume) ---
         checkpoint = {
@@ -245,7 +295,7 @@ def _train_logic(args, logger):
 
         # Validation
         if epoch % args.val_interval == 0:
-            val_wer, val_cer, val_loss_avg = validate(model, val_loader, device, compute_dtype)
+            val_wer, val_cer, val_loss_avg = validate(model, val_loader, device, compute_dtype, logger=logger)
             logger.info(f"Validation Epoch {epoch}: WER={val_wer:.4f}, CER={val_cer:.4f}, Loss={val_loss_avg:.4f}")
 
             history['val_wer'].append(val_wer)
@@ -284,7 +334,7 @@ def _train_logic(args, logger):
         if epoch % 50 == 0:
             torch.save(model.state_dict(), os.path.join(args.output_dir, f"checkpoint_epoch_{epoch}.pth"))
 
-def validate(model, val_loader, device, compute_dtype):
+def validate(model, val_loader, device, compute_dtype, logger=None):
     if len(val_loader) == 0:
         return 1.0, 1.0, 0.0
     
@@ -299,12 +349,17 @@ def validate(model, val_loader, device, compute_dtype):
             neural_lengths = batch['neural_lengths'].to(device)
             labels = batch['text']
             session_id = batch['session_id']
-            
+
             with torch.autocast(device_type='cuda', dtype=compute_dtype):
-                loss, _, _ = model(neural_data, labels=labels, session_id=session_id, neural_lengths=neural_lengths)
+                loss, _, _, _ = model(neural_data, labels=labels, session_id=session_id, neural_lengths=neural_lengths)
             total_loss += loss.item()
-            
-            preds = model.generate(neural_data, session_id=session_id, neural_lengths=neural_lengths)
+
+            try:
+                preds = model.generate(neural_data, session_id=session_id, neural_lengths=neural_lengths)
+            except Exception as e:
+                if logger:
+                    logger.warning(f"[VAL] generate() failed: {type(e).__name__}: {e}")
+                preds = ["" for _ in labels]
 
             # Print first 2 predictions of this validation pass for sanity check
             if not predictions:

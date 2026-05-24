@@ -86,6 +86,10 @@ class BrainToTextE2E(nn.Module):
         )
         self.llm = get_peft_model(self.llm, lora_config)
         
+        # CTC head for auxiliary loss during E2E. Loaded from CTC pretraining.
+        self.ctc_head = nn.Linear(self.neural_encoder.embed_dim, 42)
+        self.ctc_loss_fn = nn.CTCLoss(blank=0, zero_infinity=True)
+
         self.contrastive_loss_fn = ModalityAlignmentLoss()
         
         # Prompt Template
@@ -96,12 +100,15 @@ class BrainToTextE2E(nn.Module):
     def dtype(self):
         return self.llm.dtype
 
-    def forward(self, neural_data, labels=None, session_id=None, neural_lengths=None, return_contrastive=True):
+    def forward(self, neural_data, labels=None, session_id=None, neural_lengths=None,
+                phonemes=None, phoneme_lengths=None, return_contrastive=True,
+                ctc_weight=0.3):
         batch_size = neural_data.size(0)
         device = neural_data.device
-        
+
         # 1. Neural Encoding & Projection
-        neural_tokens = self.neural_encoder(neural_data, session_id=session_id) 
+        neural_tokens = self.neural_encoder(neural_data, session_id=session_id,
+                                             neural_lengths=neural_lengths)
         projected_embeds = self.projector(neural_tokens) 
         projected_embeds = projected_embeds.to(self.llm.dtype)
         
@@ -201,7 +208,17 @@ class BrainToTextE2E(nn.Module):
                     self._debug_printed = True
             # ───────────────────────────────────────────────────────
 
-            # 6. Optional Contrastive Loss
+            # 6. CTC auxiliary loss (fp32 upcast for numerical stability)
+            ctc_loss = torch.tensor(0.0, device=device, dtype=self.llm.dtype)
+            if phonemes is not None and phoneme_lengths is not None:
+                ctc_logits = self.ctc_head(neural_tokens.float())   # CTC needs fp32
+                ctc_log_probs = nn.functional.log_softmax(ctc_logits, dim=-1).permute(1, 0, 2)  # (T, B, 42)
+                patched_lengths = (neural_lengths + self.neural_encoder.patch_size - 1) // self.neural_encoder.patch_size
+                ctc_loss = self.ctc_loss_fn(ctc_log_probs, phonemes,
+                                             patched_lengths.cpu(), phoneme_lengths.cpu())
+                ctc_loss = ctc_loss.to(self.llm.dtype)
+
+            # 7. Optional Contrastive Loss
             if return_contrastive:
                 if neural_lengths is not None:
                     patched_lengths = (neural_lengths + self.neural_encoder.patch_size - 1) // self.neural_encoder.patch_size
@@ -219,8 +236,8 @@ class BrainToTextE2E(nn.Module):
                 text_pooled = (label_embeds * text_mask).sum(dim=1) / text_mask.sum(dim=1).clamp(min=1)
                 contrastive_loss = self.contrastive_loss_fn(neural_pooled, text_pooled)
                 
-            loss = ce_loss + contrastive_loss
-            return loss, ce_loss, contrastive_loss
+            loss = ce_loss + ctc_weight * ctc_loss + contrastive_loss
+            return loss, ce_loss, contrastive_loss, ctc_loss
             
         return combined_embeds
 
@@ -249,14 +266,13 @@ class BrainToTextE2E(nn.Module):
                     actual_neural_end = start_len + patched_lengths[i]
                     attention_mask[i, actual_neural_end : start_len + projected_embeds.size(1)] = 0
 
-            # use_cache=True is required: Aero-1-Audio's prepare_inputs_for_generation
-            # subscripts cache_position[0] unconditionally, which is None when caching is off.
             outputs = self.llm.generate(
                 inputs_embeds=combined_embeds,
                 attention_mask=attention_mask,
                 max_new_tokens=max_new_tokens,
+                num_beams=5,
                 do_sample=False,
-                num_beams=1,
+                early_stopping=True,
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
                 use_cache=True,

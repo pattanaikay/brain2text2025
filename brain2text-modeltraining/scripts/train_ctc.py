@@ -117,7 +117,7 @@ def train_ctc(args):
 
     best_per = float('inf')
     epochs_no_improve = 0
-    scaler = torch.cuda.amp.GradScaler(enabled=args.use_amp)
+    scaler = torch.amp.GradScaler('cuda', enabled=args.use_amp)
     compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     logger.info(f"Using compute dtype: {compute_dtype}")
 

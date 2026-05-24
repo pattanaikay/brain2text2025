@@ -42,25 +42,31 @@ class RoPEAttention(nn.Module):
         
         self.attn_dropout = nn.Dropout(attn_dropout)
         
-    def forward(self, x, cos, sin):
+    def forward(self, x, cos, sin, key_padding_mask=None):
         B, T, C = x.shape
         q = self.q_proj(x).view(B, T, self.num_heads, self.head_dim)
         k = self.k_proj(x).view(B, T, self.num_heads, self.head_dim)
         v = self.v_proj(x).view(B, T, self.num_heads, self.head_dim)
-        
+
         # Apply RoPE
         q = apply_rotary_pos_emb(q, cos, sin)
         k = apply_rotary_pos_emb(k, cos, sin)
-        
+
         # (B, num_heads, T, head_dim)
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
-        
+
         attn_weights = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)
+
+        if key_padding_mask is not None:
+            # (B, T) → (B, 1, 1, T) broadcastable to (B, H, T, T)
+            mask = key_padding_mask.unsqueeze(1).unsqueeze(2)
+            attn_weights = attn_weights.masked_fill(mask, float('-inf'))
+
         attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
         attn_weights = self.attn_dropout(attn_weights)
-        
+
         out = torch.matmul(attn_weights, v) # (B, num_heads, T, head_dim)
         out = out.transpose(1, 2).contiguous().view(B, T, C)
         return self.out_proj(out)
@@ -79,8 +85,8 @@ class TransformerBlock(nn.Module):
             nn.Dropout(dropout)
         )
         
-    def forward(self, x, cos, sin):
-        x = x + self.attn(self.ln1(x), cos, sin)
+    def forward(self, x, cos, sin, key_padding_mask=None):
+        x = x + self.attn(self.ln1(x), cos, sin, key_padding_mask=key_padding_mask)
         x = x + self.mlp(self.ln2(x))
         return x
 
@@ -129,7 +135,12 @@ class BIT_Transformer(nn.Module):
         
         self.layer_norm = nn.LayerNorm(embed_dim)
 
-    def forward(self, x, session_id=None):
+        # Learnable mask token for MAE-style SSL pretraining.
+        # Initialized small (std=0.02) so it doesn't dominate untrained encoder outputs.
+        self.mask_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        nn.init.normal_(self.mask_token, std=0.02)
+
+    def forward(self, x, session_id=None, mask_patches=None, neural_lengths=None):
         """
         Args:
             x: (Batch, Time, Channels) - Z-score normalized & Gaussian smoothed
@@ -173,12 +184,26 @@ class BIT_Transformer(nn.Module):
         x = self.patch_embedding(x)
         x = self.patch_ln2(x)
 
+        # Apply learnable mask token to masked patch positions (SSL only).
+        # mask_patches: bool tensor (B, T_patch). True means "mask this patch".
+        if mask_patches is not None:
+            mask_token = self.mask_token.expand_as(x).to(x.dtype)
+            x = torch.where(mask_patches.unsqueeze(-1), mask_token, x)
+
+        # Build key padding mask in patch space from neural_lengths (raw bin lengths).
+        key_padding_mask = None
+        if neural_lengths is not None:
+            patched_lengths = (neural_lengths + self.patch_size - 1) // self.patch_size
+            T_patch = x.size(1)
+            arange = torch.arange(T_patch, device=x.device).unsqueeze(0)  # (1, T_patch)
+            key_padding_mask = arange >= patched_lengths.unsqueeze(1)      # (B, T_patch), True = pad
+
         # 4. Transformer Forward Pass with RoPE
         seq_len = x.size(1)
         cos, sin = self.rope(seq_len)
-        
+
         for layer in self.layers:
-            x = layer(x, cos, sin)
+            x = layer(x, cos, sin, key_padding_mask=key_padding_mask)
             
         x = self.layer_norm(x)
 

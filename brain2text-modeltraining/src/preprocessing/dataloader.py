@@ -6,7 +6,9 @@ import os
 from scipy.ndimage import gaussian_filter1d
 
 class Preprocessed_BCI_Dataset(Dataset):
-    def __init__(self, h5_paths, trial_list=None, session_stats=None, sigma=1.5, patch_size=4, filter_ctc=False):
+    def __init__(self, h5_paths, trial_list=None, session_stats=None, sigma=1.5,
+                 patch_size=4, filter_ctc=False, augment=False,
+                 channel_mask_p=0.1, time_cutout_max_len=20, gauss_noise_std=0.1):
         """
         Args:
             h5_paths: Single path (str) or List of paths to HDF5 files.
@@ -24,6 +26,10 @@ class Preprocessed_BCI_Dataset(Dataset):
         self.session_stats = session_stats
         self.sigma = sigma
         self.patch_size = patch_size
+        self.augment = augment
+        self.channel_mask_p = channel_mask_p
+        self.time_cutout_max_len = time_cutout_max_len
+        self.gauss_noise_std = gauss_noise_std
         
         # Build index of all trials across all files
         temp_trials = []
@@ -145,7 +151,28 @@ class Preprocessed_BCI_Dataset(Dataset):
         
         if self.sigma > 0:
             neural_data = gaussian_filter1d(neural_data, sigma=self.sigma, axis=0)
-            
+
+        # Training-time augmentation (numpy-side, before tensor conversion)
+        if self.augment:
+            # Channel mask (SpikeDrop)
+            if self.channel_mask_p > 0:
+                channel_mask = np.random.rand(neural_data.shape[1]) < self.channel_mask_p
+                neural_data[:, channel_mask] = 0.0
+
+            # Time cutout (mask 1-2 random spans)
+            if self.time_cutout_max_len > 0:
+                n_spans = np.random.randint(1, 3)
+                for _ in range(n_spans):
+                    span_len = np.random.randint(5, self.time_cutout_max_len + 1)
+                    max_start = max(0, neural_data.shape[0] - span_len)
+                    if max_start > 0:
+                        start = np.random.randint(0, max_start)
+                        neural_data[start:start + span_len, :] = 0.0
+
+            # Gaussian noise
+            if self.gauss_noise_std > 0:
+                neural_data = neural_data + np.random.randn(*neural_data.shape).astype(np.float32) * self.gauss_noise_std
+
         sample = {
             'neural': torch.tensor(neural_data, dtype=torch.float32),
             'text': text,
