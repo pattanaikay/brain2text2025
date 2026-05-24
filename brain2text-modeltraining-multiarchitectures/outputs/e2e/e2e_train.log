@@ -1,0 +1,51 @@
+2026-05-16 03:31:25,442 - root - INFO - Using device: cuda
+2026-05-16 03:31:25,443 - root - INFO - Searching for HDF5 files in /home/data/data/hdf5_data_final...
+2026-05-16 03:31:25,445 - root - INFO - Found 45 training files and 41 validation files.
+2026-05-16 03:31:25,472 - root - INFO - Total Unique Sessions identified: 45
+2026-05-16 03:31:25,472 - root - INFO - Loading session stats from /home/data/data/session_stats.json
+2026-05-16 03:31:25,798 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:26,105 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:26,106 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-05-16 03:31:26,112 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:26,364 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/configuration_aero.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:26,619 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/configuration_aero.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:26,627 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/configuration_aero.py "HTTP/1.1 200 OK"
+2026-05-16 03:31:26,883 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:26,891 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-1.5B-Instruct/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:27,145 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/modeling_aero.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:27,402 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/modeling_aero.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:27,410 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/modeling_aero.py "HTTP/1.1 200 OK"
+2026-05-16 03:31:27,674 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:27,914 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:27,921 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:40,572 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/generation_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:40,825 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/generation_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:40,832 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/generation_config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:41,093 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/custom_generate/generate.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:41,346 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/custom_generate/generate.py "HTTP/1.1 404 Not Found"
+2026-05-16 03:31:41,638 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:41,888 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:41,897 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:42,155 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/configuration_aero.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:42,400 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/configuration_aero.py "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:42,408 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/configuration_aero.py "HTTP/1.1 200 OK"
+2026-05-16 03:31:42,660 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:42,904 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:42,911 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:43,162 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:43,169 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-1.5B-Instruct/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:43,422 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio-1.5B/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:43,757 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/lmms-lab/Aero-1-Audio/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:43,764 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/lmms-lab/Aero-1-Audio/2efba6e9de291fa30e11075849631ae410b8485a/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-05-16 03:31:44,019 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/lmms-lab/Aero-1-Audio-1.5B/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:44,263 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/lmms-lab/Aero-1-Audio/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-05-16 03:31:44,512 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/lmms-lab/Aero-1-Audio-1.5B/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:44,764 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/lmms-lab/Aero-1-Audio/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-05-16 03:31:45,764 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/lmms-lab/Aero-1-Audio-1.5B "HTTP/1.1 307 Temporary Redirect"
+2026-05-16 03:31:46,018 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/models/lmms-lab/Aero-1-Audio "HTTP/1.1 200 OK"
+2026-05-16 03:31:46,654 - root - INFO - Loading Pretrained Encoder from /home/outputs/ctc/best_model_per.pth
+2026-05-16 03:31:46,829 - root - INFO - Using compute dtype: torch.bfloat16
+2026-05-16 04:19:40,816 - root - INFO - Epoch 1 Avg Loss: 1.3235 (CE: 0.0377, Cntr: 1.2858)
+2026-05-16 05:07:37,725 - root - INFO - Epoch 2 Avg Loss: 1.1998 (CE: 0.0293, Cntr: 1.1704)
+2026-05-16 05:55:33,532 - root - INFO - Epoch 3 Avg Loss: 1.1274 (CE: 0.0278, Cntr: 1.0995)
+2026-05-16 06:43:29,277 - root - INFO - Epoch 4 Avg Loss: 1.2018 (CE: 0.0286, Cntr: 1.1733)

@@ -1,0 +1,307 @@
+2026-05-15 18:55:34,225 - root - INFO - Using device: cuda
+2026-05-15 18:55:34,225 - root - INFO - Searching for HDF5 files in /home/data/data/hdf5_data_final...
+2026-05-15 18:55:34,227 - root - INFO - Found 45 training files and 41 validation files.
+2026-05-15 18:55:34,251 - root - INFO - Total Unique Sessions identified: 45
+2026-05-15 18:55:34,251 - root - INFO - Loading session stats from /home/data/data/session_stats.json
+2026-05-15 18:55:35,372 - root - INFO - Using compute dtype: torch.bfloat16
+2026-05-15 18:55:57,746 - root - INFO - Epoch 1 Avg Loss: 4.0713
+2026-05-15 18:56:16,065 - root - INFO - Epoch 2 Avg Loss: 3.1367
+2026-05-15 18:56:34,770 - root - INFO - Epoch 3 Avg Loss: 2.8814
+2026-05-15 18:56:53,631 - root - INFO - Epoch 4 Avg Loss: 2.5688
+2026-05-15 18:57:12,023 - root - INFO - Epoch 5 Avg Loss: 2.2913
+2026-05-15 18:57:30,155 - root - INFO - Epoch 6 Avg Loss: 2.0843
+2026-05-15 18:57:48,897 - root - INFO - Epoch 7 Avg Loss: 1.9262
+2026-05-15 18:58:07,258 - root - INFO - Epoch 8 Avg Loss: 1.7936
+2026-05-15 18:58:25,972 - root - INFO - Epoch 9 Avg Loss: 1.6845
+2026-05-15 18:58:44,417 - root - INFO - Epoch 10 Avg Loss: 1.5904
+2026-05-15 18:58:48,469 - root - INFO - Validation Epoch 10: PER=0.6332
+2026-05-15 18:58:48,527 - root - INFO - New best CTC model saved at epoch 10
+2026-05-15 18:59:06,980 - root - INFO - Epoch 11 Avg Loss: 1.5038
+2026-05-15 18:59:25,955 - root - INFO - Epoch 12 Avg Loss: 1.4285
+2026-05-15 18:59:44,617 - root - INFO - Epoch 13 Avg Loss: 1.3573
+2026-05-15 19:00:03,756 - root - INFO - Epoch 14 Avg Loss: 1.2914
+2026-05-15 19:00:22,136 - root - INFO - Epoch 15 Avg Loss: 1.2321
+2026-05-15 19:00:40,783 - root - INFO - Epoch 16 Avg Loss: 1.1757
+2026-05-15 19:00:59,523 - root - INFO - Epoch 17 Avg Loss: 1.1119
+2026-05-15 19:01:18,224 - root - INFO - Epoch 18 Avg Loss: 1.0814
+2026-05-15 19:01:36,670 - root - INFO - Epoch 19 Avg Loss: 1.0543
+2026-05-15 19:01:55,126 - root - INFO - Epoch 20 Avg Loss: 1.0293
+2026-05-15 19:01:58,812 - root - INFO - Validation Epoch 20: PER=0.5399
+2026-05-15 19:01:58,908 - root - INFO - New best CTC model saved at epoch 20
+2026-05-15 19:02:18,943 - root - INFO - Epoch 21 Avg Loss: 1.0018
+2026-05-15 19:02:37,705 - root - INFO - Epoch 22 Avg Loss: 0.9750
+2026-05-15 19:02:56,149 - root - INFO - Epoch 23 Avg Loss: 0.9487
+2026-05-15 19:03:14,604 - root - INFO - Epoch 24 Avg Loss: 0.9228
+2026-05-15 19:03:33,635 - root - INFO - Epoch 25 Avg Loss: 0.9000
+2026-05-15 19:03:52,427 - root - INFO - Epoch 26 Avg Loss: 0.8767
+2026-05-15 19:04:10,672 - root - INFO - Epoch 27 Avg Loss: 0.8507
+2026-05-15 19:04:29,456 - root - INFO - Epoch 28 Avg Loss: 0.8289
+2026-05-15 19:04:48,158 - root - INFO - Epoch 29 Avg Loss: 0.8061
+2026-05-15 19:05:06,828 - root - INFO - Epoch 30 Avg Loss: 0.7815
+2026-05-15 19:05:10,476 - root - INFO - Validation Epoch 30: PER=0.5171
+2026-05-15 19:05:10,575 - root - INFO - New best CTC model saved at epoch 30
+2026-05-15 19:05:29,357 - root - INFO - Epoch 31 Avg Loss: 0.7620
+2026-05-15 19:05:47,753 - root - INFO - Epoch 32 Avg Loss: 0.7357
+2026-05-15 19:06:06,905 - root - INFO - Epoch 33 Avg Loss: 0.7102
+2026-05-15 19:06:25,580 - root - INFO - Epoch 34 Avg Loss: 0.6980
+2026-05-15 19:06:44,310 - root - INFO - Epoch 35 Avg Loss: 0.6844
+2026-05-15 19:07:03,152 - root - INFO - Epoch 36 Avg Loss: 0.6740
+2026-05-15 19:07:21,464 - root - INFO - Epoch 37 Avg Loss: 0.6625
+2026-05-15 19:07:39,936 - root - INFO - Epoch 38 Avg Loss: 0.6514
+2026-05-15 19:07:58,985 - root - INFO - Epoch 39 Avg Loss: 0.6384
+2026-05-15 19:08:17,701 - root - INFO - Epoch 40 Avg Loss: 0.6272
+2026-05-15 19:08:21,388 - root - INFO - Validation Epoch 40: PER=0.5144
+2026-05-15 19:08:21,491 - root - INFO - New best CTC model saved at epoch 40
+2026-05-15 19:08:40,845 - root - INFO - Epoch 41 Avg Loss: 0.6169
+2026-05-15 19:08:59,598 - root - INFO - Epoch 42 Avg Loss: 0.6057
+2026-05-15 19:09:18,177 - root - INFO - Epoch 43 Avg Loss: 0.5950
+2026-05-15 19:09:37,680 - root - INFO - Epoch 44 Avg Loss: 0.5845
+2026-05-15 19:09:56,537 - root - INFO - Epoch 45 Avg Loss: 0.5738
+2026-05-15 19:10:15,204 - root - INFO - Epoch 46 Avg Loss: 0.5627
+2026-05-15 19:10:34,361 - root - INFO - Epoch 47 Avg Loss: 0.5535
+2026-05-15 19:10:53,419 - root - INFO - Epoch 48 Avg Loss: 0.5378
+2026-05-15 19:11:12,150 - root - INFO - Epoch 49 Avg Loss: 0.5268
+2026-05-15 19:11:30,605 - root - INFO - Epoch 50 Avg Loss: 0.5206
+2026-05-15 19:11:34,271 - root - INFO - Validation Epoch 50: PER=0.5162
+2026-05-15 19:11:53,176 - root - INFO - Epoch 51 Avg Loss: 0.5148
+2026-05-15 19:12:11,824 - root - INFO - Epoch 52 Avg Loss: 0.5088
+2026-05-15 19:12:30,223 - root - INFO - Epoch 53 Avg Loss: 0.5053
+2026-05-15 19:12:48,870 - root - INFO - Epoch 54 Avg Loss: 0.4987
+2026-05-15 19:13:07,374 - root - INFO - Epoch 55 Avg Loss: 0.4927
+2026-05-15 19:13:26,145 - root - INFO - Epoch 56 Avg Loss: 0.4853
+2026-05-15 19:13:45,058 - root - INFO - Epoch 57 Avg Loss: 0.4822
+2026-05-15 19:14:03,689 - root - INFO - Epoch 58 Avg Loss: 0.4758
+2026-05-15 19:14:22,298 - root - INFO - Epoch 59 Avg Loss: 0.4724
+2026-05-15 19:14:40,798 - root - INFO - Epoch 60 Avg Loss: 0.4653
+2026-05-15 19:14:44,466 - root - INFO - Validation Epoch 60: PER=0.5194
+2026-05-15 19:15:03,433 - root - INFO - Epoch 61 Avg Loss: 0.4609
+2026-05-15 19:15:22,123 - root - INFO - Epoch 62 Avg Loss: 0.4550
+2026-05-15 19:15:40,577 - root - INFO - Epoch 63 Avg Loss: 0.4512
+2026-05-15 19:15:58,910 - root - INFO - Epoch 64 Avg Loss: 0.4407
+2026-05-15 19:16:17,397 - root - INFO - Epoch 65 Avg Loss: 0.4373
+2026-05-15 19:16:35,902 - root - INFO - Epoch 66 Avg Loss: 0.4341
+2026-05-15 19:16:54,167 - root - INFO - Epoch 67 Avg Loss: 0.4327
+2026-05-15 19:17:12,716 - root - INFO - Epoch 68 Avg Loss: 0.4285
+2026-05-15 19:17:31,230 - root - INFO - Epoch 69 Avg Loss: 0.4261
+2026-05-15 19:17:49,855 - root - INFO - Epoch 70 Avg Loss: 0.4242
+2026-05-15 19:17:53,396 - root - INFO - Validation Epoch 70: PER=0.5205
+2026-05-15 19:18:12,152 - root - INFO - Epoch 71 Avg Loss: 0.4213
+2026-05-15 19:18:30,500 - root - INFO - Epoch 72 Avg Loss: 0.4191
+2026-05-15 19:18:48,602 - root - INFO - Epoch 73 Avg Loss: 0.4159
+2026-05-15 19:19:06,609 - root - INFO - Epoch 74 Avg Loss: 0.4131
+2026-05-15 19:19:24,504 - root - INFO - Epoch 75 Avg Loss: 0.4097
+2026-05-15 19:19:42,521 - root - INFO - Epoch 76 Avg Loss: 0.4080
+2026-05-15 19:20:00,609 - root - INFO - Epoch 77 Avg Loss: 0.4053
+2026-05-15 19:20:18,599 - root - INFO - Epoch 78 Avg Loss: 0.4033
+2026-05-15 19:20:36,462 - root - INFO - Epoch 79 Avg Loss: 0.4011
+2026-05-15 19:20:54,493 - root - INFO - Epoch 80 Avg Loss: 0.3949
+2026-05-15 19:20:57,982 - root - INFO - Validation Epoch 80: PER=0.5195
+2026-05-15 19:21:16,607 - root - INFO - Epoch 81 Avg Loss: 0.3933
+2026-05-15 19:21:34,903 - root - INFO - Epoch 82 Avg Loss: 0.3931
+2026-05-15 19:21:53,007 - root - INFO - Epoch 83 Avg Loss: 0.3921
+2026-05-15 19:22:11,070 - root - INFO - Epoch 84 Avg Loss: 0.3875
+2026-05-15 19:22:29,296 - root - INFO - Epoch 85 Avg Loss: 0.3891
+2026-05-15 19:22:47,229 - root - INFO - Epoch 86 Avg Loss: 0.3873
+2026-05-15 19:23:05,706 - root - INFO - Epoch 87 Avg Loss: 0.3854
+2026-05-15 19:23:24,068 - root - INFO - Epoch 88 Avg Loss: 0.3828
+2026-05-15 19:23:42,520 - root - INFO - Epoch 89 Avg Loss: 0.3835
+2026-05-15 19:24:00,651 - root - INFO - Epoch 90 Avg Loss: 0.3814
+2026-05-15 19:24:04,290 - root - INFO - Validation Epoch 90: PER=0.5211
+2026-05-15 19:24:23,065 - root - INFO - Epoch 91 Avg Loss: 0.3802
+2026-05-15 19:24:41,399 - root - INFO - Epoch 92 Avg Loss: 0.3794
+2026-05-15 19:24:59,557 - root - INFO - Epoch 93 Avg Loss: 0.3777
+2026-05-15 19:25:17,714 - root - INFO - Epoch 94 Avg Loss: 0.3761
+2026-05-15 19:25:35,956 - root - INFO - Epoch 95 Avg Loss: 0.3747
+2026-05-15 19:25:54,046 - root - INFO - Epoch 96 Avg Loss: 0.3721
+2026-05-15 19:26:12,563 - root - INFO - Epoch 97 Avg Loss: 0.3708
+2026-05-15 19:26:30,839 - root - INFO - Epoch 98 Avg Loss: 0.3704
+2026-05-15 19:26:49,045 - root - INFO - Epoch 99 Avg Loss: 0.3704
+2026-05-15 19:27:07,583 - root - INFO - Epoch 100 Avg Loss: 0.3693
+2026-05-15 19:27:11,167 - root - INFO - Validation Epoch 100: PER=0.5223
+2026-05-15 19:27:29,966 - root - INFO - Epoch 101 Avg Loss: 0.3694
+2026-05-15 19:27:47,984 - root - INFO - Epoch 102 Avg Loss: 0.3667
+2026-05-15 19:28:06,147 - root - INFO - Epoch 103 Avg Loss: 0.3668
+2026-05-15 19:28:24,735 - root - INFO - Epoch 104 Avg Loss: 0.3659
+2026-05-15 19:28:43,108 - root - INFO - Epoch 105 Avg Loss: 0.3664
+2026-05-15 19:29:01,309 - root - INFO - Epoch 106 Avg Loss: 0.3650
+2026-05-15 19:29:19,622 - root - INFO - Epoch 107 Avg Loss: 0.3632
+2026-05-15 19:29:37,727 - root - INFO - Epoch 108 Avg Loss: 0.3630
+2026-05-15 19:29:56,101 - root - INFO - Epoch 109 Avg Loss: 0.3632
+2026-05-15 19:30:14,299 - root - INFO - Epoch 110 Avg Loss: 0.3626
+2026-05-15 19:30:17,917 - root - INFO - Validation Epoch 110: PER=0.5218
+2026-05-15 19:30:36,233 - root - INFO - Epoch 111 Avg Loss: 0.3619
+2026-05-15 19:30:54,298 - root - INFO - Epoch 112 Avg Loss: 0.3609
+2026-05-15 19:31:12,268 - root - INFO - Epoch 113 Avg Loss: 0.3604
+2026-05-15 19:31:30,746 - root - INFO - Epoch 114 Avg Loss: 0.3599
+2026-05-15 19:31:49,132 - root - INFO - Epoch 115 Avg Loss: 0.3607
+2026-05-15 19:32:07,544 - root - INFO - Epoch 116 Avg Loss: 0.3593
+2026-05-15 19:32:25,795 - root - INFO - Epoch 117 Avg Loss: 0.3582
+2026-05-15 19:32:44,428 - root - INFO - Epoch 118 Avg Loss: 0.3594
+2026-05-15 19:33:02,760 - root - INFO - Epoch 119 Avg Loss: 0.3587
+2026-05-15 19:33:20,950 - root - INFO - Epoch 120 Avg Loss: 0.3582
+2026-05-15 19:33:24,490 - root - INFO - Validation Epoch 120: PER=0.5217
+2026-05-15 19:33:42,922 - root - INFO - Epoch 121 Avg Loss: 0.3591
+2026-05-15 19:34:01,282 - root - INFO - Epoch 122 Avg Loss: 0.3569
+2026-05-15 19:34:19,728 - root - INFO - Epoch 123 Avg Loss: 0.3564
+2026-05-15 19:34:38,140 - root - INFO - Epoch 124 Avg Loss: 0.3569
+2026-05-15 19:34:56,528 - root - INFO - Epoch 125 Avg Loss: 0.3576
+2026-05-15 19:35:14,880 - root - INFO - Epoch 126 Avg Loss: 0.3572
+2026-05-15 19:35:33,399 - root - INFO - Epoch 127 Avg Loss: 0.3549
+2026-05-15 19:35:51,942 - root - INFO - Epoch 128 Avg Loss: 0.3564
+2026-05-15 19:36:10,329 - root - INFO - Epoch 129 Avg Loss: 0.3555
+2026-05-15 19:36:28,656 - root - INFO - Epoch 130 Avg Loss: 0.3550
+2026-05-15 19:36:32,365 - root - INFO - Validation Epoch 130: PER=0.5217
+2026-05-15 19:36:50,820 - root - INFO - Epoch 131 Avg Loss: 0.3560
+2026-05-15 19:37:09,183 - root - INFO - Epoch 132 Avg Loss: 0.3549
+2026-05-15 19:37:27,830 - root - INFO - Epoch 133 Avg Loss: 0.3540
+2026-05-15 19:37:46,139 - root - INFO - Epoch 134 Avg Loss: 0.3545
+2026-05-15 19:38:04,658 - root - INFO - Epoch 135 Avg Loss: 0.3543
+2026-05-15 19:38:22,917 - root - INFO - Epoch 136 Avg Loss: 0.3535
+2026-05-15 19:38:41,258 - root - INFO - Epoch 137 Avg Loss: 0.3547
+2026-05-15 19:38:59,517 - root - INFO - Epoch 138 Avg Loss: 0.3533
+2026-05-15 19:39:18,012 - root - INFO - Epoch 139 Avg Loss: 0.3535
+2026-05-15 19:39:36,054 - root - INFO - Epoch 140 Avg Loss: 0.3535
+2026-05-15 19:39:39,615 - root - INFO - Validation Epoch 140: PER=0.5221
+2026-05-15 19:39:58,283 - root - INFO - Epoch 141 Avg Loss: 0.3536
+2026-05-15 19:40:16,810 - root - INFO - Epoch 142 Avg Loss: 0.3520
+2026-05-15 19:40:35,207 - root - INFO - Epoch 143 Avg Loss: 0.3519
+2026-05-15 19:40:53,575 - root - INFO - Epoch 144 Avg Loss: 0.3514
+2026-05-15 19:41:11,796 - root - INFO - Epoch 145 Avg Loss: 0.3534
+2026-05-15 19:41:30,221 - root - INFO - Epoch 146 Avg Loss: 0.3536
+2026-05-15 19:41:48,736 - root - INFO - Epoch 147 Avg Loss: 0.3525
+2026-05-15 19:42:06,966 - root - INFO - Epoch 148 Avg Loss: 0.3518
+2026-05-15 19:42:24,974 - root - INFO - Epoch 149 Avg Loss: 0.3533
+2026-05-15 19:42:43,191 - root - INFO - Epoch 150 Avg Loss: 0.3530
+2026-05-15 19:42:46,708 - root - INFO - Validation Epoch 150: PER=0.5221
+2026-05-15 19:43:05,357 - root - INFO - Epoch 151 Avg Loss: 0.3519
+2026-05-15 19:43:23,593 - root - INFO - Epoch 152 Avg Loss: 0.3521
+2026-05-15 19:43:41,919 - root - INFO - Epoch 153 Avg Loss: 0.3525
+2026-05-15 19:44:00,417 - root - INFO - Epoch 154 Avg Loss: 0.3518
+2026-05-15 19:44:18,849 - root - INFO - Epoch 155 Avg Loss: 0.3522
+2026-05-15 19:44:36,879 - root - INFO - Epoch 156 Avg Loss: 0.3522
+2026-05-15 19:44:55,030 - root - INFO - Epoch 157 Avg Loss: 0.3519
+2026-05-15 19:45:13,172 - root - INFO - Epoch 158 Avg Loss: 0.3519
+2026-05-15 19:45:31,107 - root - INFO - Epoch 159 Avg Loss: 0.3528
+2026-05-15 19:45:49,147 - root - INFO - Epoch 160 Avg Loss: 0.3514
+2026-05-15 19:45:52,763 - root - INFO - Validation Epoch 160: PER=0.5220
+2026-05-15 19:46:11,698 - root - INFO - Epoch 161 Avg Loss: 0.3530
+2026-05-15 19:46:29,994 - root - INFO - Epoch 162 Avg Loss: 0.3518
+2026-05-15 19:46:48,528 - root - INFO - Epoch 163 Avg Loss: 0.3515
+2026-05-15 19:47:06,794 - root - INFO - Epoch 164 Avg Loss: 0.3512
+2026-05-15 19:47:25,099 - root - INFO - Epoch 165 Avg Loss: 0.3505
+2026-05-15 19:47:43,366 - root - INFO - Epoch 166 Avg Loss: 0.3503
+2026-05-15 19:48:01,828 - root - INFO - Epoch 167 Avg Loss: 0.3516
+2026-05-15 19:48:19,860 - root - INFO - Epoch 168 Avg Loss: 0.3531
+2026-05-15 19:48:38,183 - root - INFO - Epoch 169 Avg Loss: 0.3518
+2026-05-15 19:48:56,897 - root - INFO - Epoch 170 Avg Loss: 0.3513
+2026-05-15 19:49:00,412 - root - INFO - Validation Epoch 170: PER=0.5219
+2026-05-15 19:49:18,994 - root - INFO - Epoch 171 Avg Loss: 0.3524
+2026-05-15 19:49:37,311 - root - INFO - Epoch 172 Avg Loss: 0.3506
+2026-05-15 19:49:55,963 - root - INFO - Epoch 173 Avg Loss: 0.3502
+2026-05-15 19:50:14,139 - root - INFO - Epoch 174 Avg Loss: 0.3523
+2026-05-15 19:50:32,696 - root - INFO - Epoch 175 Avg Loss: 0.3519
+2026-05-15 19:50:51,163 - root - INFO - Epoch 176 Avg Loss: 0.3533
+2026-05-15 19:51:09,579 - root - INFO - Epoch 177 Avg Loss: 0.3513
+2026-05-15 19:51:27,793 - root - INFO - Epoch 178 Avg Loss: 0.3501
+2026-05-15 19:51:46,032 - root - INFO - Epoch 179 Avg Loss: 0.3500
+2026-05-15 19:52:04,628 - root - INFO - Epoch 180 Avg Loss: 0.3520
+2026-05-15 19:52:08,266 - root - INFO - Validation Epoch 180: PER=0.5219
+2026-05-15 19:52:27,066 - root - INFO - Epoch 181 Avg Loss: 0.3521
+2026-05-15 19:52:45,140 - root - INFO - Epoch 182 Avg Loss: 0.3524
+2026-05-15 19:53:03,534 - root - INFO - Epoch 183 Avg Loss: 0.3507
+2026-05-15 19:53:21,763 - root - INFO - Epoch 184 Avg Loss: 0.3513
+2026-05-15 19:53:40,413 - root - INFO - Epoch 185 Avg Loss: 0.3506
+2026-05-15 19:53:58,981 - root - INFO - Epoch 186 Avg Loss: 0.3498
+2026-05-15 19:54:17,512 - root - INFO - Epoch 187 Avg Loss: 0.3517
+2026-05-15 19:54:35,805 - root - INFO - Epoch 188 Avg Loss: 0.3513
+2026-05-15 19:54:54,421 - root - INFO - Epoch 189 Avg Loss: 0.3512
+2026-05-15 19:55:12,965 - root - INFO - Epoch 190 Avg Loss: 0.3512
+2026-05-15 19:55:16,514 - root - INFO - Validation Epoch 190: PER=0.5218
+2026-05-15 19:55:35,114 - root - INFO - Epoch 191 Avg Loss: 0.3522
+2026-05-15 19:55:53,442 - root - INFO - Epoch 192 Avg Loss: 0.3540
+2026-05-15 19:56:11,666 - root - INFO - Epoch 193 Avg Loss: 0.3510
+2026-05-15 19:56:29,869 - root - INFO - Epoch 194 Avg Loss: 0.3514
+2026-05-15 19:56:48,293 - root - INFO - Epoch 195 Avg Loss: 0.3519
+2026-05-15 19:57:07,030 - root - INFO - Epoch 196 Avg Loss: 0.3509
+2026-05-15 19:57:25,116 - root - INFO - Epoch 197 Avg Loss: 0.3508
+2026-05-15 19:57:43,591 - root - INFO - Epoch 198 Avg Loss: 0.3525
+2026-05-15 19:58:01,788 - root - INFO - Epoch 199 Avg Loss: 0.3512
+2026-05-15 19:58:20,033 - root - INFO - Epoch 200 Avg Loss: 0.3515
+2026-05-15 19:58:23,736 - root - INFO - Validation Epoch 200: PER=0.5218
+2026-05-15 19:58:42,295 - root - INFO - Epoch 201 Avg Loss: 0.3526
+2026-05-15 19:59:00,533 - root - INFO - Epoch 202 Avg Loss: 0.3514
+2026-05-15 19:59:19,458 - root - INFO - Epoch 203 Avg Loss: 0.3519
+2026-05-15 19:59:37,775 - root - INFO - Epoch 204 Avg Loss: 0.3510
+2026-05-15 19:59:56,255 - root - INFO - Epoch 205 Avg Loss: 0.3509
+2026-05-15 20:00:14,563 - root - INFO - Epoch 206 Avg Loss: 0.3510
+2026-05-15 20:00:32,884 - root - INFO - Epoch 207 Avg Loss: 0.3523
+2026-05-15 20:00:51,507 - root - INFO - Epoch 208 Avg Loss: 0.3510
+2026-05-15 20:01:09,696 - root - INFO - Epoch 209 Avg Loss: 0.3511
+2026-05-15 20:01:28,211 - root - INFO - Epoch 210 Avg Loss: 0.3506
+2026-05-15 20:01:31,708 - root - INFO - Validation Epoch 210: PER=0.5221
+2026-05-15 20:01:50,184 - root - INFO - Epoch 211 Avg Loss: 0.3510
+2026-05-15 20:02:08,750 - root - INFO - Epoch 212 Avg Loss: 0.3501
+2026-05-15 20:02:26,932 - root - INFO - Epoch 213 Avg Loss: 0.3509
+2026-05-15 20:02:44,973 - root - INFO - Epoch 214 Avg Loss: 0.3518
+2026-05-15 20:03:03,079 - root - INFO - Epoch 215 Avg Loss: 0.3526
+2026-05-15 20:03:21,358 - root - INFO - Epoch 216 Avg Loss: 0.3517
+2026-05-15 20:03:39,615 - root - INFO - Epoch 217 Avg Loss: 0.3501
+2026-05-15 20:03:57,580 - root - INFO - Epoch 218 Avg Loss: 0.3509
+2026-05-15 20:04:16,218 - root - INFO - Epoch 219 Avg Loss: 0.3501
+2026-05-15 20:04:34,314 - root - INFO - Epoch 220 Avg Loss: 0.3511
+2026-05-15 20:04:37,931 - root - INFO - Validation Epoch 220: PER=0.5219
+2026-05-15 20:04:56,973 - root - INFO - Epoch 221 Avg Loss: 0.3506
+2026-05-15 20:05:15,166 - root - INFO - Epoch 222 Avg Loss: 0.3518
+2026-05-15 20:05:33,496 - root - INFO - Epoch 223 Avg Loss: 0.3510
+2026-05-15 20:05:52,130 - root - INFO - Epoch 224 Avg Loss: 0.3518
+2026-05-15 20:06:10,532 - root - INFO - Epoch 225 Avg Loss: 0.3514
+2026-05-15 20:06:28,843 - root - INFO - Epoch 226 Avg Loss: 0.3507
+2026-05-15 20:06:47,096 - root - INFO - Epoch 227 Avg Loss: 0.3526
+2026-05-15 20:07:05,584 - root - INFO - Epoch 228 Avg Loss: 0.3505
+2026-05-15 20:07:23,978 - root - INFO - Epoch 229 Avg Loss: 0.3516
+2026-05-15 20:07:42,190 - root - INFO - Epoch 230 Avg Loss: 0.3517
+2026-05-15 20:07:45,783 - root - INFO - Validation Epoch 230: PER=0.5219
+2026-05-15 20:08:05,373 - root - INFO - Epoch 231 Avg Loss: 0.3505
+2026-05-15 20:08:23,530 - root - INFO - Epoch 232 Avg Loss: 0.3515
+2026-05-15 20:08:41,807 - root - INFO - Epoch 233 Avg Loss: 0.3506
+2026-05-15 20:09:00,158 - root - INFO - Epoch 234 Avg Loss: 0.3511
+2026-05-15 20:09:18,064 - root - INFO - Epoch 235 Avg Loss: 0.3502
+2026-05-15 20:09:36,425 - root - INFO - Epoch 236 Avg Loss: 0.3493
+2026-05-15 20:09:54,838 - root - INFO - Epoch 237 Avg Loss: 0.3509
+2026-05-15 20:10:13,628 - root - INFO - Epoch 238 Avg Loss: 0.3520
+2026-05-15 20:10:32,051 - root - INFO - Epoch 239 Avg Loss: 0.3512
+2026-05-15 20:10:50,304 - root - INFO - Epoch 240 Avg Loss: 0.3512
+2026-05-15 20:10:53,914 - root - INFO - Validation Epoch 240: PER=0.5219
+2026-05-15 20:11:13,527 - root - INFO - Epoch 241 Avg Loss: 0.3532
+2026-05-15 20:11:32,339 - root - INFO - Epoch 242 Avg Loss: 0.3503
+2026-05-15 20:11:51,079 - root - INFO - Epoch 243 Avg Loss: 0.3512
+2026-05-15 20:12:10,460 - root - INFO - Epoch 244 Avg Loss: 0.3508
+2026-05-15 20:12:29,034 - root - INFO - Epoch 245 Avg Loss: 0.3512
+2026-05-15 20:12:47,593 - root - INFO - Epoch 246 Avg Loss: 0.3506
+2026-05-15 20:13:06,183 - root - INFO - Epoch 247 Avg Loss: 0.3520
+2026-05-15 20:13:25,081 - root - INFO - Epoch 248 Avg Loss: 0.3518
+2026-05-15 20:13:43,906 - root - INFO - Epoch 249 Avg Loss: 0.3505
+2026-05-15 20:14:02,402 - root - INFO - Epoch 250 Avg Loss: 0.3516
+2026-05-15 20:14:06,194 - root - INFO - Validation Epoch 250: PER=0.5221
+2026-05-15 20:14:25,266 - root - INFO - Epoch 251 Avg Loss: 0.3523
+2026-05-15 20:14:44,049 - root - INFO - Epoch 252 Avg Loss: 0.3503
+2026-05-15 20:15:02,772 - root - INFO - Epoch 253 Avg Loss: 0.3511
+2026-05-15 20:15:21,413 - root - INFO - Epoch 254 Avg Loss: 0.3490
+2026-05-15 20:15:40,011 - root - INFO - Epoch 255 Avg Loss: 0.3515
+2026-05-15 20:15:58,862 - root - INFO - Epoch 256 Avg Loss: 0.3503
+2026-05-15 20:16:17,475 - root - INFO - Epoch 257 Avg Loss: 0.3519
+2026-05-15 20:16:35,782 - root - INFO - Epoch 258 Avg Loss: 0.3509
+2026-05-15 20:16:54,262 - root - INFO - Epoch 259 Avg Loss: 0.3516
+2026-05-15 20:17:12,975 - root - INFO - Epoch 260 Avg Loss: 0.3511
+2026-05-15 20:17:16,633 - root - INFO - Validation Epoch 260: PER=0.5219
+2026-05-15 20:17:35,776 - root - INFO - Epoch 261 Avg Loss: 0.3516
+2026-05-15 20:17:53,998 - root - INFO - Epoch 262 Avg Loss: 0.3523
+2026-05-15 20:18:12,659 - root - INFO - Epoch 263 Avg Loss: 0.3505
+2026-05-15 20:18:31,376 - root - INFO - Epoch 264 Avg Loss: 0.3511
+2026-05-15 20:18:50,068 - root - INFO - Epoch 265 Avg Loss: 0.3513
+2026-05-15 20:19:08,620 - root - INFO - Epoch 266 Avg Loss: 0.3514
+2026-05-15 20:19:27,244 - root - INFO - Epoch 267 Avg Loss: 0.3493
+2026-05-15 20:19:46,219 - root - INFO - Epoch 268 Avg Loss: 0.3497
+2026-05-15 20:20:04,957 - root - INFO - Epoch 269 Avg Loss: 0.3511
+2026-05-15 20:20:23,569 - root - INFO - Epoch 270 Avg Loss: 0.3528
+2026-05-15 20:20:27,309 - root - INFO - Validation Epoch 270: PER=0.5220
