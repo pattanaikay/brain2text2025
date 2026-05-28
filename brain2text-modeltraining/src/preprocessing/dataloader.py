@@ -66,13 +66,18 @@ class Preprocessed_BCI_Dataset(Dataset):
                 neural_len = group[neural_key].shape[0]
                 patched_len = (neural_len + patch_size - 1) // patch_size
                 
-                # Check phoneme length
+                # Check phoneme length — use seq_len attr if available (arrays are padded to fixed size)
                 phoneme_len = 0
                 for key in ['phonemes', 'seq_class_ids', 'phonemeLabels']:
                     if key in group:
                         phoneme_len = len(group[key])
                         break
-                
+                # Override with the true (unpadded) sequence length if stored as an attribute
+                if 'seq_len' in group.attrs:
+                    phoneme_len = int(group.attrs['seq_len'])
+                elif 'phoneme_lengths' in group:
+                    phoneme_len = int(group['phoneme_lengths'][()])
+
                 if phoneme_len > 0 and patched_len < phoneme_len:
                     invalid_count += 1
                     continue

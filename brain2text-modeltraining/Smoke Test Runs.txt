@@ -1,0 +1,115 @@
+GOAL
+====
+Verify that the recent Tier A changes to src/models/encoder.py, src/preprocessing/dataloader.py, 
+src/models/bit_e2e.py, scripts/train_ssl.py, and scripts/train_e2e.py do not contain any 
+shape/dtype/kwarg bugs by running ONE EPOCH of train_ssl.py and train_ctc.py on a single 
+small HDF5 file. Do NOT optimise for accuracy — this is correctness-only. Stop and report 
+the moment anything errors.
+
+ENVIRONMENT
+===========
+- Workspace: C:\Projects\Brain2Text2025\brain2text2025\brain2text-modeltraining
+- OS: Windows
+- GPU: 6 GB VRAM (consumer-grade) — small batch only
+- Python: whatever is configured for this project (do not change it)
+
+PRE-FLIGHT CHECKS (do these in order, stop on first failure)
+============================================================
+1. Confirm you are in the workspace directory above. If not, cd into it.
+
+2. Verify the modified files exist and contain the expected new symbols:
+   - src/models/encoder.py must contain "self.mask_token" and "key_padding_mask"
+   - src/preprocessing/dataloader.py must contain "augment" parameter on __init__
+   - src/models/bit_e2e.py must contain "self.ctc_head" and "ctc_loss_fn"
+   - scripts/train_ssl.py must use glob.glob to discover HDF5 files
+   - scripts/train_e2e.py must include the smoke-test harness block
+   If any are missing, STOP and report which files appear unchanged.
+
+3. Locate ONE small HDF5 file to use for both train and val:
+   - Search under .\data\ and .\local_checkpoints\ for any *.hdf5 file
+   - Prefer the smallest data_train.hdf5 file (by file size from `dir` / `Get-ChildItem`)
+   - If you cannot find one, STOP and ask me where my HDF5 data lives
+   - Record the absolute path; you will pass it as BOTH --train_h5 and --val_h5
+
+4. Create two output directories (Windows-friendly, NOT /tmp):
+   - .\local_checkpoints\ssl_smoke
+   - .\local_checkpoints\ctc_smoke
+
+5. Run a Python REPL sanity check that imports do not throw:
+   python -c "import sys; sys.path.insert(0, '.'); from src.models.encoder import BIT_Transformer; from src.models.bit_e2e import BrainToTextE2E; from src.preprocessing.dataloader import Preprocessed_BCI_Dataset; print('imports OK')"
+   If this errors with something other than transformers/peft missing, STOP and report.
+
+SMOKE TEST 1: train_ssl.py
+==========================
+Run (single line, do not wrap):
+py scripts/train_ssl.py --train_h5 "<HDF5_PATH>" --val_h5 "<HDF5_PATH>" --epochs 1 --batch_size 4 --num_workers 0 --output_dir .\local_checkpoints\ssl_smoke --patch_size 5
+
+Notes:
+- num_workers=0 is intentional: Windows multiprocessing inside DataLoader 
+  sometimes hangs with HDF5; we want a clean serial run for smoke-testing.
+- batch_size=4 is intentional: 6 GB VRAM safe.
+- If the process exits with non-zero status, capture the FULL traceback 
+  (stderr) and report it verbatim. Do not try to fix it without showing me first.
+
+PASS CRITERIA for SSL smoke test:
+- Process exits with code 0
+- A file .\local_checkpoints\ssl_smoke\best_encoder_ssl.pth exists after the run
+- A file .\local_checkpoints\ssl_smoke\checkpoint_ssl_latest.pth exists after the run
+- Log contains "Epoch 1 val_loss:" (proves the new validation loop ran)
+- Log contains the message about glob-discovered files OR "Found N train files" (proves 
+  multi-file discovery executed even if N=1)
+
+FAIL CRITERIA (treat as bug to fix in code):
+- RuntimeError about meta tensors, dtype mismatch, or shape mismatch
+- NameError or AttributeError (means an edit referenced a missing symbol)
+- CUDA OOM (lower batch_size to 2 and retry ONCE; if still OOM, report)
+- NaN or inf in loss (proves the masked-loss normalisation is broken)
+
+SMOKE TEST 2: train_ctc.py
+==========================
+Only run this if SMOKE TEST 1 passed.
+
+Run:
+py scripts/train_ctc.py --train_h5 "<HDF5_PATH>" --val_h5 "<HDF5_PATH>" --ssl_checkpoint .\local_checkpoints\ssl_smoke\best_encoder_ssl.pth --epochs 1 --val_interval 1 --batch_size 4 --num_workers 0 --output_dir .\local_checkpoints\ctc_smoke --patch_size 5
+
+PASS CRITERIA:
+- Process exits with code 0
+- .\local_checkpoints\ctc_smoke\best_model_per.pth exists
+- .\local_checkpoints\ctc_smoke\checkpoint_ctc_latest.pth exists
+- Log contains "Validation Epoch 1: PER=" (proves CTC validation ran end-to-end)
+- Log contains "Loading SSL Pretrained Encoder from" (proves the SSL→CTC handoff works)
+
+FAIL CRITERIA:
+- Same categories as SSL smoke test
+- Specifically watch for CTC loss == inf or nan — means input_lengths < target_lengths 
+  for some samples; report which sample lengths triggered it.
+
+E2E SMOKE TEST
+==============
+SKIP. E2E requires loading Qwen2.5-1.5B in 4-bit, which needs ~3 GB just for weights 
+plus 152K-vocab logits during loss — will OOM on 6 GB VRAM. We will validate E2E 
+correctness on the cluster instead.
+
+REPORTING
+=========
+At the end, produce a single concise report with these sections:
+
+  [PRE-FLIGHT]  PASS/FAIL — with file checklist results
+  [SSL]         PASS/FAIL — final train loss, val loss, wall-clock duration
+  [CTC]         PASS/FAIL — final train loss, final PER, wall-clock duration
+  [VRAM]        Peak GPU memory used during each run (from nvidia-smi if available, 
+                or from torch.cuda.max_memory_allocated logged at end)
+  [NEXT STEP]   "Safe to deploy to cluster" if all PASS, otherwise the specific 
+                file:line where the failure occurred and your hypothesis for the cause.
+
+DO NOT
+======
+- Do not modify any source file to make the tests pass. If a test fails, the test 
+  has done its job — report and stop.
+- Do not delete the smoke output directories on success; I want to inspect the 
+  checkpoints manually.
+- Do not run train_e2e.py locally even if you think it might fit.
+- Do not increase batch_size above 4 even if VRAM looks underused — small batches 
+  exercise more edge cases (padding-heavy batches, single-element augmentation).
+- Do not call any of the figma, computer-use, or claude-in-chrome MCP tools. This 
+  is a pure terminal/file task.

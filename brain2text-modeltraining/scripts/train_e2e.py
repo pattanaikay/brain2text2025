@@ -24,15 +24,28 @@ from src.preprocessing.dataloader import Preprocessed_BCI_Dataset, bci_collate_f
 from src.utils.metrics import calculate_wer, calculate_cer
 from src.utils.logging_utils import setup_logging
 
-def pause_instance(logger, instance_id="413754"):
-    """
-    Sends a request to JarvisLabs to pause the instance.
-    """
+def notify_slack(webhook_url: str, message: str):
+    """Send a message to Slack via webhook. Silently skips if no URL provided."""
+    if not webhook_url:
+        return
     try:
-        logger.info(f"Sending pause request for instance {instance_id}...")
-        # Note: In a real environment, this URL might need to be called from outside 
-        # or via a specific JarvisLabs CLI. This is the implementation based on user requirement.
-        requests.get(f"https://jarvislabs.ai/pause/{instance_id}")
+        requests.post(webhook_url, json={"text": message}, timeout=10)
+    except Exception:
+        pass  # Never crash training over a notification failure
+
+def pause_instance(logger, instance_id="416474"):
+    """Pause the JarvisLabs instance via the authenticated jl CLI."""
+    if not instance_id:
+        return
+    import subprocess as _sp
+    logger.info(f"Auto-pausing instance {instance_id} via jl CLI...")
+    try:
+        r = _sp.run(["jl", "pause", str(instance_id), "--yes", "--json"],
+                    capture_output=True, text=True, timeout=60)
+        if r.returncode == 0:
+            logger.info("Instance paused successfully.")
+        else:
+            logger.warning(f"jl pause failed (code {r.returncode}): {r.stderr.strip() or r.stdout.strip()}")
     except Exception as e:
         logger.error(f"Failed to auto-pause: {e}")
 
@@ -40,15 +53,22 @@ def train_e2e(args):
     os.makedirs(args.output_dir, exist_ok=True)
     logger = setup_logging(args.output_dir, log_name="e2e_train")
     
+    webhook = getattr(args, 'webhook_url', '')
     try:
         _train_logic(args, logger)
         logger.info("Training Complete.")
+        notify_slack(webhook, "✅ *E2E Training Complete!* Check `/home/outputs/e2e/` for `best_model_wer.pth`.")
+        # Pause only on clean completion
+        pause_instance(logger, instance_id=getattr(args, 'instance_id', '416474'))
+    except KeyboardInterrupt:
+        # Manual kill (Ctrl+C / pkill) — leave instance running so we can inspect/restart
+        logger.warning("Training interrupted (SIGINT) — instance NOT paused, staying up for restart.")
+        notify_slack(webhook, "⚠️ *E2E Training Interrupted* — instance still running, safe to restart.")
     except Exception as e:
         logger.error(f"TRAINING FATAL ERROR: {e}")
         logger.error(traceback.format_exc())
-    finally:
-        # ALWAYS pause, whether success or failure
-        pause_instance(logger)
+        notify_slack(webhook, f"❌ *E2E Training FATAL ERROR:* `{e}`")
+        pause_instance(logger, instance_id=getattr(args, 'instance_id', '416474'))
 
 def _train_logic(args, logger):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -146,7 +166,7 @@ def _train_logic(args, logger):
             logger.info(f"Loaded CTC head with {len(ctc_head_state_dict)} keys")
 
     optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
     
     compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     logger.info(f"Using compute dtype: {compute_dtype}")
@@ -231,6 +251,24 @@ def _train_logic(args, logger):
     accumulation_steps = args.accumulation_steps
     
     for epoch in range(start_epoch, args.epochs + 1):
+        # --- LR OVERRIDE FILE: drop a float into this file to cut LR live ---
+        lr_override_path = os.path.join(args.output_dir, "lr_override.txt")
+        if os.path.exists(lr_override_path):
+            try:
+                with open(lr_override_path, 'r') as _f:
+                    new_lr = float(_f.read().strip())
+                old_lr = optimizer.param_groups[0]['lr']
+                for pg in optimizer.param_groups:
+                    pg['lr'] = new_lr
+                    pg['initial_lr'] = new_lr
+                # Note: ReduceLROnPlateau has no base_lrs — optimizer param_groups is enough
+                os.remove(lr_override_path)
+                logger.info(f"[LR OVERRIDE] {old_lr:.2e} -> {new_lr:.2e} (override file applied and removed)")
+                notify_slack(getattr(args, 'webhook_url', ''),
+                             f"🔧 *LR Override Applied* | Epoch {epoch} | `{old_lr:.2e}` → `{new_lr:.2e}`")
+            except Exception as _e:
+                logger.warning(f"[LR OVERRIDE] Failed to apply: {_e}")
+
         model.train()
         total_loss = 0
         total_ce = 0
@@ -303,6 +341,13 @@ def _train_logic(args, logger):
             history['val_loss'].append(val_loss_avg)
 
             scheduler.step(val_wer)
+
+            # Slack notification every val_interval epochs
+            is_best = val_wer < best_wer
+            status = "🏆 *New best!*" if is_best else f"(best so far: {best_wer:.4f})"
+            wer_emoji = "🎉" if val_wer < 0.10 else ("✅" if val_wer < 0.30 else ("📊" if val_wer < 0.60 else "⏳"))
+            notify_slack(getattr(args, 'webhook_url', ''),
+                         f"{wer_emoji} *E2E Epoch {epoch}/{args.epochs}* | WER=`{val_wer:.4f}` CER=`{val_cer:.4f}` | {status}")
 
             # Refresh the latest checkpoint with post-validation history/best_wer
             checkpoint['best_wer'] = best_wer
@@ -391,5 +436,7 @@ if __name__ == "__main__":
     parser.add_argument("--accumulation_steps", type=int, default=4, help="Number of steps to accumulate gradients")
     parser.add_argument("--no_quantize", action="store_true", help="Disable quantization for local testing")
     parser.add_argument("--patch_size", type=int, default=4, help="Patch size for temporal compression")
+    parser.add_argument("--instance_id", type=str, default="416474", help="JarvisLabs instance ID for auto-pause")
+    parser.add_argument("--webhook_url", type=str, default="", help="Slack webhook URL for notifications")
     args = parser.parse_args()
     train_e2e(args)

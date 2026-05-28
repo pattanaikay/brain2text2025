@@ -10,3 +10,5 @@ approach #6- Transformer + Aero-1-Audio + Diphones
 debug_e2e_training.md
 Error stack trace.txt 
 Training Issues.txt
+node_modules
+local_checkpoints

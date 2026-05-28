@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 560" font-family="Georgia, 'ET Book', serif" font-size="13" fill="#222">
+<rect width="100%" height="100%" fill="#fffff8"/>
+<text x="40" y="38" font-size="22" font-weight="500">Six neural encoders on a 4-second toy stream</text>
+<text x="40" y="60" font-size="13" font-style="italic" fill="#555">B=4, T=200 bins (≈4 s), 512 channels. Latency is numpy-simulated forward pass (median of 5–20 runs).</text>
+<text x="40" y="78" font-size="12" fill="#555">Rows sorted by parameter count. FLOPs column extrapolates to T=800 bins (16 s) — the long end of real BCI streams.</text>
+<text x="175" y="88" text-anchor="end" font-size="12" fill="#444">architecture</text>
+<text x="195" y="88" font-size="12" fill="#444">parameters (M)</text>
+<text x="395" y="88" font-size="12" fill="#444">sim latency (ms)</text>
+<text x="595" y="88" font-size="12" fill="#444">FLOPs at T=800 (G)</text>
+<text x="790" y="88" font-size="12" fill="#444">compute pattern</text>
+<text x="175" y="134.0" text-anchor="end" font-size="14">HRM</text>
+<rect x="195" y="121.0" width="9.9" height="18" fill="#3a3a3a"/>
+<text x="209.9" y="134.0" font-size="12" fill="#222">2.9</text>
+<rect x="395" y="121.0" width="161.6" height="18" fill="#3a3a3a"/>
+<text x="561.6" y="134.0" font-size="12" fill="#222">552</text>
+<rect x="595" y="121.0" width="12.5" height="18" fill="#3a3a3a"/>
+<text x="612.5" y="134.0" font-size="12" fill="#222">0.6</text>
+<text x="790" y="129.0" font-size="12" font-style="italic" fill="#222">sequential 2-clock</text>
+<text x="790" y="143.0" font-size="11" fill="#666">O(1) memory via DEQ 1-step grad</text>
+<text x="175" y="194.0" text-anchor="end" font-size="14">BIT (base)</text>
+<rect x="195" y="181.0" width="36.4" height="18" fill="#3a3a3a"/>
+<text x="236.4" y="194.0" font-size="12" fill="#222">10.7</text>
+<rect x="395" y="181.0" width="32.9" height="18" fill="#3a3a3a"/>
+<text x="432.9" y="194.0" font-size="12" fill="#222">112</text>
+<rect x="595" y="181.0" width="45.5" height="18" fill="#3a3a3a"/>
+<text x="645.5" y="194.0" font-size="12" fill="#222">2.1</text>
+<text x="790" y="189.0" font-size="12" font-style="italic" fill="#222">parallel attn</text>
+<text x="790" y="203.0" font-size="11" fill="#666">RoPE, 7 layers; the reference point</text>
+<text x="175" y="254.0" text-anchor="end" font-size="14">ZenBrain</text>
+<rect x="195" y="241.0" width="50.5" height="18" fill="#3a3a3a"/>
+<text x="250.5" y="254.0" font-size="12" fill="#222">14.9</text>
+<rect x="395" y="241.0" width="40.4" height="18" fill="#3a3a3a"/>
+<text x="440.4" y="254.0" font-size="12" fill="#222">138</text>
+<rect x="595" y="241.0" width="64.6" height="18" fill="#3a3a3a"/>
+<text x="664.6" y="254.0" font-size="12" fill="#222">3.0</text>
+<text x="790" y="249.0" font-size="12" font-style="italic" fill="#222">parallel + buffer</text>
+<text x="790" y="263.0" font-size="11" fill="#666">Adds cross-attn over episodic buffer</text>
+<text x="175" y="314.0" text-anchor="end" font-size="14">Mamba</text>
+<rect x="195" y="301.0" width="57.2" height="18" fill="#3a3a3a"/>
+<text x="257.2" y="314.0" font-size="12" fill="#222">16.8</text>
+<rect x="395" y="301.0" width="8.9" height="18" fill="#3a3a3a"/>
+<text x="408.9" y="314.0" font-size="12" fill="#222">30</text>
+<rect x="595" y="301.0" width="52.9" height="18" fill="#3a3a3a"/>
+<text x="652.9" y="314.0" font-size="12" fill="#222">2.5</text>
+<text x="790" y="309.0" font-size="12" font-style="italic" fill="#222">sequential scan</text>
+<text x="790" y="323.0" font-size="11" fill="#666">Linear in T; GRU fallback on CPU</text>
+<text x="175" y="374.0" text-anchor="end" font-size="14">Conformer</text>
+<rect x="195" y="361.0" width="143.8" height="18" fill="#3a3a3a"/>
+<text x="343.8" y="374.0" font-size="12" fill="#222">42.3</text>
+<rect x="395" y="361.0" width="83.1" height="18" fill="#3a3a3a"/>
+<text x="483.1" y="374.0" font-size="12" fill="#222">284</text>
+<rect x="595" y="361.0" width="159.0" height="18" fill="#3a3a3a"/>
+<text x="759.0" y="374.0" font-size="12" fill="#222">7.5</text>
+<text x="790" y="369.0" font-size="12" font-style="italic" fill="#222">parallel + conv</text>
+<text x="790" y="383.0" font-size="11" fill="#666">12 macaron blocks, depthwise conv</text>
+<text x="175" y="434.0" text-anchor="end" font-size="14">MoE</text>
+<rect x="195" y="421.0" width="167.8" height="18" fill="#3a3a3a"/>
+<text x="367.8" y="434.0" font-size="12" fill="#222">49.3</text>
+<rect x="395" y="421.0" width="65.2" height="18" fill="#3a3a3a"/>
+<text x="465.2" y="434.0" font-size="12" fill="#222">222</text>
+<rect x="595" y="421.0" width="115.6" height="18" fill="#3a3a3a"/>
+<text x="715.6" y="434.0" font-size="12" fill="#222">5.4</text>
+<text x="790" y="429.0" font-size="12" font-style="italic" fill="#222">parallel sparse</text>
+<text x="790" y="443.0" font-size="11" fill="#666">Top-2 of 6 experts + 2 shared</text>
+<line x1="195" y1="464" x2="365" y2="464" stroke="#222" stroke-width="0.6"/>
+<text x="195" y="478" font-size="10" fill="#555">0</text>
+<text x="365" y="478" text-anchor="end" font-size="10" fill="#555">50</text>
+<line x1="395" y1="464" x2="565" y2="464" stroke="#222" stroke-width="0.6"/>
+<text x="395" y="478" font-size="10" fill="#555">0</text>
+<text x="565" y="478" text-anchor="end" font-size="10" fill="#555">580</text>
+<line x1="595" y1="464" x2="765" y2="464" stroke="#222" stroke-width="0.6"/>
+<text x="595" y="478" font-size="10" fill="#555">0</text>
+<text x="765" y="478" text-anchor="end" font-size="10" fill="#555">8</text>
+<text x="40" y="542" font-size="12" fill="#444" font-style="italic">Read across each row: the same architecture, four ways. Mamba pays linearly for sequence length but offers the smallest CPU latency; MoE buys 5× FFN capacity at ~2× compute; HRM is tiny but deeply sequential, so the GPU will accelerate it less than the parallel attentions.</text>
+</svg>

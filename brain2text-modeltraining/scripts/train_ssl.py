@@ -8,9 +8,11 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import argparse
 from tqdm import tqdm
 import json
+import numpy as np
 from pathlib import Path
 import sys
 import h5py
+import requests
 
 # Add parent directory to path so we can import src
 base_path = Path(__file__).parent.parent
@@ -99,8 +101,27 @@ def train_ssl(args):
             logger.warning(f"Could not read session ID from {path}: {e}")
     logger.info(f"Total sessions: {len(session_ids)}")
 
-    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, patch_size=args.patch_size, augment=True)
-    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, patch_size=args.patch_size, augment=False)
+    # Load session stats for z-score normalization (same as CTC/E2E stages)
+    session_stats = None
+    if args.session_stats and os.path.exists(args.session_stats):
+        logger.info(f"Loading session stats from {args.session_stats}")
+        with open(args.session_stats, 'r') as f:
+            try:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    session_stats = data
+                    for sid in session_stats:
+                        session_stats[sid]['mean'] = np.array(session_stats[sid]['mean'])
+                        session_stats[sid]['std'] = np.array(session_stats[sid]['std'])
+                else:
+                    logger.error("Format Error: session_stats must be a dict keyed by session ID.")
+            except Exception as e:
+                logger.error(f"Failed to parse session stats: {e}")
+    else:
+        logger.warning("No --session_stats provided. SSL will train on un-normalized data.")
+
+    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size, augment=True)
+    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size, augment=False)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
@@ -186,15 +207,32 @@ def train_ssl(args):
 
     logger.info("SSL Pretraining Complete.")
 
+    # Auto-pause JarvisLabs instance when done (skip if called from run_pipeline.py)
+    if not args.no_autopause:
+        import subprocess as _sp
+        instance_id = args.instance_id if hasattr(args, 'instance_id') and args.instance_id else "415608"
+        logger.info(f"Auto-pausing instance {instance_id} via jl CLI...")
+        try:
+            r = _sp.run(["jl", "pause", instance_id, "--yes", "--json"],
+                        capture_output=True, text=True, timeout=60)
+            if r.returncode == 0:
+                logger.info("Instance paused successfully.")
+            else:
+                logger.warning(f"jl pause failed (code {r.returncode}): {r.stderr.strip() or r.stdout.strip()}")
+        except Exception as e:
+            logger.error(f"Failed to auto-pause: {e}")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_h5", type=str, required=True)
     parser.add_argument("--val_h5", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="scripts/models/ssl")
+    parser.add_argument("--session_stats", type=str, default=None, help="Path to session_stats.json for z-score normalization")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--patch_size", type=int, default=4, help="Patch size for temporal compression")
+    parser.add_argument("--no_autopause", action="store_true", help="Disable auto-pause (use when called from run_pipeline.py)")
     args = parser.parse_args()
     train_ssl(args)

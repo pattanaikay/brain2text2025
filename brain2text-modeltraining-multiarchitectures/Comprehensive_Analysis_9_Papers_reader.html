@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A Comprehensive Reading of Nine Papers</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ee;
+      --paper: #fffdf8;
+      --ink: #1f2528;
+      --muted: #687074;
+      --line: #ded8cd;
+      --accent: #256b68;
+      --accent-soft: #dfeeea;
+      --code: #182023;
+      --quote: #f0ebe2;
+      --shadow: 0 20px 60px rgba(31, 37, 40, 0.12);
+      --measure: 76ch;
+      --font-scale: 1;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #161819;
+      --paper: #202425;
+      --ink: #edf0ed;
+      --muted: #aeb7b5;
+      --line: #394040;
+      --accent: #78c8bd;
+      --accent-soft: #213835;
+      --code: #111414;
+      --quote: #2b302f;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgba(37, 107, 104, 0.06), transparent 34%),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.72;
+    }
+
+    a { color: inherit; }
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(248px, 19vw) minmax(0, 1fr) minmax(196px, 14vw);
+      min-height: 100vh;
+    }
+
+    .toc, .tools {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 22px;
+    }
+
+    .toc {
+      border-right: 1px solid var(--line);
+      background: color-mix(in srgb, var(--paper) 74%, transparent);
+    }
+
+    .brand {
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand h2 {
+      margin: 0;
+      font-size: 1.04rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    nav a {
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.25;
+      padding: 7px 9px;
+      text-decoration: none;
+    }
+
+    nav a:hover, nav a.active {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    .nav-paper {
+      margin-top: 11px;
+      color: var(--ink);
+      font-weight: 760;
+    }
+
+    .nav-topic { padding-left: 18px; }
+
+    main {
+      min-width: 0;
+      padding: 42px clamp(22px, 5vw, 72px) 80px;
+    }
+
+    article {
+      max-width: var(--measure);
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: clamp(28px, 5vw, 72px);
+    }
+
+    article > :first-child { margin-top: 0; }
+    h1, h2, h3 {
+      color: var(--ink);
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+      font-weight: 720;
+      line-height: 1.12;
+      letter-spacing: 0;
+      scroll-margin-top: 28px;
+    }
+
+    h1 {
+      border-top: 1px solid var(--line);
+      font-size: calc(2.15rem * var(--font-scale));
+      margin: 3.2rem 0 1.2rem;
+      padding-top: 2.4rem;
+    }
+
+    article h1:first-child {
+      border-top: 0;
+      font-size: calc(3rem * var(--font-scale));
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    h2 {
+      font-size: calc(1.55rem * var(--font-scale));
+      margin: 2.4rem 0 0.8rem;
+    }
+
+    h3 {
+      font-size: calc(1.17rem * var(--font-scale));
+      margin: 1.8rem 0 0.5rem;
+    }
+
+    p, li, blockquote, td, th {
+      font-size: calc(1rem * var(--font-scale));
+    }
+
+    p { margin: 1rem 0; }
+    em { color: color-mix(in srgb, var(--ink) 82%, var(--accent)); }
+    strong { font-weight: 760; }
+    hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 2.4rem 0;
+    }
+
+    ul, ol { padding-left: 1.45rem; }
+    li { margin: 0.42rem 0; }
+
+    blockquote {
+      background: var(--quote);
+      border-left: 4px solid var(--accent);
+      margin: 1.6rem 0;
+      padding: 0.8rem 1.1rem;
+    }
+
+    blockquote p {
+      margin: 0.35rem 0;
+    }
+
+    code {
+      background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      padding: 0.08rem 0.28rem;
+    }
+
+    pre, .math-block {
+      background: var(--code);
+      border-radius: 8px;
+      color: #edf5f2;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: calc(0.78rem * var(--font-scale));
+      line-height: 1.55;
+      margin: 1.35rem 0;
+      overflow: auto;
+      padding: 1rem;
+      white-space: pre;
+    }
+
+    pre code {
+      background: transparent;
+      border: 0;
+      color: inherit;
+      padding: 0;
+    }
+
+    .math-block {
+      background: color-mix(in srgb, var(--accent-soft) 60%, var(--paper));
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .table-wrap {
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      min-width: 680px;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 0.7rem 0.8rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--accent-soft);
+      color: var(--ink);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+    }
+
+    .tools {
+      border-left: 1px solid var(--line);
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--paper) 72%, transparent);
+      padding: 14px;
+    }
+
+    .metric {
+      display: grid;
+      gap: 3px;
+      margin-bottom: 12px;
+    }
+
+    .metric strong {
+      color: var(--ink);
+      font-size: 1.45rem;
+      line-height: 1;
+    }
+
+    .metric span {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .control-label {
+      color: var(--ink);
+      display: block;
+      font-size: 0.77rem;
+      font-weight: 760;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      line-height: 1;
+      min-height: 36px;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    input[type="range"] { width: 100%; }
+
+    .progress {
+      background: var(--line);
+      height: 3px;
+      left: 0;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 10;
+    }
+
+    .progress span {
+      background: var(--accent);
+      display: block;
+      height: 100%;
+      width: 0;
+    }
+
+    @media (max-width: 1180px) {
+      .shell { grid-template-columns: minmax(228px, 26vw) minmax(0, 1fr); }
+      .tools {
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        height: auto;
+        max-width: 228px;
+        padding: 0;
+        border: 0;
+      }
+      .tools .panel:first-child { display: none; }
+    }
+
+    @media (max-width: 820px) {
+      .shell { display: block; }
+      .toc {
+        height: auto;
+        max-height: 42vh;
+        position: relative;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 22px 12px 92px; }
+      article { padding: 26px 20px; }
+      article h1:first-child { font-size: calc(2.1rem * var(--font-scale)); }
+      h1 { font-size: calc(1.75rem * var(--font-scale)); }
+      .tools { left: 12px; right: 12px; max-width: none; }
+      .tools .panel { padding: 10px; }
+      .buttons { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    @media print {
+      body { background: white; }
+      .toc, .tools, .progress { display: none; }
+      .shell { display: block; }
+      main { padding: 0; }
+      article {
+        border: 0;
+        box-shadow: none;
+        max-width: none;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+  <div class="shell">
+    <aside class="toc">
+      <div class="brand">
+        <p class="kicker">Research Reader</p>
+        <h2>Nine Papers in Computational Neuroscience and Deep Learning</h2>
+      </div>
+      <nav aria-label="Report sections">
+        <a class="nav-paper" href="#a-comprehensive-reading-of-nine-papers-in-computational-neuroscience-and-deep-learning">A Comprehensive Reading of Nine Papers in Computational Neuroscience and Deep Learning</a>
+<a class="nav-topic" href="#table-of-contents">Table of Contents</a>
+<a class="nav-paper" href="#paper-1-hierarchical-reasoning-model-hrm">Paper 1 — Hierarchical Reasoning Model (HRM)</a>
+<a class="nav-topic" href="#context-motivation-why-i-built-hrm">Context &amp; Motivation: Why I Built HRM</a>
+<a class="nav-topic" href="#the-core-idea-two-clocks-coupled">The Core Idea: Two Clocks, Coupled</a>
+<a class="nav-topic" href="#the-magic-trick-hierarchical-convergence">The Magic Trick: Hierarchical Convergence</a>
+<a class="nav-topic" href="#the-gradient-problem-and-its-beautiful-solution">The Gradient Problem and Its Beautiful Solution</a>
+<a class="nav-topic" href="#deep-supervision-and-adaptive-computation-time">Deep Supervision and Adaptive Computation Time</a>
+<a class="nav-topic" href="#what-hrm-achieves">What HRM Achieves</a>
+<a class="nav-topic" href="#the-most-striking-discovery-emergent-dimensionality-hierarchy">The Most Striking Discovery: Emergent Dimensionality Hierarchy</a>
+<a class="nav-topic" href="#what-this-means">What This Means</a>
+<a class="nav-paper" href="#paper-2-possm-generalisable-real-time-neural-decoding-with-hybrid-state-space-models">Paper 2 — POSSM: Generalisable, Real-Time Neural Decoding with Hybrid State-Space Models</a>
+<a class="nav-topic" href="#the-problem-that-won-t-go-away">The Problem That Won't Go Away</a>
+<a class="nav-topic" href="#the-architecture-in-a-picture">The Architecture in a Picture</a>
+<a class="nav-topic" href="#why-this-hybrid-is-the-right-compromise">Why This Hybrid Is the Right Compromise</a>
+<a class="nav-topic" href="#transfer-across-sessions-subjects-and-species">Transfer Across Sessions, Subjects, and Species</a>
+<a class="nav-topic" href="#speed-the-headline-engineering-result">Speed: The Headline Engineering Result</a>
+<a class="nav-topic" href="#the-speech-decoding-demonstration">The Speech Decoding Demonstration</a>
+<a class="nav-topic" href="#where-possm-sits-in-the-bigger-picture">Where POSSM Sits in the Bigger Picture</a>
+<a class="nav-paper" href="#paper-3-eegmoe-domain-decoupled-mixture-of-experts-for-self-supervised-eeg-representation-learning">Paper 3 — EEGMoE: Domain-Decoupled Mixture-of-Experts for Self-Supervised EEG Representation Learning</a>
+<a class="nav-topic" href="#the-headache-of-eeg-models">The Headache of EEG Models</a>
+<a class="nav-topic" href="#the-insight-decouple-don-t-unify">The Insight: Decouple, Don't Unify</a>
+<a class="nav-topic" href="#the-mathematics-of-the-routing">The Mathematics of the Routing</a>
+<a class="nav-topic" href="#the-4-d-input-embedding-brain-topography">The 4-D Input: Embedding Brain Topography</a>
+<a class="nav-topic" href="#self-supervised-pretraining-the-reconstruction-trick">Self-Supervised Pretraining: The Reconstruction Trick</a>
+<a class="nav-topic" href="#what-this-buys-you">What This Buys You</a>
+<a class="nav-topic" href="#what-it-tells-us">What It Tells Us</a>
+<a class="nav-paper" href="#paper-4-brainstack-neuro-moe-with-functionally-guided-expert-routing-for-eeg-based-language-decoding">Paper 4 — BrainStack: Neuro-MoE with Functionally Guided Expert Routing for EEG-Based Language Decoding</a>
+<a class="nav-topic" href="#the-brain-is-not-a-bag-of-electrodes">The Brain Is Not a Bag of Electrodes</a>
+<a class="nav-topic" href="#the-architecture-seven-regional-experts-plus-a-global-conductor">The Architecture: Seven Regional Experts Plus a Global Conductor</a>
+<a class="nav-topic" href="#the-adaptive-routing-gate">The Adaptive Routing Gate</a>
+<a class="nav-topic" href="#hierarchical-cross-regional-distillation">Hierarchical Cross-Regional Distillation</a>
+<a class="nav-topic" href="#the-multi-objective-loss">The Multi-Objective Loss</a>
+<a class="nav-topic" href="#the-ss-eeg-dataset-a-new-benchmark-for-the-field">The SS-EEG Dataset: A New Benchmark for the Field</a>
+<a class="nav-topic" href="#results-what-modularity-buys-you">Results: What Modularity Buys You</a>
+<a class="nav-topic" href="#regional-contributions-reveal-brain-plausible-patterns">Regional Contributions Reveal Brain-Plausible Patterns</a>
+<a class="nav-topic" href="#what-brainstack-tells-the-field">What BrainStack Tells the Field</a>
+<a class="nav-paper" href="#paper-5-time-masked-transformers-with-lightweight-test-time-adaptation-for-neural-speech-decoding">Paper 5 — Time-Masked Transformers with Lightweight Test-Time Adaptation for Neural Speech Decoding</a>
+<a class="nav-topic" href="#a-pragmatic-paper-about-a-real-world-problem">A Pragmatic Paper About a Real-World Problem</a>
+<a class="nav-topic" href="#contribution-one-time-masking">Contribution One: Time-Masking</a>
+<a class="nav-topic" href="#contribution-two-replace-the-gru-with-a-compact-transformer">Contribution Two: Replace the GRU with a Compact Transformer</a>
+<a class="nav-topic" href="#contribution-three-dietcorp-test-time-adaptation-in-one-gradient-step">Contribution Three: DietCORP — Test-Time Adaptation in One Gradient Step</a>
+<a class="nav-topic" href="#what-this-gets-you">What This Gets You</a>
+<a class="nav-paper" href="#paper-6-toponets-high-performing-vision-and-language-models-with-brain-like-topography">Paper 6 — TopoNets: High-Performing Vision and Language Models with Brain-Like Topography</a>
+<a class="nav-topic" href="#the-question-no-one-was-asking">The Question No One Was Asking</a>
+<a class="nav-topic" href="#the-cortical-sheet-mapping-weights-to-a-2d-map">The Cortical Sheet: Mapping Weights to a 2D Map</a>
+<a class="nav-topic" href="#topoloss-the-synaptic-pruning-inspired-trick">TopoLoss: The Synaptic-Pruning Inspired Trick</a>
+<a class="nav-topic" href="#what-makes-topoloss-work-where-others-failed">What Makes TopoLoss Work Where Others Failed</a>
+<a class="nav-topic" href="#the-results-vision-and-language">The Results: Vision and Language</a>
+<a class="nav-topic" href="#the-three-brain-like-properties-that-emerge">The Three Brain-Like Properties That Emerge</a>
+<a class="nav-topic" href="#why-this-matters">Why This Matters</a>
+<a class="nav-paper" href="#paper-7-zenbrain-a-neuroscience-inspired-7-layer-memory-architecture-for-autonomous-ai-systems">Paper 7 — ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems</a>
+<a class="nav-topic" href="#the-wrong-metaphors">The Wrong Metaphors</a>
+<a class="nav-topic" href="#the-architecture-seven-layers-fifteen-mechanisms">The Architecture: Seven Layers, Fifteen Mechanisms</a>
+<a class="nav-topic" href="#the-fifteen-mechanisms-nine-foundational-six-pma">The Fifteen Mechanisms: Nine Foundational + Six PMA</a>
+<a class="nav-topic" href="#evaluation-the-most-rigorous-memory-benchmarks-available">Evaluation: The Most Rigorous Memory Benchmarks Available</a>
+<a class="nav-topic" href="#the-nodecay-ablation-forgetting-is-a-feature">The NoDecay Ablation: Forgetting Is a Feature</a>
+<a class="nav-topic" href="#what-this-suggests">What This Suggests</a>
+<a class="nav-paper" href="#paper-8-a-cross-species-neural-foundation-model-for-end-to-end-speech-decoding-bit">Paper 8 — A Cross-Species Neural Foundation Model for End-to-End Speech Decoding (BIT)</a>
+<a class="nav-topic" href="#the-cascade-problem">The Cascade Problem</a>
+<a class="nav-topic" href="#the-architecture">The Architecture</a>
+<a class="nav-topic" href="#self-supervised-pretraining-across-species">Self-Supervised Pretraining Across Species</a>
+<a class="nav-topic" href="#the-end-to-end-innovation-llms-as-decoders">The End-to-End Innovation: LLMs as Decoders</a>
+<a class="nav-topic" href="#the-audio-llm-surprise">The Audio LLM Surprise</a>
+<a class="nav-topic" href="#attempted-vs-imagined-speech-a-cross-task-win">Attempted vs Imagined Speech: A Cross-Task Win</a>
+<a class="nav-topic" href="#what-bit-tells-us-about-scaling">What BIT Tells Us About Scaling</a>
+<a class="nav-paper" href="#paper-9-iphoneme-brain-to-text-communication-for-als-using-conformerxl-decoding">Paper 9 — iPhoneme: Brain-to-Text Communication for ALS Using ConformerXL Decoding</a>
+<a class="nav-topic" href="#the-numbers-that-motivated-this-work">The Numbers That Motivated This Work</a>
+<a class="nav-topic" href="#the-architecture-conformerxl">The Architecture: ConformerXL</a>
+<a class="nav-topic" href="#the-3-stage-decoding-pipeline">The 3-Stage Decoding Pipeline</a>
+<a class="nav-topic" href="#the-headline-numbers">The Headline Numbers</a>
+<a class="nav-topic" href="#the-other-half-the-iphoneme-interface">The Other Half: The iPhoneme Interface</a>
+<a class="nav-topic" href="#why-iphoneme-is-important">Why iPhoneme Is Important</a>
+<a class="nav-topic" href="#what-s-genuine-progress-and-what-s-caveat">What's Genuine Progress and What's Caveat</a>
+<a class="nav-paper" href="#synthesis-what-these-nine-papers-tell-us-together">Synthesis: What These Nine Papers Tell Us Together</a>
+<a class="nav-topic" href="#thread-1-the-brain-is-the-architectural-prior">Thread 1: The Brain Is the Architectural Prior</a>
+<a class="nav-topic" href="#thread-2-the-foundation-model-moment-for-neural-data">Thread 2: The Foundation Model Moment for Neural Data</a>
+<a class="nav-topic" href="#thread-3-mixture-of-experts-is-the-right-decomposition-for-heterogeneity">Thread 3: Mixture of Experts Is the Right Decomposition for Heterogeneity</a>
+<a class="nav-topic" href="#thread-4-practical-speech-bcis-are-crystallising">Thread 4: Practical Speech BCIs Are Crystallising</a>
+<a class="nav-topic" href="#thread-5-reasoning-vs-memory-vs-perception-three-different-beasts">Thread 5: Reasoning vs Memory vs Perception — Three Different Beasts</a>
+<a class="nav-topic" href="#the-open-frontier">The Open Frontier</a>
+      </nav>
+    </aside>
+    <main>
+      <article id="report">
+        <h1 id="a-comprehensive-reading-of-nine-papers-in-computational-neuroscience-and-deep-learning">A Comprehensive Reading of Nine Papers in Computational Neuroscience and Deep Learning</h1>
+<p><em>An expert reading produced for research, organised into nine deep analyses. Each section is written in the first person as if the paper's author were explaining the work — applying the Feynman technique throughout, anchoring claims in direct quotations, and using visual analogies and mathematical exposition wherever they aid understanding.</em></p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><strong>Hierarchical Reasoning Model (HRM)</strong> — Wang et al., Sapient Intelligence</li>
+<li><strong>POSSM: Generalizable Real-Time Neural Decoding with Hybrid State-Space Models</strong> — Ryoo, Krishna, Mao et al., Mila/UdeM</li>
+<li><strong>EEGMoE: Domain-Decoupled Mixture-of-Experts for Self-Supervised EEG</strong> — Gao, Wang, Zhao</li>
+<li><strong>BrainStack: Neuro-MoE with Functionally Guided Expert Routing for EEG Language Decoding</strong> — Zhao et al., UTS</li>
+<li><strong>Time-Masked Transformers with Lightweight Test-Time Adaptation for Neural Speech Decoding</strong> — Feghhi, Kaasyap, Hadidi, Kao, UCLA</li>
+<li><strong>TopoNets: High-Performing Vision and Language Models with Brain-Like Topography</strong> — Deb, Deb, Murty, Georgia Tech</li>
+<li><strong>ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems</strong> — Bering, Zensation AI</li>
+<li><strong>A Cross-Species Neural Foundation Model for End-to-End Speech Decoding (BIT)</strong> — Zhang, He et al., Columbia/Stanford</li>
+<li><strong>iPhoneme: Brain-to-Text Communication for ALS Using ConformerXL Decoding</strong> — Cha, Chun, Park, Taejae University</li>
+</ol>
+<hr>
+<h1 id="paper-1-hierarchical-reasoning-model-hrm">Paper 1 — Hierarchical Reasoning Model (HRM)</h1>
+<p><em>Wang, Li, Sun, Chen, Liu, Wu, Lu, Song, Abbasi Yadkori — Sapient Intelligence, 2025</em></p>
+<h2 id="context-motivation-why-i-built-hrm">Context &amp; Motivation: Why I Built HRM</h2>
+<p>I want to start with a frank confession about a paradox at the heart of modern deep learning. We named the field <em>deep</em> learning because deeper networks — more layers stacked on top of one another — were supposed to be the engine of capability. Yet today's most celebrated architectures, the Transformers powering ChatGPT and Claude, are paradoxically <em>shallow</em>. As I wrote in the paper:</p>
+<blockquote><p>&quot;Deep learning, as its name suggests, emerged from the idea of stacking more layers to achieve increased representation power and improved performance. However, despite the remarkable success of large language models, their core architecture is paradoxically shallow.&quot;</p></blockquote>
+<p>Why does this matter? Because complexity theory tells us that fixed-depth Transformers belong to a computational class called <strong>TC⁰</strong> — circuits of constant depth with threshold gates. This is a <em>very small</em> class. It cannot, in principle, solve problems requiring polynomial-time algorithms. So when you ask a Transformer to do Sudoku or maze-solving — problems that demand genuine search and backtracking — it does not so much &quot;reason&quot; as it pattern-matches against memorised solutions. The popular workaround, <strong>Chain-of-Thought (CoT)</strong> prompting, is the model talking to itself in language tokens to <em>simulate</em> depth, like a person solving a calculus problem by writing out every step on a notepad. CoT works, but it is a crutch:</p>
+<blockquote><p>&quot;CoT for reasoning is a crutch, not a satisfactory solution. It relies on brittle, human-defined decompositions where a single misstep or a misorder of the steps can derail the reasoning process entirely.&quot;</p></blockquote>
+<p>This is the gap I set out to close. I wanted a system that reasons in its <em>latent space</em> — its internal vector representations — the way a human seems to. When you do mental arithmetic, you don't generate English tokens internally; you manipulate something more abstract. The brain manages this lengthy latent reasoning effortlessly, and it does so with an architecture that is <em>recurrent</em> and <em>hierarchical</em> across multiple timescales. That's what I tried to import.</p>
+<h2 id="the-core-idea-two-clocks-coupled">The Core Idea: Two Clocks, Coupled</h2>
+<p>Imagine a kitchen with a head chef and a sous-chef. The head chef thinks slowly, sets the overall menu and strategy — &quot;tonight we are making bouillabaisse.&quot; The sous-chef works fast, executing the small steps — chop the onion, sweat the leeks, deglaze the pan. The head chef does not interfere on every chop. Instead, the sous-chef runs until a sub-task reaches a stable state (&quot;vegetables are softened&quot;), and only then does the head chef glance up, adjust the plan if needed (&quot;now add the fish&quot;), and let the sous-chef begin a new fast phase of execution.</p>
+<p>This is HRM in a nutshell. Two recurrent modules — call them <strong>H</strong> (slow, abstract, &quot;head chef&quot;) and <strong>L</strong> (fast, detailed, &quot;sous-chef&quot;) — interact on different clocks:</p>
+<blockquote><p>&quot;It features two coupled recurrent modules: a high-level (H) module for abstract, deliberate reasoning, and a low-level (L) module for fast, detailed computations.&quot;</p></blockquote>
+<p>Mathematically, the dynamics unfold over <strong>N</strong> high-level cycles, each of length <strong>T</strong> low-level steps. So the total computation runs for <strong>N × T</strong> timesteps in a single forward pass. Let me write the update rules precisely. With input embedding <code>x̃ = f_I(x)</code>, the two modules update as follows:</p>
+<div class="math-block">z^i_L = f_L(z^{i-1}_L,\; z^{i-1}_H,\; \tilde{x};\; \theta_L)</div>
+<div class="math-block">z^i_H = \begin{cases} f_H(z^{i-1}_H,\; z^{i-1}_L;\; \theta_H) &amp; \text{if } i \equiv 0 \pmod{T} \\ z^{i-1}_H &amp; \text{otherwise} \end{cases}</div>
+<p>The L-module updates <em>every</em> timestep, conditioning on its previous state, the <em>frozen</em> current H-state, and the input. The H-module updates only <em>every T-th</em> step. After all N × T steps, the output network reads off a prediction: <code>ŷ = f_O(z^{NT}_H)</code>.</p>
+<p>Here is a visual of the timing structure:</p>
+<pre><code>H state:  ●─────────────────────●─────────────────────●─────────────────────●
+                                ↑                     ↑                     ↑
+                          (updates here,         (updates here,        (final readout)
+                           uses final z_L)       uses final z_L)
+                                
+L state:  ●─●─●─●─●─●─●─●─●─●─●─R─●─●─●─●─●─●─●─●─●─●─R─●─●─●─●─●─●─●─●─●─●─●
+          fast inner loop (T steps)│  fast inner loop  │  fast inner loop
+                                   │  starts fresh     │
+                                  Reset                Reset
+            ← cycle 1 →            ← cycle 2 →           ← cycle 3 →</code></pre>
+<p>The L-module repeatedly converges to a local equilibrium <em>within each cycle</em> (given the current H-context), and then the H-module ingests that converged state and pushes the L-module into a new &quot;computational phase&quot; with a fresh equilibrium to find.</p>
+<h2 id="the-magic-trick-hierarchical-convergence">The Magic Trick: Hierarchical Convergence</h2>
+<p>This is the most beautiful idea in the paper, and it solves a chronic problem with recurrent networks. The problem is: RNNs converge <strong>too fast</strong>. The hidden state settles into a fixed point, updates become vanishingly small, and the rest of the network's &quot;thinking time&quot; is wasted on near-zero updates. Effective depth collapses.</p>
+<blockquote><p>&quot;Although convergence is crucial for recurrent networks, standard RNNs are fundamentally limited by their tendency to converge too early. As the hidden state settles toward a fixed point, update magnitudes shrink, effectively stalling subsequent computation and capping the network's effective depth.&quot;</p></blockquote>
+<p>HRM dodges this with what I call <strong>hierarchical convergence</strong>. The L-module converges fast (good — it reaches a stable answer for the current sub-problem), but the H-module's update then <em>resets</em> the problem the L-module is solving. So the L-module gets to converge <em>again</em>, this time toward a different equilibrium. From the outside, the forward residual (the magnitude of state change per step) looks like a sawtooth:</p>
+<pre><code>L-module residual over time:
+
+│ ╱│   ╱│   ╱│   ╱│   ╱│
+│╱ │  ╱ │  ╱ │  ╱ │  ╱ │
+│  │ ╱  │ ╱  │ ╱  │ ╱  │
+│  │╱   │╱   │╱   │╱   │
+└──┴────┴────┴────┴────┴───→ time
+   ↑    ↑    ↑    ↑    ↑
+   H updates here, restarting L's convergence</code></pre>
+<p>The H-module's residual, in contrast, decreases slowly and steadily. Compare this to a standard RNN, where the residual just decays to zero rapidly and computation stalls.</p>
+<blockquote><p>&quot;This mechanism allows HRM both to maintain high computational activity (forward residual) over many steps (in contrast to a standard RNN, whose activity rapidly decays) and to enjoy stable convergence.&quot;</p></blockquote>
+<p>This is exactly the brain's trick. Slow theta waves (4–8 Hz) and fast gamma waves (30–100 Hz) ride on top of each other, with slow rhythms gating fast ones — what neuroscientists call <strong>theta-gamma coupling</strong>. The slow rhythm provides stable context; the fast rhythm does the local computation; together they achieve nested, multi-scale reasoning.</p>
+<h2 id="the-gradient-problem-and-its-beautiful-solution">The Gradient Problem and Its Beautiful Solution</h2>
+<p>If you wanted to train this naively, you would use <strong>Backpropagation Through Time (BPTT)</strong>, unrolling all N × T steps and storing every hidden state for the backward pass. This costs O(T) memory in T, which is brutal — and biologically implausible (your brain does not keep a buffer of every neural state from 30 seconds ago to compute gradients).</p>
+<p>I proposed a workaround grounded in the math of <strong>Deep Equilibrium Models (DEQ)</strong>. The idea: if the recurrent network actually converges to a fixed point, you don't need to unroll. You can compute gradients <em>at the fixed point itself</em> using the Implicit Function Theorem.</p>
+<p>Let me show this concretely. Suppose during cycle <em>k</em>, the L-module reaches a fixed point <code>z*_L</code> satisfying:</p>
+<div class="math-block">z^*_L = f_L(z^*_L,\; z^{k-1}_H,\; \tilde{x};\; \theta_L)</div>
+<p>Then we can rewrite the H-update with a compact mapping F:</p>
+<div class="math-block">z^k_H = F(z^{k-1}_H;\; \tilde{x},\; \theta), \quad \theta = (\theta_I, \theta_L)</div>
+<p>At the H-module's fixed point z*_H, the Implicit Function Theorem gives the <strong>exact gradient</strong>:</p>
+<div class="math-block">\frac{\partial z^*_H}{\partial \theta} = \left(I - J_F\Big|_{z^*_H}\right)^{-1} \frac{\partial F}{\partial \theta}\Big|_{z^*_H} \quad \text{(Equation 1)}</div>
+<p>where J_F is the Jacobian of F. The matrix <code>(I − J_F)^{-1}</code> is expensive to compute exactly, but using the <strong>Neumann series expansion</strong>:</p>
+<div class="math-block">(I - J_F)^{-1} = I + J_F + J_F^2 + J_F^3 + \cdots</div>
+<p>I approximated this with only the first term (<code>≈ I</code>) — the so-called <strong>1-step gradient</strong>. This dramatically simplifies the computation and gives an elegant chain rule:</p>
+<div class="math-block">\frac{\partial z^*_H}{\partial \theta_H} \approx \frac{\partial f_H}{\partial \theta_H}, \quad \frac{\partial z^*_H}{\partial \theta_L} \approx \frac{\partial f_H}{\partial z^*_L} \cdot \frac{\partial f_L}{\partial \theta_L}</div>
+<p>The practical consequence is delightful: gradients flow only through the <em>most recent</em> update of each module — backward through &quot;output head → final z_H → final z_L → input embedding&quot;. Memory cost is <strong>O(1)</strong> instead of O(T). And, critically, this aligns with how the brain plausibly handles credit assignment:</p>
+<blockquote><p>&quot;Given that each module only needs to back-propagate errors through its most recent local synaptic activity, this approach aligns well with the perspective that cortical credit assignment relies on short-range, temporally local mechanisms rather than on a global replay of activity patterns.&quot;</p></blockquote>
+<h2 id="deep-supervision-and-adaptive-computation-time">Deep Supervision and Adaptive Computation Time</h2>
+<p>Two more pieces complete the system. The first is <strong>deep supervision</strong>: I run HRM as a sequence of &quot;segments,&quot; each a full forward pass, with the hidden state carried over but <em>detached</em> from the gradient graph between segments. So gradients from segment m+1 do not flow back into segment m. This gives the H-module more frequent feedback and acts as a regulariser — and biologically, it echoes how neural oscillations gate when learning happens in the brain.</p>
+<p>The second is <strong>Adaptive Computation Time (ACT)</strong>, my way of giving the model &quot;thinking, fast and slow.&quot; A small Q-head reads the H-module state and decides whether to halt or keep computing more segments:</p>
+<div class="math-block">\hat{Q}^m = \sigma(\theta_Q^\top z^{mNT}_H), \quad \hat{Q}^m = (\hat{Q}^m_{\text{halt}}, \hat{Q}^m_{\text{continue}})</div>
+<p>This is trained with Q-learning. The reward is binary: 1 if the prediction at halt-time is correct, 0 otherwise. The system learns to halt early on easy problems and keep thinking on hard ones — mirroring the brain's dynamic allocation of cognitive effort between System 1 (automatic) and System 2 (deliberate) reasoning.</p>
+<p>The system is stable in Q-learning thanks to three structural choices: AdamW (which enforces L∞-bounded weights), RMSNorm post-norm layers, and weight decay. Together these satisfy recent theoretical convergence conditions for deep Q-learning without needing replay buffers or target networks.</p>
+<h2 id="what-hrm-achieves">What HRM Achieves</h2>
+<p>Now for the headline results — and they are striking. With only <strong>27 million parameters</strong> and only <strong>1,000 training examples</strong>, no pretraining, no CoT supervision, HRM achieves:</p>
+<ul>
+<li><strong>40.3%</strong> on ARC-AGI-1 (vs. o3-mini-high's 34.5%, Claude 3.7 8K's 21.2%)</li>
+<li><strong>~55%</strong> on Sudoku-Extreme 9×9 (vs. 0% for all CoT baselines tried)</li>
+<li><strong>~74.5%</strong> on Maze-Hard 30×30 (vs. 0% for all CoT baselines)</li>
+</ul>
+<p>These are not incremental gains. They are categorical wins on tasks where giant CoT models score <em>zero</em>. The reason is that Sudoku and large mazes need genuine search and backtracking — algorithmic depth that fixed-depth Transformers simply lack, and that CoT cannot inject without specific algorithmic training data.</p>
+<h2 id="the-most-striking-discovery-emergent-dimensionality-hierarchy">The Most Striking Discovery: Emergent Dimensionality Hierarchy</h2>
+<p>I want to close on what for me is the most exciting result. I asked: does HRM, after training, <em>spontaneously</em> recapitulate a known property of the cortex?</p>
+<p>In the brain, there is an observable <strong>dimensionality hierarchy</strong>: higher-order cortical regions (prefrontal, anterior cingulate) operate in higher-dimensional neural state spaces than primary sensory regions. Posani et al. (2025) measured this in mouse cortex using the <strong>Participation Ratio</strong>:</p>
+<div class="math-block">\text{PR} = \frac{(\sum_i \lambda_i)^2}{\sum_i \lambda_i^2}</div>
+<p>where λᵢ are the eigenvalues of the covariance matrix of neural population activity. Intuitively, PR is high when variance is spread across many dimensions (rich, flexible representation) and low when variance is concentrated in a few directions (compact, stereotyped representation).</p>
+<p>When I measured PR for HRM's modules after training on Sudoku:</p>
+<ul>
+<li><strong>z_L</strong> (low-level module): PR = <strong>30.22</strong></li>
+<li><strong>z_H</strong> (high-level module): PR = <strong>89.95</strong></li>
+</ul>
+<p>The H-module operates in a substantially higher-dimensional space — exactly the hierarchical relationship seen in mouse cortex (ρ = 0.79 in Posani's data). Moreover, when I varied the number of tasks the model has to handle from 10 to 100, the H-module's dimensionality <em>scales up</em> with task variety, while the L-module's stays stable. The high-level module is precisely the one that needs flexible, context-dependent representation, and it expands accordingly.</p>
+<p>The control experiment seals the result. In an <strong>untrained</strong> HRM (random weights, same architecture), the dimensionality hierarchy disappears: z_L has PR ≈ 42, z_H has PR ≈ 41 — basically identical. This is <em>learned</em> structure, not an architectural artifact. The hierarchy emerges through training.</p>
+<blockquote><p>&quot;This confirms that the observed hierarchical organization of dimensionality is a learned property that emerges through training, not an artifact of the model's architecture.&quot;</p></blockquote>
+<h2 id="what-this-means">What This Means</h2>
+<p>HRM suggests we have been thinking about scaling wrong. Adding more parameters horizontally to a fixed-depth Transformer can only get us so far. The brain achieves vastly more sophisticated reasoning with vastly fewer &quot;parameters&quot; by exploiting <em>temporal recurrence at multiple timescales</em> — depth-in-time rather than depth-in-layers. HRM is a concrete demonstration that an architecture explicitly modelled on this principle can outperform giant CoT systems on the hardest reasoning benchmarks, with three orders of magnitude fewer parameters and three orders of magnitude less data.</p>
+<p>The limitations are real and worth naming. HRM is currently a sequence-to-sequence architecture without language pretraining; integrating it with LLMs (so it can solve symbolic reasoning <em>and</em> talk fluently) is open work. The &quot;1-step gradient&quot; approximation is mathematically aggressive — it works empirically, but a tighter theoretical understanding of why is still wanted. And the high-level/low-level split is conceptual, not anatomically literal; the brain has dozens of hierarchical levels and many more than two intrinsic timescales. HRM is a proof of principle, not a finished theory.</p>
+<p>But as a proof of principle, it is a powerful one. The take-home for me is this: depth need not mean stacked layers. It can mean <em>iterated dynamics</em>. And if you let two coupled dynamical systems work on different clocks, you can get the brain's trick — deep effective computation with shallow physical depth — for free.</p>
+<hr>
+<h1 id="paper-2-possm-generalisable-real-time-neural-decoding-with-hybrid-state-space-models">Paper 2 — POSSM: Generalisable, Real-Time Neural Decoding with Hybrid State-Space Models</h1>
+<p><em>Ryoo, Krishna, Mao, Azabou, Dyer, Perich, Lajoie — Mila / Université de Montréal / Columbia / Penn, NeurIPS 2025</em></p>
+<h2 id="the-problem-that-won-t-go-away">The Problem That Won't Go Away</h2>
+<p>If you want to build a brain-computer interface that actually works in the clinic — letting someone with ALS control a cursor or speak through a machine — you face an unforgiving triangle of constraints. I described it bluntly in the paper:</p>
+<blockquote><p>&quot;Building towards these applications will require neural decoders that meet three requirements: (1) robust and accurate predictions, (2) causal, low-latency inference that is viable in an online setting, and (3) flexible generalization to new subjects, tasks, and experimental settings.&quot;</p></blockquote>
+<p>Until POSSM, these three were essentially mutually exclusive. Picture them as a Venn diagram with empty intersection:</p>
+<pre><code>       ┌─────────────────────┐
+       │     Accurate &amp;      │
+       │   Generalising      │  ← Transformers (POYO, NDT-2)
+       │  (Transformers)     │     but too slow for real-time
+       └─────────────────────┘
+                 ✗
+       ┌─────────────────────┐
+       │  Fast &amp; Lightweight │  ← RNNs (GRU)
+       │      (RNNs)         │     but rigid inputs, no transfer
+       └─────────────────────┘</code></pre>
+<p>Transformers ace generalisation through large-scale pretraining and flexible tokenisation, but their <strong>quadratic</strong> attention complexity over time makes them too sluggish for the &lt; 10 ms decoding latency a closed-loop BCI demands. RNNs are blazingly fast and lightweight but cannot accept inputs with different neuron counts, sampling rates, or session structures without architectural surgery and retraining. POSSM — pronounced &quot;possum,&quot; and standing for POYO-SSM — is my attempt to live at the empty centre of that Venn diagram.</p>
+<h2 id="the-architecture-in-a-picture">The Architecture in a Picture</h2>
+<p>The core idea is a <strong>hybrid</strong>: keep the Transformer's flexible front-end for <em>spatial</em> tokenisation of spikes, but replace its recurrent-history machinery with a <strong>state-space model</strong> (SSM) that runs in true streaming O(1)-per-step time. Here is the data-flow:</p>
+<pre><code>    Spikes in a 50 ms chunk:
+    spike1 → (UnitEmb(neuron_i), tspike)  ──┐
+    spike2 → (UnitEmb(neuron_j), tspike)  ──┤  variable-length 
+    spike3 → (UnitEmb(neuron_i), tspike)  ──┤  spike sequence X_t
+    ...                                      │
+                                             ▼
+                            ┌─────────────────────────┐
+                            │  Cross-Attention        │  compresses N
+                            │  with learnable         │  spikes to 1
+                            │  query vector q         │  fixed-size
+                            └─────────────────────────┘  latent z(t)
+                                             │
+                                             ▼
+                            ┌─────────────────────────┐
+                            │  State-Space Model      │  h(t) = f_SSM(z(t), h(t−1))
+                            │  (S4D / GRU / Mamba)    │  O(1) update per chunk
+                            └─────────────────────────┘
+                                             │
+                                             ▼
+                            ┌─────────────────────────┐
+                            │  Output Cross-Attention │  queries last k
+                            │  with behaviour queries │  hidden states
+                            └─────────────────────────┘
+                                             │
+                                             ▼
+                                     v_x, v_y predictions</code></pre>
+<p>The left edge inherits <strong>POYO's tokenisation scheme</strong>: each spike is a pair (neuron-ID embedding, timestamp), where the neuron-ID is a learnable D-dimensional vector and the timestamp is encoded with rotary positional embedding (RoPE). The key thing is that the model does not need a fixed neuron count. A new session with 47 neurons and a different mix of cortical regions just means new ID embeddings — no architectural changes.</p>
+<p>Mathematically, for a 50 ms chunk with N spikes, the cross-attention compresses them into a single latent vector z(t):</p>
+<div class="math-block">z^{(t)} = \text{softmax}\!\left(\frac{qK_t^\top}{\sqrt{D}}\right) V_t, \quad K_t = X_t W_k,\; V_t = X_t W_v</div>
+<p>where q is a single learned <strong>query</strong> vector (the same one used every chunk), and X_t is the matrix of spike tokens in the chunk. The query &quot;summarises&quot; the chunk into a fixed-size code regardless of how many spikes happened. This is the PerceiverIO trick from Jaegle et al., adapted for spike data.</p>
+<p>Now the recurrent backbone takes over:</p>
+<div class="math-block">h^{(t)} = f_{\text{SSM}}(z^{(t)},\; h^{(t-1)})</div>
+<p>This SSM is doing the temporal integration that attention would have done in a vanilla Transformer — but in O(1) memory and time, with a hidden state that accumulates the whole history. POSSM is compatible with several backbones: <strong>S4D</strong> (diagonal structured state-space models, fast and parallelisable), <strong>GRU</strong> (the classic recurrent unit), and <strong>Mamba</strong> (selective SSMs with state-dependent dynamics). All three work.</p>
+<h2 id="why-this-hybrid-is-the-right-compromise">Why This Hybrid Is the Right Compromise</h2>
+<p>Here is the intuition I keep returning to. Local temporal structure within a single 50 ms chunk (which spikes co-occurred, which neurons fired together) is complex, irregular, high-bandwidth — exactly the kind of thing attention is good at. But integration over <em>seconds</em> of recent history is a slower, more linear process that a recurrent state-update handles more efficiently. POSSM splits the labour: attention does <em>local intra-chunk</em> work; the SSM does <em>global inter-chunk</em> work.</p>
+<p>Compare the inference cost. A vanilla Transformer over T chunks costs O(T²) attention operations and grows linearly in memory. POSSM costs O(T) operations total and <strong>constant</strong> memory per step. That's the difference between a system that scales with the length of a sentence (Transformer) and one that scales like a thermometer (POSSM) — every new chunk is a cheap, constant-cost update.</p>
+<h2 id="transfer-across-sessions-subjects-and-species">Transfer Across Sessions, Subjects, and Species</h2>
+<p>This is the part that makes me grin every time I look at the results table. Pretraining POSSM on a heterogeneous dataset of monkey reaching tasks (148 sessions, 670 million spikes, 26,032 neural units across M1, PMd, S1) yields a model — o-POSSM — that generalises in remarkable ways.</p>
+<p>There are two finetuning strategies for a new session:</p>
+<p><strong>Unit Identification (UI):</strong> Freeze the entire model. Only train new unit embeddings (and a session embedding) for the new neurons. Less than 1% of parameters are updated. The pretrained recurrent dynamics — what the model has learned about motor cortex <em>in general</em> — are preserved entirely.</p>
+<p><strong>Full Finetuning (FT):</strong> Start with UI for some epochs, then unfreeze the whole model. More expensive, more accurate.</p>
+<p>Both work. On a held-out monkey C centre-out session, o-POSSM-GRU with full FT achieves <strong>R² = 0.96</strong>, outperforming everything else including POYO-1. On a brand-new monkey not seen during pretraining (Monkey T's centre-out reach), o-POSSM-S4D achieves <strong>R² = 0.91</strong> — matching or exceeding what dedicated single-session models can do.</p>
+<p>The <em>killer</em> result, though, is <strong>cross-species transfer</strong>. We took o-POSSM, pretrained entirely on monkey reaching data, and finetuned it on a human dataset of imagined handwriting (Willett et al., 2021). The participant has ALS; they imagine writing letters, and neural activity from their motor cortex is recorded. POSSM, with monkey pretraining, <strong>outperforms</strong> models trained from scratch on the human data:</p>
+<blockquote><p>&quot;Pretraining on monkey motor-cortical recordings improves decoding performance on the human handwriting task, highlighting the exciting potential for cross-species transfer.&quot;</p></blockquote>
+<p>This is biologically deep. It says the <em>latent dynamics</em> of motor cortex — the geometry of how populations of motor neurons encode intended movement — share enough structure across primate species that a model can learn the structure from one species and reuse it for the other. The neurons are different, the brains are different, the task is different (reaching vs. handwriting), but the <em>representational manifold</em> is similar enough to share.</p>
+<h2 id="speed-the-headline-engineering-result">Speed: The Headline Engineering Result</h2>
+<p>On a workstation NVIDIA RTX8000 GPU, POSSM-GRU runs inference at roughly <strong>2.44 ms per 50 ms chunk</strong>. On a CPU (AMD EPYC 7502), o-POSSM runs at about <strong>5.65 ms per chunk</strong>. The clinically relevant threshold for real-time BCI is &lt; 10 ms latency. POSSM clears it comfortably:</p>
+<blockquote><p>&quot;POSSM's inference time is well within the optimal real-time BCI decoding latency of ≤ 10 ms, making it a viable option for real-time BCI decoding applications.&quot;</p></blockquote>
+<p>By comparison, POYO-1 — equally accurate but reprocessing a full 1-second history every chunk — runs roughly <strong>9× slower</strong> on GPU. NDT-2 is heavier still. POSSM matches their accuracy at a fraction of the inference cost. That is precisely the empty centre of the Venn diagram I drew at the start.</p>
+<h2 id="the-speech-decoding-demonstration">The Speech Decoding Demonstration</h2>
+<p>To push the long-context limits, we also evaluated on a human attempted-speech dataset (Willett et al., 2023). Speech sentences are long — minutes of neural activity at a time. Transformer-based decoders here run into a wall: the quadratic complexity of attention over thousands of time chunks is prohibitive, and even getting them to <em>train</em> requires gymnastics. POSSM, with its constant per-chunk cost, decodes attempted speech with strong accuracy where attention models become computationally infeasible.</p>
+<h2 id="where-possm-sits-in-the-bigger-picture">Where POSSM Sits in the Bigger Picture</h2>
+<p>The model is, in essence, an instantiation of an old idea — that the brain itself is a hybrid of fast local processing (cortical microcircuits, attention-like binding) and slower global integration (recurrent feedback loops, persistent state). Modern Transformers picked up only the local-processing half and tried to compensate for the missing global-integration half by feeding the model ever-longer contexts and ever-more attention. POSSM goes the other way: put the local processing where attention belongs (within a chunk), put the global integration where recurrence belongs (across chunks). The result is a model that is small (8M parameters), fast (sub-10ms inference), accurate (matches state of the art), and <em>transferable across species</em>. For a clinical BCI, that is the holy grail.</p>
+<p>The honest limitations are that POSSM is evaluated offline despite being designed for online use — we have not yet run it in a live closed-loop study; that the cross-attention front-end only handles spikes, not LFP or other modalities (an obvious extension); and that we have not yet stress-tested on truly novel cortical regions (the pretraining is all motor-system data).</p>
+<hr>
+<h1 id="paper-3-eegmoe-domain-decoupled-mixture-of-experts-for-self-supervised-eeg-representation-learning">Paper 3 — EEGMoE: Domain-Decoupled Mixture-of-Experts for Self-Supervised EEG Representation Learning</h1>
+<p><em>Gao, Wang, Zhao — Chinese Academy of Sciences, IEEE TNNLS, 2026</em></p>
+<h2 id="the-headache-of-eeg-models">The Headache of EEG Models</h2>
+<p>If you have ever tried to build a deep learning model for EEG, you know the dirty secret: every dataset is its own kingdom. A model that works beautifully on emotion recognition from the DEAP dataset will face-plant on motor imagery from BCI Competition IV-2a. A model tuned for one subject's brainwaves often fails on another's. The literature is full of papers with names like &quot;EmotionNet-DEAP-v3&quot; — exquisite specialists, useless generalists.</p>
+<p>The conventional wisdom said: just pool everything. Train one big model on lots of EEG datasets and let it figure out what is shared. This is what large-scale pretraining did for vision (CLIP, MAE) and language (BERT, GPT). Why not EEG?</p>
+<p>I have a striking figure in the paper that shows why. We trained a standard Transformer alternately on three EEG tasks — emotion recognition, motor imagery, and mental workload — and tracked the <em>direction</em> of each gradient update in a 2D projection of parameter space. The picture is sobering:</p>
+<blockquote><p>&quot;During the gradient update process, the ER task drives the model parameters to optimize predominantly in the lower right direction, while the MI classification task guides the optimization toward the upper left direction. In contrast, the mental workload detection task steers the optimization toward the upper right direction.&quot;</p></blockquote>
+<p>Three tasks, three opposed gradient directions. The model is being pulled in three directions at once, and the natural compromise is mediocre on all three. This is the dreaded <strong>gradient conflict</strong> of multi-task learning, and it is especially severe in EEG because:</p>
+<blockquote><p>&quot;EEG tasks inherently differ in their neural correlates, dominant frequency bands, and temporal dynamics. Such discrepancies naturally induce gradient conflicts during joint training, which explains the inconsistency in optimization directions.&quot;</p></blockquote>
+<p>The motor imagery task lives in the <strong>mu rhythm</strong> (8–13 Hz) over sensorimotor cortex. Emotion recognition involves <strong>alpha</strong> asymmetry over frontal regions. Mental workload taps <strong>theta</strong> at the midline. These are <em>different brain mechanisms</em>. Forcing one set of weights to encode all three is asking for compromise.</p>
+<h2 id="the-insight-decouple-don-t-unify">The Insight: Decouple, Don't Unify</h2>
+<p>Recent EEG foundation models — LaBraM, BIOT, MMM — chase <strong>unification</strong>: get every dataset into a common input format, train one model that processes them identically. I argue this is the wrong move. Unifying the <em>format</em> is necessary but ignoring the <em>content differences</em> discards exactly the domain-specific information that downstream tasks need. So my counter-proposal is: unify the input format, but <em>decouple</em> the representations through the architecture itself.</p>
+<p>The vehicle for this decoupling is <strong>Mixture-of-Experts (MoE)</strong>. The idea: instead of one big monolithic network, have many small expert networks. For each input, a <em>router</em> decides which experts to use. Different inputs (from different domains, tasks, subjects) get routed to different specialists. Conflict avoided.</p>
+<p>But standard MoE has its own failure mode. If a single token can be routed to <em>any</em> expert, the model can lose the <em>commonality</em> across domains — the universal structure of EEG that <em>is</em> shared across tasks. So I designed a two-track expert system:</p>
+<ul>
+<li><strong>Specific experts</strong> with Top-K routing — only the K most relevant experts are activated per token, encouraging specialisation</li>
+<li><strong>Shared experts</strong> with soft routing — all experts contribute to every token, learning universal features</li>
+</ul>
+<p>Together: <strong>SSMoE</strong> (Specific and Shared MoE).</p>
+<h2 id="the-mathematics-of-the-routing">The Mathematics of the Routing</h2>
+<p>For the <strong>specific MoE</strong>, with E candidate experts, the router computes routing scores from each input token x:</p>
+<div class="math-block">g_x = W_e \cdot x, \quad p_i(x) = \frac{\exp(g_{x,i})}{\sum_{j=1}^{|E|} \exp(g_{x,j})}</div>
+<p>These probabilities pick the Top-K experts to activate:</p>
+<div class="math-block">\text{SpecMoE}(x) = \sum_{i \in \text{TopK}} p_i(x)\, e_i(x)</div>
+<p>The intuition: each expert is a two-layer MLP with GELU activation, and the router decides which expertise pool best suits this particular token. For motor imagery tokens, the router might activate experts that have specialised in mu-rhythm patterns; for emotion tokens, those that have specialised in frontal alpha asymmetry.</p>
+<p>For the <strong>shared MoE</strong>, with F shared experts, the routing is <em>soft</em> — every expert contributes to every token, weighted by its probability:</p>
+<div class="math-block">\text{ShareMoE}(x) = \sum_{i \in F} p_i(x)\, f_i(x)</div>
+<p>These experts always learn from <em>all</em> domains, capturing what is universal about EEG.</p>
+<p>The final SSMoE output is just the sum:</p>
+<div class="math-block">\text{SSMoE}(x) = \text{SpecMoE}(x) + \text{ShareMoE}(x)</div>
+<p>Visually, you can think of it as two parallel parliaments deliberating:</p>
+<pre><code>                            Input token x
+                                │
+            ┌───────────────────┴───────────────────┐
+            ▼                                       ▼
+   Top-K Router (specific)             Soft Router (shared)
+            │                                       │
+   Activates only K best                  All F experts
+   experts from E candidates               contribute
+            │                                       │
+   ┌────────┼────────┐                ┌──────┬──────┼──────┐
+   ▼        ▼        ▼                ▼      ▼      ▼      ▼
+  e_a      e_b      e_c              f_1    f_2    f_3    f_4
+   │        │        │                │      │      │      │
+   └────────┼────────┘                └──────┼──────┼──────┘
+            ▼                                ▼
+       SpecMoE(x)                       ShareMoE(x)
+            │                                       │
+            └──────────────────► + ◄────────────────┘
+                                 │
+                            SSMoE(x)</code></pre>
+<h2 id="the-4-d-input-embedding-brain-topography">The 4-D Input: Embedding Brain Topography</h2>
+<p>A small but important detail. EEG signals are messy because they are sampled at different rates with different electrode montages across datasets. To make these compatible, I preprocess every recording into a unified <strong>4-D tensor</strong> with dimensions:</p>
+<div class="math-block">X \in \mathbb{R}^{(T \cdot S_r) \times B \times H \times W}</div>
+<ul>
+<li><strong>T</strong>: time window length (seconds)</li>
+<li><strong>S_r</strong>: sampling rate</li>
+<li><strong>B</strong>: number of frequency bands (5: δ, θ, α, β, γ)</li>
+<li><strong>H × W</strong>: 2D brain map dimensions (electrode positions projected onto a scalp grid)</li>
+</ul>
+<p>Crucially, the <strong>H × W</strong> dimensions preserve <strong>spatial topography</strong> — channels that are physically close on the scalp end up close in the tensor. This is a small but powerful biological prior: in the brain, nearby cortical regions tend to do similar things, so a 2D layout that preserves this neighbourhood lets the model use convolutional priors meaningfully.</p>
+<p>The five frequency bands carry meaningful neuroscience:</p>
+<ul>
+<li><strong>δ (1–4 Hz)</strong>: deep sleep, anaesthesia</li>
+<li><strong>θ (4–8 Hz)</strong>: memory, attention, midline cognitive load</li>
+<li><strong>α (8–14 Hz)</strong>: relaxed wakefulness; mu rhythm in this band for motor</li>
+<li><strong>β (14–31 Hz)</strong>: active concentration, motor planning</li>
+<li><strong>γ (31–45 Hz)</strong>: high-level cognitive processing, feature binding</li>
+</ul>
+<p>So a single input is a stack of 2D &quot;brain maps&quot; across these five physiological bands. The model sees something like &quot;what is the alpha-band activity at frontal electrodes over the past two seconds?&quot; in a form that respects scalp topology.</p>
+<h2 id="self-supervised-pretraining-the-reconstruction-trick">Self-Supervised Pretraining: The Reconstruction Trick</h2>
+<p>For pretraining I use <strong>masked signal reconstruction</strong> — the EEG analogue of BERT's masked language modelling. We randomly mask 40% of the embedded patches and the model has to reconstruct them. The loss is L1:</p>
+<div class="math-block">L_1 = \frac{1}{S} \sum_{i=1}^{S} \| Z_i - \tilde{Z}_i \|</div>
+<p>Plus an <strong>auxiliary load-balancing loss</strong> to prevent experts from becoming idle or overloaded:</p>
+<div class="math-block">L_{\text{aux}} = E \sum_{i=1}^{E} h_i D_i</div>
+<p>where h_i is the fraction of tokens assigned to expert i and D_i is the average routing probability. This penalises imbalanced expert usage and keeps the parliament functional.</p>
+<p>The total pretraining loss is:</p>
+<div class="math-block">L_{\text{pretrain}} = L_1 + \alpha L_{\text{aux}}, \quad \alpha = 10^{-4}</div>
+<h2 id="what-this-buys-you">What This Buys You</h2>
+<p>After pretraining on six EEG datasets and fine-tuning on three held-out ones (DEAP, BCIC4-2a, STEW), EEGMoE outperforms all prior state-of-the-art:</p>
+<ul>
+<li>DEAP (valence): <strong>+2.96%</strong> over EEGFuseNet</li>
+<li>DEAP (arousal): <strong>+4.18%</strong> over EEGFuseNet</li>
+<li>BCIC4-2a (motor imagery): <strong>+6.01%</strong> over DeepCNN</li>
+<li>STEW (mental workload): <strong>+3.21%</strong> over the STEW baseline</li>
+</ul>
+<p>More importantly, the ablation shows <em>both</em> expert groups are essential:</p>
+<ul>
+<li>Remove the specific (Top-K) experts → drop across all three datasets</li>
+<li>Remove the shared (soft) experts → also drop across all three</li>
+</ul>
+<p>This is the empirical signature of decoupling working. Specialisation alone is not enough (you lose the commonality); shared-only is not enough (you lose the specialisation). You need both, and the additive combination is what gives the model its breadth.</p>
+<p>The expert-activation patterns also reveal something neuroscientifically satisfying: different datasets activate different specific experts at high frequency. Motor imagery data lights up a different subset of experts than emotion data. The model has <em>learned</em> to recognise domain boundaries from the data, without anyone telling it which task each sample came from. This is decoupling discovered by the architecture itself.</p>
+<h2 id="what-it-tells-us">What It Tells Us</h2>
+<p>The deeper lesson is methodological. We have spent five years assuming that the path to good EEG foundation models runs through <em>unification</em> — one big model, one big training run, one universal representation. EEGMoE says: unification is the <em>interface</em>, not the <em>objective</em>. What you want is shared front-end formatting plus decoupled internal representations. The brain itself is built this way — V1 and Broca's area share architectural primitives (six cortical layers, similar microcircuits) but compute radically different things. EEGMoE imports this insight into the model design.</p>
+<p>The limitations are honest. The number of experts is hand-set rather than learned. The routing is data-dependent but not <em>task</em>-aware in the supervised sense — the model has no privileged access to task labels during pretraining (which is the point), but it would be interesting to see what task-conditioned routing would do. And the 4-D input format requires careful preprocessing for any new EEG dataset; the model is not yet a drop-in general-purpose brainwave reader.</p>
+<hr>
+<h1 id="paper-4-brainstack-neuro-moe-with-functionally-guided-expert-routing-for-eeg-based-language-decoding">Paper 4 — BrainStack: Neuro-MoE with Functionally Guided Expert Routing for EEG-Based Language Decoding</h1>
+<p><em>Zhao, Zhou, Jiang, Cao, Ma, Shen, Li, Wang, Lin — University of Technology Sydney, 2026</em></p>
+<h2 id="the-brain-is-not-a-bag-of-electrodes">The Brain Is Not a Bag of Electrodes</h2>
+<p>When most EEG models look at a 128-channel recording, they see 128 parallel time series. The brain, of course, sees nothing of the sort. The cortex is anatomically partitioned into functionally specialised regions — prefrontal, frontal, central, temporal, parietal, occipital — and each plays a distinct role in any cognitive task. Treating those 128 channels as homogeneous tokens, the way many modern Transformers do, throws away one of neuroscience's most robustly established facts.</p>
+<p>I built BrainStack to put that fact back into the model. As I wrote:</p>
+<blockquote><p>&quot;Most existing EEG models implicitly assume a homogeneous cortical structure, processing the entire electrode montage as a single unified source. This assumption overlooks the brain's well-established functional modularity, where distinct cortical regions exhibit specialized dynamics and contribute differently to cognitive processes.&quot;</p></blockquote>
+<p>The application I care about is <strong>silent-speech decoding</strong> — translating EEG recorded while a person imagines saying a word into the actual text of that word. This is exactly the kind of task where regional functional structure matters intensely: motor regions plan articulation, temporal regions handle phonological processing, occipital regions handle the visual cue, frontal regions handle executive control. A model that mashes them all together loses the structure that makes the task solvable.</p>
+<h2 id="the-architecture-seven-regional-experts-plus-a-global-conductor">The Architecture: Seven Regional Experts Plus a Global Conductor</h2>
+<p>BrainStack decomposes an EEG trial X ∈ R^(C×T) into seven anatomically defined regional subsets plus one global view:</p>
+<pre><code>Raw EEG (128 channels × T timesteps)
+        │
+        ├─→ Prefrontal channels    ──→ CNet expert φ_1
+        ├─→ Frontal channels       ──→ CNet expert φ_2
+        ├─→ Central channels       ──→ CNet expert φ_3
+        ├─→ Left-Temporal channels ──→ CNet expert φ_4
+        ├─→ Right-Temporal channels──→ CNet expert φ_5
+        ├─→ Parietal channels      ──→ CNet expert φ_6
+        ├─→ Occipital channels     ──→ CNet expert φ_7
+        │
+        └─→ All channels (global)  ──→ CTNet (Transformer)
+                                         │
+                                         ▼
+                          ┌──────────────────────────┐
+                          │ Adaptive Routing Gate    │
+                          │ assigns weights α_i      │
+                          └──────────────────────────┘
+                                         │
+                                         ▼
+                          F_meta = Σ α_i · F_i
+                                         │
+                                         ▼
+                                 Word prediction</code></pre>
+<p>Each regional expert is a lightweight CNet — a compact CNN with temporal convolution, depthwise spatial convolution within the region, and separable convolution. These are cheap because they only see Cₙ ≪ C channels (one slice of the brain, not all of it). The <strong>global expert</strong> is CTNet — a heavier hybrid CNN + Transformer that sees <em>every</em> channel and learns long-range, cross-regional dependencies.</p>
+<p>The output decoding objective is:</p>
+<div class="math-block">\hat{y} = \arg\max_k \left[ g\left( \sum_{i=1}^{N} \omega_i^y \cdot \phi_i(X_i) \right) \right]_k</div>
+<p>where ω_i^y is the learned importance weight for region i, and g is the fusion function.</p>
+<h2 id="the-adaptive-routing-gate">The Adaptive Routing Gate</h2>
+<p>Here is the elegance of the design. Each expert produces a representation F_i. The routing gate scores each expert with a small learned scoring function h(·):</p>
+<div class="math-block">\alpha_i = \frac{\exp(h(F_i))}{\sum_{j=1}^{N} \exp(h(F_j))}</div>
+<p>These weights sum to one and are used to combine the expert outputs:</p>
+<div class="math-block">F_{\text{meta}} = \sum_{i=1}^{N} \alpha_i \cdot F_i</div>
+<p>The crucial point is that α_i is <em>context-dependent</em> — it depends on the input. For one trial, the model might lean heavily on the occipital expert (visual processing of the cue word); for another, on the temporal experts (phonological imagery). The router learns to dynamically reweight which region's expertise is needed.</p>
+<h2 id="hierarchical-cross-regional-distillation">Hierarchical Cross-Regional Distillation</h2>
+<p>This is the most novel idea in the paper. The seven regional experts see <em>only their region</em> — they have no view of the rest of the brain. The global expert sees everything. So we can use the global expert to <em>teach</em> the regional experts about cross-regional context they cannot see directly.</p>
+<p>This is a form of <strong>knowledge distillation</strong>. With temperature T, we minimise the KL divergence between the global expert's softened logits and each regional expert's softened logits:</p>
+<div class="math-block">L_{\text{distill}} = \sum_{i=1}^{N} \text{KL}\!\left(\text{Softmax}\!\left(\frac{F_{\text{global}}}{T}\right) \,\Big\|\, \text{Softmax}\!\left(\frac{F_i}{T}\right)\right)</div>
+<p>The intuition: the regional expert keeps its anatomically grounded specialisation but is <em>biased</em> toward producing outputs consistent with the global picture. This emulates a real neurobiological phenomenon — <strong>top-down modulation</strong>, where higher-order regions (prefrontal cortex, default mode network) shape the activity of sensory and motor regions through descending feedback. The global expert here plays the role of &quot;top-down.&quot;</p>
+<h2 id="the-multi-objective-loss">The Multi-Objective Loss</h2>
+<p>The full training loss combines four terms:</p>
+<div class="math-block">L_{\text{total}} = \lambda \cdot L_{\text{fused}} + \alpha \cdot L_{\text{global}} + \beta \cdot L_{\text{local}} + \gamma \cdot L_{\text{distill}}</div>
+<p>with <strong>dynamic scheduling</strong>: λ ramps up during training, while α and β are modulated by progress. This is a curriculum: start with global supervision (give the model a stable whole-brain anchor), then progressively shift weight onto the fused multi-expert prediction and the distillation pressure as the regional experts mature.</p>
+<h2 id="the-ss-eeg-dataset-a-new-benchmark-for-the-field">The SS-EEG Dataset: A New Benchmark for the Field</h2>
+<p>A major contribution beyond the architecture is the <strong>SilentSpeech-EEG (SS-EEG)</strong> dataset. Compare it to prior silent-speech EEG benchmarks:</p>
+<div class="table-wrap"><table><thead><tr>
+<th>Dataset</th><th>Subjects</th><th>Vocab</th><th>Trials</th><th>Hours</th><th>Channels</th>
+</tr></thead><tbody>
+<tr><td>KaraOne</td><td>12 (8 usable)</td><td>11</td><td>1,056</td><td>~4.5</td><td>64</td></tr>
+<tr><td>Thinking Out Loud</td><td>10</td><td>4</td><td>2,236</td><td>~3.5</td><td>128</td></tr>
+<tr><td><strong>SS-EEG (Ours)</strong></td><td><strong>12 (10 usable)</strong></td><td><strong>24</strong></td><td><strong>60,000</strong></td><td><strong>~120</strong></td><td><strong>128</strong></td></tr>
+</tbody></table></div>
+<p>SS-EEG is roughly <strong>30× larger</strong> in trials and ~30× larger in hours than the previous best. The protocol is four-phase: rest (5 s) → read (1 s, target word shown) → preparation cue (0.2 s) → silent speech (1.5 s, subject imagines saying the word).</p>
+<h2 id="results-what-modularity-buys-you">Results: What Modularity Buys You</h2>
+<p>On SS-EEG word classification, BrainStack achieves 41.87% average accuracy. The strongest baseline, TCNet, gets 29.50%. The improvement is <strong>+12.37 points</strong> — a categorical jump that is not explained by parameters (BrainStack has 1.06M; LaBraM has 5.8M and gets only 18.29%; STTransformer has 2.78M and gets 28.28%).</p>
+<p>The ablation reveals the architectural ingredients matter:</p>
+<ul>
+<li><strong>BrainStack Homo</strong>: replace heterogeneous experts (CNets + CTNet) with identical CTNet copies. Result: 32.78% — much worse despite <em>more</em> parameters</li>
+<li><strong>BrainStack RoI5</strong>: coarser 5-region anatomical partition. Result: 37.19% — worse by ~5 points</li>
+</ul>
+<p>Both ablations point to the same conclusion: the <strong>architectural diversity</strong> (different expert types for different regions) and the <strong>fineness of the anatomical partition</strong> are doing real work. This is not just MoE; it is <em>anatomically informed</em> MoE.</p>
+<h2 id="regional-contributions-reveal-brain-plausible-patterns">Regional Contributions Reveal Brain-Plausible Patterns</h2>
+<p>When we examined the learned routing weights across subjects, the patterns make neurobiological sense:</p>
+<blockquote><p>&quot;The Occipital expert exhibits the strongest positive correlation with subject-level accuracy (r = 0.56), highlighting the importance of visual-cortical activity for silent-speech decoding.&quot;</p></blockquote>
+<p>Why does occipital matter? Because the task starts by showing the target word visually. The visual processing of the cue <em>anchors</em> the subsequent silent articulation, and subjects whose models successfully exploit occipital signal do better. Temporal experts also carry consistently high weights — consistent with the role of superior temporal cortex in phonological processing. Meanwhile, the global expert shows a <em>negative</em> correlation (r = −0.50) with accuracy, suggesting that subjects who over-rely on the global view (i.e., whose models don't lean on the regional specialists) do worse.</p>
+<p>This is interpretability for free. The routing weights effectively give you a <em>learned saliency map</em> over functional brain regions for each task.</p>
+<h2 id="what-brainstack-tells-the-field">What BrainStack Tells the Field</h2>
+<p>The bigger message overlaps with EEGMoE's: monolithic Transformers are the wrong default for EEG. The brain's modular functional organisation is not a side detail — it is the architectural prior that makes EEG decoding tractable, especially for low-SNR cognitive tasks like silent speech. Build models that <em>respect that prior</em>, and you get accuracy, generalisation, and interpretability simultaneously.</p>
+<p>The honest limitations: SS-EEG is collected from a single lab and 12 subjects; cross-lab generalisation has yet to be shown. The seven-region partition is based on standard 10–20 anatomical landmarks, but functional boundaries are not perfectly aligned with these (Broca's area sits at the prefrontal/frontal/left-temporal junction, for instance). And the model still struggles dramatically on some subjects (S05: 10%) — pointing to deep individual differences in silent-speech neural signatures that may require subject-adaptive routing as a next step.</p>
+<hr>
+<h1 id="paper-5-time-masked-transformers-with-lightweight-test-time-adaptation-for-neural-speech-decoding">Paper 5 — Time-Masked Transformers with Lightweight Test-Time Adaptation for Neural Speech Decoding</h1>
+<p><em>Feghhi, Kaasyap, Hadidi, Kao — UCLA, 2025</em></p>
+<h2 id="a-pragmatic-paper-about-a-real-world-problem">A Pragmatic Paper About a Real-World Problem</h2>
+<p>This paper is the most engineering-focused of the bunch, and I love it for that reason. While other groups are racing for incremental WER improvements on the Brain-to-Text benchmark — often through ensembles of bidirectional GRUs plus GPT-3.5 post-processing — we asked a more grown-up question. <em>What if you actually had to ship this in a clinic?</em></p>
+<p>The clinical constraints are unforgiving:</p>
+<blockquote><p>&quot;Speech neuroprostheses... should ideally satisfy several key criteria beyond accuracy. First, they be able to operate in a real-time 'streaming' fashion... Second, they should have low computational requirements to enable on-device inference and adaptation... Finally, decoding algorithms should be easily integrated with test-time adaptation methods that mitigate performance degradation across time.&quot;</p></blockquote>
+<p>Top entries on the Brain-to-Text benchmark beat the baseline GRU on WER, but they use <em>bidirectional</em> GRUs (need future neural activity → can't stream), ensembles of 10 models (compute-prohibitive on a wearable device), and an LLM post-processor fine-tuned on Switchboard (likely overestimating performance since LLMs have probably seen Switchboard in training). The accuracy gains were real but the deployment story was a mess.</p>
+<p>So we set ourselves a tighter goal: improve the actual neural-to-phoneme decoder (the part <em>before</em> the language model), in a way that is <strong>causal</strong>, <strong>fast</strong>, <strong>memory-light</strong>, and <strong>adaptable at test time</strong>. Three contributions.</p>
+<h2 id="contribution-one-time-masking">Contribution One: Time-Masking</h2>
+<p>The baseline GRU overfits early in training. Pretty much every team noticed this. Our diagnosis: the trial-level data has enough idiosyncratic structure (silences, breath patterns, subject-specific quirks) that the model memorises rather than generalises.</p>
+<p>The fix is <strong>time-masking</strong>: during training, randomly mask contiguous chunks of the input neural activity. The model never sees a clean trial. Over 50% of each trial gets masked on average. This forces the model to rely on the <em>non-masked</em> portions and to make robust predictions from incomplete data — exactly the kind of generalisation we want.</p>
+<p>Time-masking has been used in speech ASR (SpecAugment, Park et al. 2019), but using it this aggressively on intracranial recordings is new. It is also surprisingly principled: by removing temporal chunks, we shatter the spurious within-trial correlations that the GRU was memorising, leaving only the genuine signal.</p>
+<h2 id="contribution-two-replace-the-gru-with-a-compact-transformer">Contribution Two: Replace the GRU with a Compact Transformer</h2>
+<p>The baseline GRU uses 32-bin input windows with stride 4 — meaning consecutive inputs <strong>overlap by 87.5%</strong>. The model is reprocessing nearly the same data over and over. Our diagnosis: the GRU's lossy memory makes this redundancy necessary; it can't trust its own history.</p>
+<p>Transformers have <em>perfect</em> memory over a fixed context window. They don't need overlapping inputs. So we segmented the neural data into <strong>non-overlapping</strong> 5-bin (100 ms) patches and fed them to a unidirectional (causal) Transformer with 5 layers.</p>
+<p>Architecturally:</p>
+<ul>
+<li>Input patches: F·T_in dimensional (256 features × 5 time bins = 1280)</li>
+<li>Patch embedding: LayerNorm → Linear → LayerNorm</li>
+<li>5 Transformer blocks, each with relative positional embeddings (T5-style), causal masking, and standard self-attention + FFN</li>
+<li>CTC loss on the output logits</li>
+</ul>
+<p>The attention with relative position bias:</p>
+<div class="math-block">\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top + B_{\text{rel}}}{\sqrt{d}}\right) V</div>
+<p>where B_rel is a learned bias matrix indexed by relative distance between patches, and a causal mask ensures each patch only attends to itself and earlier ones (essential for streaming).</p>
+<p>The results are striking. The time-masked Transformer:</p>
+<ul>
+<li><strong>83% fewer parameters</strong> than the baseline GRU</li>
+<li><strong>52% less peak GPU memory</strong></li>
+<li><strong>20% lower WER</strong> with a 3-gram LM (12.17% vs ~15%)</li>
+<li><strong>26% lower WER</strong> with a 5-gram LM (8.18% vs ~11%)</li>
+</ul>
+<p>It is also dramatically faster to <em>calibrate</em> — important because a clinical user might re-calibrate the model many times per day.</p>
+<p>This result is itself noteworthy because earlier Brain-to-Text Benchmark submissions reported that Transformers <em>underperformed</em> the GRU. Two ingredients were missing in those attempts: aggressive time-masking, and the right architectural details (T5-style relative positional embeddings, careful causal masking, patch-based input). With those in place, the Transformer wins decisively.</p>
+<h2 id="contribution-three-dietcorp-test-time-adaptation-in-one-gradient-step">Contribution Three: DietCORP — Test-Time Adaptation in One Gradient Step</h2>
+<p>Neural signals drift across days. The model that decoded yesterday's speech well will be a few percentage points worse tomorrow. The standard fix is <strong>test-time adaptation (TTA)</strong>: as new data arrives, fine-tune the model on the fly.</p>
+<p>The leading prior method for handwriting BCIs is <strong>CORP</strong> (Fan et al. 2024): for each new trial, use the n-gram language model to <em>correct</em> the neural decoder's output (the LM provides a noisy &quot;pseudo-label&quot;), then take <em>multiple</em> gradient steps to train the GRU toward this pseudo-label, while also maintaining a replay buffer of past data to prevent forgetting.</p>
+<p>CORP is effective but heavy. Multiple gradient steps per trial; a growing buffer of past data; gradients computed over the entire trial. We wanted something that worked in a single gradient step with no stored history.</p>
+<p>The trick: we already have time-masking as a training augmentation. Why not use it at test time too? Generate <strong>K time-masked versions</strong> of the current trial. Compute the n-gram-corrected pseudo-label from the unmasked decoded output. Then with one batched gradient step, train the model so all K masked versions also produce that same pseudo-label.</p>
+<p>This is <strong>DietCORP</strong>. One gradient step. No stored data. Augmentations replace replay.</p>
+<p>Mathematically, for trial X with pseudo-label ỹ from the n-gram LM, the DietCORP loss is:</p>
+<div class="math-block">L_{\text{DietCORP}} = \frac{1}{K} \sum_{k=1}^{K} L_{\text{CTC}}(M_k(X),\, \tilde{y})</div>
+<p>where M_k is the k-th time-masking operation. The model is encouraged to predict ỹ from many partial views of X — a kind of consistency regularisation that prevents catastrophic adaptation to noisy pseudo-labels.</p>
+<h2 id="what-this-gets-you">What This Gets You</h2>
+<p>The combined system (time-masked Transformer + DietCORP) achieves:</p>
+<ul>
+<li><strong>&gt;20% reduction in WER</strong> over the baseline</li>
+<li>Effective mitigation of cross-day performance drops</li>
+<li>Real-time streaming capability (causal, non-overlapping inputs)</li>
+<li>Dramatically lower compute footprint</li>
+</ul>
+<p>This is the kind of work that does not get into a flashy press release — there is no &quot;AGI&quot; claim, no &quot;breakthrough&quot; rhetoric. But it is precisely the kind of result that determines whether speech BCIs make it from research demos into the lives of people with ALS or brainstem stroke. The clinical bottleneck is not &quot;one more accuracy point on a benchmark&quot;; it is <em>deployability</em> — and that lives in compute, latency, memory, and graceful adaptation. This paper attacks all four.</p>
+<p>The limitations are clean. The work is still single-subject (the one ALS participant in the Brain-to-Text dataset), and the time-mask rate is hand-tuned (50% on average) — there might be better schedules. The Transformer architecture is small (5 layers, 5 patches at 100 ms each); whether scaling it up would yield further improvements is not explored here.</p>
+<hr>
+<h1 id="paper-6-toponets-high-performing-vision-and-language-models-with-brain-like-topography">Paper 6 — TopoNets: High-Performing Vision and Language Models with Brain-Like Topography</h1>
+<p><em>Deb, Deb, Murty — Georgia Tech, ICLR 2025</em></p>
+<h2 id="the-question-no-one-was-asking">The Question No One Was Asking</h2>
+<p>Look at a region of cerebral cortex under a microscope and one fact leaps out: neurons that do similar things sit physically close together. This is <strong>topographic organisation</strong>, and it shows up at every scale. In primary visual cortex, neurons tuned to similar orientations form <strong>pinwheel patterns</strong> — tiny rosettes where every direction of edge is represented in a smooth angular gradient. At the macro scale, <strong>face-selective regions</strong> like the fusiform face area cluster spatially; nearby cortex prefers faces, slightly further cortex prefers bodies, further still prefers scenes. And in language cortex, recent work shows that neurons with similar <strong>temporal integration windows</strong> (how far back in a sentence they integrate context) cluster together.</p>
+<p>Topography is not a quirk. It is <em>one of the brain's most robust organisational principles</em>. So when you train a neural network — vision or language — there is a striking absence at the heart of the model: there is no spatial relationship between neurons. Unit 7 in a layer is not &quot;near&quot; unit 8 in any meaningful sense. You could permute the unit indices and the model would behave identically. The brain literally cannot do this because its neurons are anchored to physical positions on a 2D cortical sheet.</p>
+<blockquote><p>&quot;Unlike the brain, most artificial neural network (ANN) models lack any kind of systematic organization of units.&quot;</p></blockquote>
+<p>Prior attempts to inject topography into ANNs hit a wall. Either they got topography but lost accuracy (the &quot;topographic tax&quot;) or they got accuracy but only weak topography. The question we asked: can we have both, across both vision and language models, at the scale of modern Transformers and large ConvNets?</p>
+<h2 id="the-cortical-sheet-mapping-weights-to-a-2d-map">The Cortical Sheet: Mapping Weights to a 2D Map</h2>
+<p>Step one: define what &quot;topography&quot; even <em>means</em> for a Transformer layer. A linear layer maps i inputs to o outputs. We reshape its o×i weight matrix into a <strong>cortical sheet</strong> C ∈ R^(h×w×d), where:</p>
+<ul>
+<li>The <strong>area</strong> h×w = o (each spatial location is one output neuron)</li>
+<li>The <strong>depth</strong> d = i (the weight vector for that neuron)</li>
+<li>We pick h and w as close to each other as possible (minimise perimeter → maximise neighbours per neuron)</li>
+</ul>
+<p>Each location on the h×w grid represents one &quot;neuron&quot;; its depth-d vector is the neuron's incoming weights. For ConvNets the same idea applies with the output channels arranged on the grid.</p>
+<pre><code>Linear layer weights W ∈ R^(256 outputs × 768 inputs)
+                          │
+                          ▼
+              Cortical sheet C ∈ R^(16 × 16 × 768)
+              
+            ┌─────────────────────────┐
+            │ N1 N2 N3 N4 N5 ... N16  │   each box = one neuron's
+            │ N17 N18 ...             │   weight vector
+            │ ...                     │   (768 deep)
+            │                         │
+            │                         │
+            └─────────────────────────┘
+            16 × 16 = 256 neurons total
+            
+    Neighbours on the grid should compute similar things</code></pre>
+<h2 id="topoloss-the-synaptic-pruning-inspired-trick">TopoLoss: The Synaptic-Pruning Inspired Trick</h2>
+<p>Now the question: what makes a cortical sheet &quot;topographic&quot;? It is <em>smooth</em>. Nearby neurons should have similar weight vectors. Distant neurons can differ freely.</p>
+<p>Here is where we got our biological inspiration. The brain achieves topography in development partly through <strong>synaptic pruning</strong>: an early excess of synapses is systematically pruned based on activity-dependent rules, leaving only the most useful connections. Pruning preferentially removes <em>noisy</em>, <em>high-frequency</em> connections — the ones that contribute irregularity to the local representation map.</p>
+<p>TopoLoss imports this intuition. We <em>blur</em> the cortical sheet — a low-pass filter that suppresses high-frequency noise while preserving the smooth, large-scale structure. Then we require the <em>original</em> sheet to be similar to its blurred version. If the original is already smooth (topographic), the blurred version is nearly identical → high cosine similarity → low loss. If the original is noisy and unstructured, the blurred version differs a lot → low cosine similarity → high loss.</p>
+<p>Mathematically, with downsampling factor φ_h, φ_w (we use 3):</p>
+<div class="math-block">\text{Blur}(X, \phi_h, \phi_w) = f_{\text{up}}\!\left( f_{\text{down}}\!\left( X,\; \frac{h}{\phi_h},\; \frac{w}{\phi_w} \right),\; h,\; w \right)</div>
+<p>The TopoLoss is then negative cosine similarity, averaged over the N depth slices:</p>
+<div class="math-block">L_{\text{topo}} = -\frac{1}{N} \sum_{i=1}^{N} \frac{C_i \cdot C'_i}{\|C_i\| \|C'_i\|}</div>
+<p>where C'_i is the blurred version of slice i. The total training loss combines this with the standard task loss:</p>
+<div class="math-block">L_{\text{total}} = L_{\text{training}} + \tau \cdot L_{\text{topo}}</div>
+<p>The scalar τ controls topography strength. Higher τ = smoother weights = more topographic = potentially worse accuracy. The Pareto trade-off lives here.</p>
+<h2 id="what-makes-topoloss-work-where-others-failed">What Makes TopoLoss Work Where Others Failed</h2>
+<p>The key insight is that we are <em>not explicitly setting</em> the local correlation structure to match the brain. Prior methods like TDANN tried to match the brain's measured correlation-vs-distance curve. That is heavy-handed: it pins the model to a specific shape and overconstrains learning.</p>
+<p>TopoLoss instead asks for <em>smoothness</em> — high-frequency suppression — and lets the topographic structure <em>emerge</em> from the interplay of the smoothness pressure and the task loss. The network discovers which neurons should be neighbours by itself. This is the difference between (a) demanding a specific organisation, and (b) creating a pressure that lets useful organisation emerge.</p>
+<p>The brain similarly does not &quot;compute&quot; its topography from a target spec. It emerges from local wiring constraints (long axons cost energy) and activity-dependent plasticity.</p>
+<h2 id="the-results-vision-and-language">The Results: Vision and Language</h2>
+<p><strong>Vision models</strong>: ResNet-18, ResNet-50, ViT-b32 trained on ImageNet with TopoLoss. On the smoothness-vs-accuracy Pareto frontier, TopoNets dominate the previous best (LLCNN, TDANN) — TopoNet-ResNet18 (τ=50) drops only 25% from baseline vs LLCNN's 41% drop, at comparable topography.</p>
+<p><strong>Language models</strong>: GPT-Neo-125M and NanoGPT trained with TopoLoss on Wikipedia / FineWeb-Edu. Topography is applied to the <code>c_fc</code> layer (the first FFN layer in each Transformer block), based on prior work suggesting FFN modules act as key-value memory storing world knowledge.</p>
+<blockquote><p>&quot;We applied TopoLoss in the c_fc layer of GPT-Neo. This choice was based on prior work... that has suggested that the feed-forward modules in GPTs act as key-value memory modules storing world knowledge. The c_fc modules encode the persistent representations (in contrast to transient representations in the attention matrix) making it the theoretically grounded target for inducing topography.&quot;</p></blockquote>
+<p>TopoNet language models are comparable to baseline on BLiMP (grammaticality judgments) at meaningful levels of topography. Most other topographic language approaches do far worse.</p>
+<h2 id="the-three-brain-like-properties-that-emerge">The Three Brain-Like Properties That Emerge</h2>
+<p>This is where the paper gets really interesting. TopoNets don't just <em>look</em> topographic — they exhibit three functional signatures known from neuroscience.</p>
+<h3 id="signature-1-reduced-effective-dimensionality">Signature 1: Reduced Effective Dimensionality</h3>
+<p>Brains have surprisingly low-dimensional neural representations relative to their physical neuron count. Higher-level visual cortex predicts behaviour and image identity using only tens of effective dimensions, not hundreds of thousands. Effective dimensionality is computed via the participation ratio:</p>
+<div class="math-block">\text{Effective Dim} = \frac{(\sum_i \lambda_i)^2}{\sum_i \lambda_i^2}</div>
+<p>We separated two competing hypotheses for why this matters in models:</p>
+<ul>
+<li><strong>Hypothesis 1</strong>: Lower-performing models have lower dimensionality (it's a side-effect of poor learning)</li>
+<li><strong>Hypothesis 2</strong>: Topography itself drives dimensionality reduction</li>
+</ul>
+<p>The data is clear. In <em>both</em> vision and language: no significant correlation between model performance and dimensionality (P &gt; 0.05), but a strong negative correlation between topography (smoothness) and dimensionality (R = −0.85, P = 0.0034 for vision; R = −0.96, P = 0.0005 for language).</p>
+<p>This resolves a long-standing theoretical question. Topography <em>causes</em> the dimensionality reduction. Brain-like efficiency follows from brain-like spatial organisation.</p>
+<h3 id="signature-2-localised-feature-processing">Signature 2: Localised Feature Processing</h3>
+<p>The most beautiful single result. We measured <strong>selectivity</strong> of individual neurons for object categories (faces, bodies, places, words) using the standard t-statistic:</p>
+<div class="math-block">t = \frac{\mu_c - \mu_o}{\sqrt{\frac{\sigma_c^2}{N_c} + \frac{\sigma_o^2}{N_o}}}</div>
+<p>where c is the target category and o is &quot;other categories.&quot; Then we plotted selectivity <em>spatially</em> on the cortical sheet. In baseline ResNets, face-selective and place-selective units are scattered randomly across the sheet. In TopoNet-ResNets, they cluster into spatial <em>patches</em> — directly analogous to the <strong>fusiform face area</strong> and <strong>parahippocampal place area</strong> in the human ventral stream.</p>
+<blockquote><p>&quot;TopoNets also replicate the key topographic signatures observed in the brain's visual and language cortices.&quot;</p></blockquote>
+<p>We see the same in language: large-scale topographic biases for animacy, real-world size, and curvature emerge on the cortical sheet. These are <em>the same biases</em> observed in human ventral temporal cortex.</p>
+<h3 id="signature-3-increased-efficiency-under-pruning-and-downsampling">Signature 3: Increased Efficiency Under Pruning and Downsampling</h3>
+<p>Topographic models can be aggressively pruned (set the smallest weights to zero) or downsampled (literally subsample the cortical sheet) and still retain most of their performance. Baseline models collapse under the same pressure. The reason is biological: a topographic representation is <em>spatially coherent</em> — local downsampling preserves the gist because nearby neurons compute similar things, so losing one is partially compensated by its neighbours. A random representation has no such compensation; lose a unit, lose an idiosyncratic function entirely.</p>
+<p>This is, incidentally, the same reason why the brain is robust to localised lesions of cortical tissue. Damage that takes out a small patch removes only a local subset of functions, not random ones scattered throughout.</p>
+<h2 id="why-this-matters">Why This Matters</h2>
+<p>For neuroscience, TopoNets gives us the first scalable tool to test theoretical claims about topography. Previously, theorists could write down hypotheses about what topography <em>does</em> for computation, but they could not test them on systems large enough to do real tasks. Now they can: train a TopoNet ResNet50 or GPT, measure its dimensionality, selectivity, efficiency, and compare it directly with brain data. The paper does exactly this — TopoNets achieve higher BrainScore values (predict brain responses) than baseline ANNs.</p>
+<p>For AI, TopoNets give us models that are <em>naturally compressible</em> — you can prune them or downsample them with much smaller accuracy drops than baseline networks. This is potentially huge for edge deployment.</p>
+<p>The honest limitations: τ has to be tuned per architecture (no universal default); the smoothness measure is one specific metric (smoothness from pairwise correlation-distance curves), and other metrics of topography exist; TopoLoss is applied to selected layers, not uniformly across the network, and choosing those layers is somewhat ad hoc; and we have not yet shown that TopoNet language models are better at downstream tasks (just comparable on BLiMP).</p>
+<hr>
+<h1 id="paper-7-zenbrain-a-neuroscience-inspired-7-layer-memory-architecture-for-autonomous-ai-systems">Paper 7 — ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems</h1>
+<p><em>Bering — Zensation AI, 2026</em></p>
+<h2 id="the-wrong-metaphors">The Wrong Metaphors</h2>
+<p>I want to start with a heretical thesis. The entire enterprise of &quot;agent memory&quot; in modern LLM systems is built on the wrong metaphors. MemGPT borrows from operating systems (virtual memory paging). Mem0 borrows from databases (CRUD operations with LLM-managed deletions). A-Mem borrows from note-taking (Zettelkasten cards with backlinks). All of these are <em>information storage</em> metaphors — about how to keep bits accessible.</p>
+<p>But memory in the brain is not primarily about storage. It is about a complex dynamical process of <strong>consolidation</strong>, <strong>decay</strong>, <strong>reconsolidation</strong>, <strong>selection</strong>, and <strong>forgetting</strong> that has been studied empirically for 140 years. Hermann Ebbinghaus measured forgetting curves in 1885. Bartlett showed reconstruction effects in 1932. Schacter, Tulving, McGaugh, Squire, Nadel — half a dozen Nobel-quality bodies of work — have left us with detailed quantitative laws of how memories form, strengthen, weaken, and re-form. None of this is in agent memory systems.</p>
+<blockquote><p>&quot;Existing AI agent memory systems rely on system-engineering metaphors—virtual-memory paging, flat LLM-driven storage, or Zettelkasten-style notes—and none integrate empirically validated principles of consolidation, forgetting, and reconsolidation.&quot;</p></blockquote>
+<p>ZenBrain is my attempt to <em>invert</em> the design space. Instead of starting from CS metaphors and decorating them with biological flavour, start from the cognitive-neuroscience literature and build out a system that implements its laws.</p>
+<h2 id="the-architecture-seven-layers-fifteen-mechanisms">The Architecture: Seven Layers, Fifteen Mechanisms</h2>
+<p>ZenBrain has <strong>seven memory layers</strong>, each grounded in well-established cognitive neuroscience:</p>
+<pre><code>                       ┌────────────────────────────────┐
+                       │     MemoryCoordinator          │
+                       │                                │
+   ┌───────────────────┴──────────┬─────────────────────┘
+   │           │      │           │             │
+   ▼           ▼      ▼           ▼             ▼
+Working    Short-   Episodic   Semantic    Procedural   Core   Cross-Ctx
+Memory     Term     Memory     Memory      Memory       Memory Memory
+(~7 items) (session) (events)  (KG facts)  (skills)    (pinned) (sharing)</code></pre>
+<ul>
+<li><strong>Working memory</strong>: ~7 items, Miller's magic number, highest-priority access</li>
+<li><strong>Short-term</strong>: session-bounded buffer that consolidates to longer-term layers at session end</li>
+<li><strong>Episodic</strong>: timestamped concrete experiences (&quot;what happened, when, where&quot;)</li>
+<li><strong>Semantic</strong>: abstract knowledge as a graph of facts with consolidation strengths</li>
+<li><strong>Procedural</strong>: learned skills and successful workflow patterns</li>
+<li><strong>Core</strong>: persistent identity facts that never decay</li>
+<li><strong>Cross-context</strong>: privacy-aware bridges between isolated domains</li>
+</ul>
+<p>This layering comes directly from the multi-store model (Atkinson &amp; Shiffrin, 1968), Tulving's episodic/semantic distinction (1972), and Cohen &amp; Squire's procedural memory work (1980).</p>
+<p>Each layer is orchestrated by a <strong>MemoryCoordinator</strong> that handles five operations: store, recall, consolidate, decay, review.</p>
+<h2 id="the-fifteen-mechanisms-nine-foundational-six-pma">The Fifteen Mechanisms: Nine Foundational + Six PMA</h2>
+<p>This is where ZenBrain's depth shows. Beyond the layers, fifteen specific algorithms implement specific cognitive principles. Let me walk through the most important ones because they are individually interesting.</p>
+<h3 id="two-factor-synaptic-model">Two-Factor Synaptic Model</h3>
+<p>In the brain, synapses do not just have a <em>weight</em> w. They have a <strong>consolidation state</strong> — newly formed synapses are labile and easily overwritten, mature synapses are protected by molecular mechanisms (CaMKII autophosphorylation, PKMζ persistence). Zenke et al. (2017, 2025) formalised this as a two-factor model: each synapse carries weight w_ij and consolidation variance σ²_ij. The <strong>Fisher Information proxy</strong> I_ij = 1/σ²_ij measures how &quot;important&quot; the synapse is.</p>
+<p>ZenBrain implements this on knowledge-graph edges. Each fact-fact edge has not just a weight but a consolidation variance. Mature edges (low variance, high Fisher Information) resist decay and penalise weight changes — mathematically equivalent to Elastic Weight Consolidation (EWC) for catastrophic forgetting protection. Newly added facts are easily updated; deeply established facts are hard to overwrite. This is exactly what synapses do.</p>
+<h3 id="vmpfc-coupled-fsrs">vmPFC-Coupled FSRS</h3>
+<p>The Free Spaced Repetition Scheduler (FSRS) is the open-source descendant of Anki — it schedules when to &quot;review&quot; a flashcard based on past performance, optimising for long-term retention. ZenBrain extends FSRS with a <strong>prediction-error signal</strong> coupled to the ventromedial prefrontal cortex's role in encoding:</p>
+<div class="math-block">\text{PE} = 1 - \cos(c_{\text{prev}}, c_{\text{now}})</div>
+<p>The PE is the cosine distance between previous and current context vectors — high PE means &quot;context has shifted unexpectedly.&quot; This biases the FSRS scheduler via a sigmoid re-encoding factor: when context is shifting, schedule reviews sooner; when context is stable, schedule them later. This implements McGaugh's empirical finding that surprise enhances memory consolidation.</p>
+<h3 id="simulation-selection-sleep-loop">Simulation-Selection Sleep Loop</h3>
+<p>This is one of my favourite mechanisms. Sleep, in the brain, is a memory operation. During slow-wave sleep, the hippocampus <em>replays</em> recent experiences, and these replays drive a two-stage process: (1) the CA3 region generates candidate episodes (including counterfactual variants), and (2) the CA1 region scores them with LTP/LTD-style updates based on temporal-difference error and reward signals.</p>
+<p>ZenBrain implements this as a periodic &quot;sleep&quot; cycle. A <strong>CA3 simulator</strong> assembles candidate replay sequences from real episodes ∪ counterfactual permutations. A <strong>CA1 selector</strong> then runs reinforcement learning on these candidates, scoring each with:</p>
+<div class="math-block">\text{TAG}(e) = \alpha |\delta_{\text{TD}}| + \beta R_e + \gamma N_e</div>
+<p>where δ_TD is the temporal-difference error, R_e is the reward signal, and N_e is the novelty score. High-TAG memories get LTP'd (strengthened); low-TAG memories get LTD'd (weakened or pruned). The result is <strong>37% stability improvement</strong> and <strong>47.4% storage reduction</strong>.</p>
+<h3 id="triplecopymemory">TripleCopyMemory</h3>
+<p>This is another biologically grounded gem. Schapiro et al. (2024) showed that the brain stores memories not as single copies but with <strong>divergent decay dynamics</strong> — multiple traces decay on different timescales, with the longest-lived trace dominating after weeks.</p>
+<p>ZenBrain stores each memory in three copies:</p>
+<ul>
+<li><strong>Fast copy</strong>: exponential decay with τ = 4 hours (short-term)</li>
+<li><strong>Medium copy</strong>: exponential decay with τ = 14 days (consolidation window)</li>
+<li><strong>Deep copy</strong>: <em>logarithmic growth</em> with τ = 7 days (long-term, gets stronger over time)</li>
+</ul>
+<p>The retrieved strength is the max:</p>
+<div class="math-block">S(t) = \max(S_f, S_m, S_d)</div>
+<p>At 30 days, an Ebbinghaus-only model retains essentially zero strength; TripleCopyMemory retains <strong>S(t) = 0.912</strong> — over 90%. This is a dramatic difference, and it comes directly from the architectural choice to have multiple decay channels.</p>
+<h3 id="neuromodulatorengine-four-channels-of-brain-chemistry">NeuromodulatorEngine: Four Channels of Brain Chemistry</h3>
+<p>Real cognition is shaped by neuromodulators — chemicals released into the brain that don't carry specific information but modulate the <em>parameters</em> of computation. ZenBrain models four:</p>
+<ul>
+<li><strong>Dopamine (DA)</strong> — reward prediction, motivation; modulates learning rate</li>
+<li><strong>Norepinephrine (NE)</strong> — alertness, surprise; modulates attention bandwidth</li>
+<li><strong>Serotonin (5HT)</strong> — patience, long-term value; opposed to DA per Daw et al. (2002)</li>
+<li><strong>Acetylcholine (ACh)</strong> — encoding gain; modulates consolidation patience</li>
+</ul>
+<p>Each runs with a tonic baseline and 5-minute half-life phasic bursts. DA/5HT have an opposition coupling. The outputs — learning-rate, exploration-bias, consolidation-patience, attention — feed downstream engines, parameterising the rest of the system in a state-dependent way. When the agent is &quot;excited&quot; (high DA + NE), it learns faster but is more distractible; when &quot;calm&quot; (high 5HT), it consolidates patiently.</p>
+<h3 id="other-mechanisms">Other Mechanisms</h3>
+<p>I'll only briefly mention the rest because the paper details each: <strong>ReconsolidationEngine</strong> (retrieved memories enter a labile state and can be edited or rewritten under prediction-error gating — Nader et al. 2000); <strong>PriorityMap</strong> with four-dimensional priority (saliency, emotion, reward, goal) and an <strong>amygdala fast-path</strong> (|v| &gt; 0.6 ⇒ P ≥ 0.5, modelling fear-conditioning's privileged access); <strong>StabilityProtector</strong> (NogoA/HDAC3 analog: only PEs &gt; 0.5 + 0.3·L·ρ can overwrite established memories); <strong>MetacognitiveMonitor</strong> for bias detection (Fleming &amp; Dolan, 2012); <strong>Bayesian confidence propagation</strong> with calibrated uncertainty.</p>
+<h2 id="evaluation-the-most-rigorous-memory-benchmarks-available">Evaluation: The Most Rigorous Memory Benchmarks Available</h2>
+<p>ZenBrain is evaluated on three benchmarks plus six mechanism-level studies:</p>
+<ul>
+<li><strong>LoCoMo</strong>: 1,986 multi-session conversational QA pairs across five categories</li>
+<li><strong>MemoryAgentBench</strong>: five competency dimensions</li>
+<li><strong>MemoryArena</strong>: cross-session causal dependencies</li>
+<li><strong>LongMemEval-500</strong>: per-question isolated haystacks across six categories</li>
+</ul>
+<p>The headline results are striking. On LongMemEval-500, ZenBrain wins <strong>12/12 head-to-head judge comparisons</strong> against letta, mem0, and a-mem (J̄ = 0.545 vs 0.485, 0.394, 0.414). Under LongMemEval's binary judge, ZenBrain reaches <strong>91.3% of long-context-oracle accuracy</strong> at <strong>1/106th the per-query token budget</strong>.</p>
+<p>On the full 15-algorithm ablation, the picture is fascinating: under <em>moderate</em> difficulty (decay = 0.15, 45 days), individual algorithms look redundant (≤0.1% degradation per removal — the cooperative network masks individual contributions). Under <em>challenging</em> conditions (decay = 0.20, 50 days), 7 of 15 algorithms become individually significant (ΔQ from −25.5% to −93.1%). Under <em>stress</em> (decay = 0.25, 60 days), 9 algorithms become critical. The same algorithm transitions from &quot;redundant&quot; to &quot;critical&quot; as you stress the system — exactly the pattern you would expect from a cooperative biological network where redundancy is the normal state and individual mechanisms reveal their function only under load.</p>
+<h2 id="the-nodecay-ablation-forgetting-is-a-feature">The NoDecay Ablation: Forgetting Is a Feature</h2>
+<p>The single result that stuck with me: a <strong>NoDecay</strong> ablation, where the full ZenBrain runs but Ebbinghaus decay is disabled. ΔP@5 = 0.002 (negligible, P = 0.043, Cohen's d = 0.015). Yet the full system <em>wins 12/12 head-to-head judge comparisons</em> on LongMemEval.</p>
+<p>What this tells us: <strong>forgetting is not a cost; it is the selection pressure</strong>. By systematically reducing the strength of unreviewed memories, ZenBrain's downstream layers — retrieval, prioritisation, confidence — get cleaner, more focused inputs. Removing forgetting doesn't hurt raw retrieval; it just makes everything else slightly worse because the system loses its mechanism for <em>focusing on what matters</em>. As the paper's epigraph puts it (in beautifully apt German):</p>
+<blockquote><p>&quot;Wer viel speichert, findet viel. Wer klug vergisst, findet das Richtige.&quot;</p><p><em>Who stores much finds much. Who forgets wisely finds the right thing.</em></p></blockquote>
+<h2 id="what-this-suggests">What This Suggests</h2>
+<p>I think ZenBrain is doing something philosophically important. The AI field has spent five years arguing about whether bigger context windows or better retrieval is the solution to &quot;long memory.&quot; Both miss the point. The brain solved this problem 100,000 years ago, and its solution is neither <em>bigger storage</em> nor <em>better lookup</em>. It is a <em>dynamics of forgetting and consolidation</em> that pre-filters what is worth remembering. The brain forgets <em>most</em> of what it encounters by design, because forgetting is how it identifies signal.</p>
+<p>ZenBrain is, frankly, a kitchen-sink architecture — 15 algorithms is a lot, and the value of each individually is hard to assess (the ablation shows the redundancy is structural). But the integrative thesis is bold and timely: agent memory is not a storage problem, it is a cognitive-neuroscience problem, and we should be importing the empirically validated dynamics rather than reinventing them with OS metaphors.</p>
+<p>The limitations the author acknowledges are real. Some traces are synthetic. The paper is sole-authored with AI assistance, and the breadth (15 algorithms, 4 benchmarks, 6 PMA components) is unusually large for one author. The current version is two-dimensional (7 layers × 15 mechanisms); a third dimension (temporal depth, generativity, affective encoding) is left for follow-up. And while ZenBrain dominates LongMemEval and MemoryArena, on raw LoCoMo flat-P@5 it trades 2–3 points to letta and mem0 (which use more permissive retrieval).</p>
+<hr>
+<h1 id="paper-8-a-cross-species-neural-foundation-model-for-end-to-end-speech-decoding-bit">Paper 8 — A Cross-Species Neural Foundation Model for End-to-End Speech Decoding (BIT)</h1>
+<p><em>Zhang, He, Fan, Liu, Yu, Le, Li, Linderman, Duncker, Willett, Mesgarani, Paninski — Columbia / Stanford / Microsoft / UW, ICLR 2026</em></p>
+<h2 id="the-cascade-problem">The Cascade Problem</h2>
+<p>When you watch a state-of-the-art speech BCI translate someone's attempted speech into text, you are actually watching a cascade of three semi-independent systems pretending to be one. First, an RNN maps neural activity to phoneme posteriors. Second, those posteriors are fed to a 3- or 5-gram language model that scores phoneme sequences. Third, a beam search assembles the best-scoring sentence. Each stage is trained separately on a different objective. The neural decoder optimises <strong>phoneme error rate (PER)</strong>; the language model optimises perplexity over text; the beam search greedily picks high-likelihood sequences. None of these objectives is the actual target you care about — <strong>word error rate (WER)</strong> of the final sentence.</p>
+<p>The result is a known pathology. As I wrote in the paper:</p>
+<blockquote><p>&quot;Lower phoneme error rates (PER) from the RNN do not always translate to lower word error rates (WER) when decoding with the n-gram model.&quot;</p></blockquote>
+<p>The RNN can get better at phoneme prediction without the sentence-level WER improving — or worse, getting worse. The cascade is fragile because the stages aren't jointly optimised toward a common goal.</p>
+<p>This is the gap BIT (BraIn-to-Text) closes: a <em>single differentiable</em> neural network that maps neural activity all the way to text, trained end-to-end. The framework has three parts and several novel ideas.</p>
+<h2 id="the-architecture">The Architecture</h2>
+<pre><code>Spike counts (T, C)
+        │
+        ▼
+┌───────────────────────────────────┐
+│ Patch embedding:                  │   group T_patch bins into a patch,
+│ (T/T_p, C × T_p)                  │   project to transformer dim
+└───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────┐
+│ Transformer neural encoder        │   pretrained with self-supervised
+│ (bidirectional attention, RoPE)   │   masked modelling on 367 hours
+│ — pretrained cross-species —      │   of human + monkey neural data
+└───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────┐
+│ Shallow MLP projector             │   maps neural embeddings into the
+│ (Linear → ReLU → Linear)          │   audio-LLM's embedding space
+└───────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────┐
+│ Audio-LLM decoder                 │   &quot;decode the above neural
+│ (with LoRA-adapted parameters)    │    activity into an English
+│ + Modality Aligner (contrastive)  │    sentence:&quot;  ← prompt
+└───────────────────────────────────┘
+        │
+        ▼
+   Decoded text</code></pre>
+<p>The neural encoder is a <strong>Transformer</strong> (not an RNN, departing from Willett et al.). The encoder takes neural data in shape (T, C) — T timesteps × C electrodes — groups every T_patch bins into a patch, projecting them to transformer tokens. Bidirectional attention over the patched sequence (with RoPE positional encoding) lets the model integrate context bidirectionally during training; for streaming inference one can use causal attention.</p>
+<p>The cleverest design choice is <strong>patch tokens</strong> rather than per-bin tokens. Neural activity is recorded at 50 Hz; speech production happens at 30–60 words per minute ≈ 4–6 phonemes/second. The temporal mismatch between fine neural resolution and slower speech causes problems: per-bin tokens give a Transformer way too many positions to reason over for a short sentence. Patching aligns the model's effective timescale with the timescale of speech itself, while shortening the LLM context length.</p>
+<h2 id="self-supervised-pretraining-across-species">Self-Supervised Pretraining Across Species</h2>
+<p>The big technical bet is <strong>cross-species pretraining</strong>. We pretrained the Transformer encoder on <strong>367 hours</strong> of Utah array recordings — 98 hours human (across the Brain-to-Text '24 and '25 datasets plus additional speech and imagined speech) and <strong>269 hours monkey</strong> recordings during arm/motor tasks (Churchland, Chowdhury, Perich, Ma, et al.).</p>
+<p>Each subject's data goes through a <strong>subject-specific linear read-in / read-out layer</strong> flanking the shared Transformer. This lets the model share most parameters across subjects while accommodating the different electrode counts and recording-quality variations.</p>
+<p>The pretraining objective is <strong>masked modelling</strong> with MSE loss on reconstructed patches. We mask 15% of time patches and ask the model to fill them in.</p>
+<p>The hypothesis: there is a <em>shared latent structure</em> in the way primate motor cortex encodes intended motor actions — whether the action is reaching, handwriting, or attempted speech — and a Transformer pretrained on lots of motor-cortical data of any kind will learn this structure and provide a useful prior for speech decoding.</p>
+<p>The empirical answer is yes. In the cascaded setting (Transformer encoder → CTC phoneme posteriors → 5-gram LM → beam search), the pretrained encoder establishes new state-of-the-art on both the Brain-to-Text '24 and '25 benchmarks.</p>
+<h2 id="the-end-to-end-innovation-llms-as-decoders">The End-to-End Innovation: LLMs as Decoders</h2>
+<p>This is where the paper gets bold. After pretraining and fine-tuning the encoder for phoneme decoding, BIT removes the cascade entirely. The phoneme-aware Transformer encoder's outputs are projected via a shallow MLP into the embedding space of an <strong>audio LLM</strong> (a multimodal LLM pretrained on text + audio). A prompt is inserted: <em>&quot;decode the above neural activity into an English sentence:&quot;</em>. The LLM generates the sentence autoregressively.</p>
+<pre><code>Neural embeddings   →   MLP projector   →   LLM text embedding space
+                                                       │
+                                                       ▼
+                                       [prompt: &quot;decode the above...&quot;]
+                                                       │
+                                                       ▼
+                                          autoregressive text generation</code></pre>
+<p>We apply <strong>LoRA</strong> (low-rank adaptation) to the attention and feed-forward projections of the LLM, fine-tuning a tiny number of parameters while keeping the bulk frozen.</p>
+<p>To encourage the projected neural embeddings to actually live in the LLM's text space, we train a <strong>modality aligner</strong> with contrastive learning:</p>
+<div class="math-block">L_{\text{contrast}} = -\log \frac{\exp(\langle z_n, z_t \rangle / \tau)}{\sum_j \exp(\langle z_n, z_t^{(j)} \rangle / \tau)}</div>
+<p>where z_n is the mean-pooled neural embedding for an utterance and z_t is the mean-pooled text embedding for the matching transcript. The denominator includes contrastive negatives. This pulls matching neural-text pairs together while pushing non-matching ones apart in embedding space — essentially the CLIP objective adapted for brain-to-text alignment.</p>
+<h2 id="the-audio-llm-surprise">The Audio LLM Surprise</h2>
+<p>Here is the most counter-intuitive result. We tested several decoders:</p>
+<ul>
+<li>A <em>text</em> LLM (Vicuna-7B variants)</li>
+<li>A small <strong>audio-LLM</strong> (Qwen-Audio-Chat, 8.5B parameters)</li>
+<li>The baseline RNN+LLM from Feng et al. 2024</li>
+</ul>
+<p>The audio LLM, despite being smaller than some text-LLM alternatives we tried, <em>dramatically outperformed</em> the text-LLM decoder. Word error rate on the Brain-to-Text '24 benchmark dropped from <strong>24.69%</strong> (prior end-to-end SOTA) to <strong>10.22%</strong> with the audio LLM.</p>
+<blockquote><p>&quot;Notably, we find that small-scale audio-LLMs markedly improve end-to-end decoding.&quot;</p></blockquote>
+<p>Why audio? Because the encoder is pretrained to produce phoneme-aware embeddings — features that carry phonological information. An audio-LLM has been pretrained on actual speech-audio sequences and has internalised the <em>phonological</em> structure of language at a deeper level than a text-only LLM has. So the bridge from &quot;neural activity → phonological embeddings → speech-aware decoder&quot; is shorter and more semantically aligned than the bridge from &quot;neural activity → phonological embeddings → text-only decoder.&quot;</p>
+<p>This is a beautiful piece of cross-modal reasoning. Attempted speech in motor cortex is, at the level of representation, closer to <em>audio speech production</em> than it is to <em>written text</em>. The audio LLM is the right &quot;ear&quot; for the brain.</p>
+<h2 id="attempted-vs-imagined-speech-a-cross-task-win">Attempted vs Imagined Speech: A Cross-Task Win</h2>
+<p>The truly impressive result is what happens with <strong>imagined speech</strong> — internal speech without any attempted articulation. This is the long-term goal of speech BCIs because some patients cannot even attempt to speak. The imagined-speech dataset from Kunz et al. is tiny: 500 sentences for participant T12, 712 for T15.</p>
+<p>When you fine-tune BIT on imagined speech, the pretrained encoder + audio-LLM gives strong performance, even though the task is data-poor. We also did an interpretability analysis showing that BIT's neural embeddings for attempted and imagined speech <em>align through shared semantic structure</em> — they map to nearby regions of the LLM's embedding space when they convey the same content. This <strong>cross-task alignment</strong> is the deep finding: attempted and imagined speech, while behaviorally different, share enough neural representational structure that a model trained primarily on the former generalises to the latter.</p>
+<h2 id="what-bit-tells-us-about-scaling">What BIT Tells Us About Scaling</h2>
+<p>I think the deeper lesson of BIT mirrors a broader trend across this whole reading list. The path to general-purpose neural decoders runs through:</p>
+<ol>
+<li><strong>Heterogeneous pretraining</strong> across subjects, tasks, and species (POSSM, BIT)</li>
+<li><strong>Subject-specific input/output adapters</strong> wrapping a shared core (BIT, POSSM)</li>
+<li><strong>Modern architectures</strong> (Transformers, SSMs) replacing legacy RNNs (TimeMasked, BIT)</li>
+<li><strong>End-to-end optimisation</strong> rather than cascades (BIT vs cascade systems)</li>
+<li><strong>Leveraging pretrained foundation models</strong> (audio-LLMs here, vision foundation models in other settings)</li>
+</ol>
+<p>The era of training a custom RNN per subject per task is coming to an end. The future is large pretrained encoders + lightweight subject adapters + foundation-model decoders. BIT is one of the cleanest demonstrations of that whole pattern in the neural decoding literature.</p>
+<p>The limitations: BIT has only been evaluated on two participants (T12 and T15); the audio-LLM dependency means the system is heavy compared to causal streaming alternatives like POSSM; and end-to-end training with LoRA on a 7B+ LLM is still expensive enough that real-time deployment on edge hardware is non-trivial.</p>
+<hr>
+<h1 id="paper-9-iphoneme-brain-to-text-communication-for-als-using-conformerxl-decoding">Paper 9 — iPhoneme: Brain-to-Text Communication for ALS Using ConformerXL Decoding</h1>
+<p><em>Cha, Chun, Park — Taejae University, 2026</em></p>
+<h2 id="the-numbers-that-motivated-this-work">The Numbers That Motivated This Work</h2>
+<p>I want to start with the most powerful single fact in this paper. Around 222,000–250,000 people worldwide have ALS, and <strong>78–93% of them develop dysarthria</strong>. That leaves roughly <strong>173,000 to 232,500 people unable to communicate through natural speech</strong>. The number of those people who have received a speech-capable BCI implant <em>globally, in all clinical trials</em> is approximately <strong>22 to 31</strong>.</p>
+<blockquote><p>&quot;This four-order-of-magnitude gap between the affected population (∼10^5) and the number of recipients (∼10^1) reflects both the high cost of current systems—first trials range from $30,000 to $100,000 per patient, with targeted costs of $50,000–$60,000 requiring ECoG 256-array electrodes and 4–8× NVIDIA A100 GPUs for training—and the inadequacy of low-cost alternatives such as eye-tracking keyboards, which enable communication at only 5–10 words per minute and suffer from the Midas touch problem.&quot;</p></blockquote>
+<p>Five orders of magnitude. The mismatch between people who need this and people who have it is so vast that I find it morally disorienting. iPhoneme is one team's response: a system designed not just for accuracy but for <em>clinical accessibility</em> — CPU inference, real-time latency, and a thoughtful interaction layer that addresses the practical barriers to deployment.</p>
+<h2 id="the-architecture-conformerxl">The Architecture: ConformerXL</h2>
+<p>The decoder is a heavily modified <strong>Conformer</strong> architecture — the original Conformer (Gulati et al. 2020) was designed for automatic speech recognition (ASR) and won by combining the global-context modelling of attention with the local-feature extraction of depthwise convolution in a macaron-style sandwich: FFN → MHSA → Conv → FFN with half-step residuals. Attention captures long-range dependencies; convolution captures local fine-grained patterns. Together they cover the full structure of speech.</p>
+<p>We adapted this for <strong>intracranial EEG (iEEG)</strong> signals, which differ fundamentally from audio:</p>
+<ul>
+<li><strong>Much higher channel dimensionality</strong>: 512 features vs ~80 mel bands in audio</li>
+<li><strong>Lower temporal resolution</strong>: 50 Hz vs 16 kHz in audio</li>
+<li><strong>Different noise characteristics</strong>: electrode drift, neural non-stationarity, cross-channel artifacts that audio simply doesn't have</li>
+</ul>
+<p>The result is <strong>ConformerXL</strong> (192.9M parameters), built in three layers:</p>
+<pre><code>512-channel iEEG (T timesteps × 512 features)
+        │
+        ▼
+┌────────────────────────────────────────────┐
+│ Temporal Prenet                            │
+│  - Multi-scale dilated convolutions        │  for neural jitter correction
+│  - Bidirectional GRU                       │  and short-term smoothing
+└────────────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────────────┐
+│ 8× Temporal Subsampling                    │  reduces sequence length
+│  - GELU activations                        │  while keeping CTC stable
+└────────────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────────────┐
+│ 12 Encoder Blocks (ConformerXL core)       │
+│  Each block:                               │
+│    Pre-RMSNorm                             │
+│    FFN ½                                   │
+│    Multi-Head Self-Attention               │  global context
+│    Convolution Module                      │  local features
+│    FFN ½                                   │
+│    Pre-RMSNorm                             │
+└────────────────────────────────────────────┘
+        │
+        ▼
+   CTC logits over phonemes</code></pre>
+<p>The <strong>temporal prenet</strong> is the key innovation. iEEG signals exhibit <em>neural jitter</em> — small temporal misalignments between trials due to neural variability. Multi-scale dilated convolutions (with dilation factors 1, 2, 4, 8) provide a hierarchy of receptive fields that can smooth jitter across different timescales simultaneously. The bidirectional GRU adds an additional smoothing pass. Together, these correct for the kind of trial-to-trial temporal variability that pure attention struggles with on small neural datasets.</p>
+<p>The <strong>8× temporal subsampling with GELU</strong> addresses a CTC stability problem. CTC loss is unstable when the input sequence is too long relative to the output sequence — gradients become very small or very large. By aggressively subsampling (8×), we shorten the input to a length more proportional to the phoneme sequence, which makes CTC well-behaved.</p>
+<p>The <strong>Pre-RMSNorm</strong> (rather than Post-LayerNorm) stabilises training of the 12 deep encoder blocks. This is a now-standard improvement from the Llama line of LLM architectures, applied here to the neural-decoding setting.</p>
+<h2 id="the-3-stage-decoding-pipeline">The 3-Stage Decoding Pipeline</h2>
+<p>Stage 1: ConformerXL produces CTC posteriors over phonemes.</p>
+<p>Stage 2: A <strong>6-gram phoneme language model</strong>, trained on 3.1 million sequences from the CMU Pronouncing Dictionary, LibriSpeech, and the T15 data itself, scores phoneme sequences. Crucially, the LM operates at the <strong>phoneme level</strong> rather than the word level. This is unusual — most ASR systems do word-level LMs — but for a BCI it makes sense because the bottleneck is <em>phoneme prediction</em>, and a phoneme LM can correct phoneme-level errors directly.</p>
+<p>Stage 3: <strong>WFST (Weighted Finite State Transducer) beam search</strong> with beam width 128, Optuna-tuned over 150 trials. The WFST formalisation (Mohri et al.) represents the decoding problem as graph search over a weighted automaton. The 6-gram LM provides the edge weights; the CTC posteriors provide the emission probabilities; beam search finds the highest-likelihood path.</p>
+<h2 id="the-headline-numbers">The Headline Numbers</h2>
+<p>On the T15 dataset (45 sessions, 8,071 trials, 256-channel iEEG from four speech motor cortex regions: ventral 6v, primary motor area 4, area 55b, dorsal 6v):</p>
+<ul>
+<li><strong>Phoneme accuracy: 92.14%</strong> (PER = 7.86%)</li>
+<li><strong>Word accuracy: 73.39%</strong> (WER = 26.61%)</li>
+<li>Roughly <strong>3% above prior state-of-the-art</strong> (Card et al. 2024's 89% baseline)</li>
+<li><strong>180 ms latency on CPU</strong> (no GPU required for inference)</li>
+</ul>
+<p>The CPU inference is the crucial deployment fact. The training cost is 4–8 A100 GPUs (substantial), but once trained, the system runs at clinically usable latency on a regular CPU. That is the engineering breakthrough that opens the door to lower-cost deployment.</p>
+<h2 id="the-other-half-the-iphoneme-interface">The Other Half: The iPhoneme Interface</h2>
+<p>The second contribution is on the <em>interaction</em> side. Eye-tracking-based text input — the conventional accessibility tool for ALS — suffers from the <strong>Midas touch problem</strong>: because your eye is simultaneously a sensor (looking at the world) and a pointer (clicking on letters), every fixation is a potential unintended click. The standard fix is <strong>dwell-time selection</strong> — require the eye to rest on a target for 500–1000 ms before triggering a click. This reduces typing to 5–10 words per minute.</p>
+<p>iPhoneme proposes a <strong>chorded gaze + silent-speech paradigm</strong>. The eye does the <em>pointing</em> (look at the letter you want). The brain does the <em>confirmation</em> (silently articulate a trigger phoneme — your iEEG detects it). Decoupling pointing from selection eliminates the Midas touch problem without imposing dwell-time delays.</p>
+<p>The trigger phoneme selection is principled. We searched over ARPAbet phonemes using a composite metric combining:</p>
+<ol>
+<li><strong>Detection accuracy</strong> of that phoneme in iEEG</li>
+<li><strong>Natural speech frequency</strong> in LibriSpeech (365M phonemes)</li>
+<li><strong>Safety scoring</strong> — phonemes that would not be confused with common spontaneous internal speech</li>
+</ol>
+<p>The result is a small set of high-accuracy, low-confusion phonemes that the user can use as discrete &quot;click&quot; gestures, sharing the iEEG channel with the main text decoder.</p>
+<h2 id="why-iphoneme-is-important">Why iPhoneme Is Important</h2>
+<p>This is the rare paper that takes BCI seriously as a <em>system</em>, not just a model. Most speech BCI papers report PER and WER and call it a day. iPhoneme builds the entire chain: from filter design (4th-order Butterworth bandpass [0.3, 300] Hz with 80 dB/decade rolloff for power-line interference removal), through Common Average Reference spatial filtering, through ConformerXL, through WFST beam search, through the eye-tracking interaction protocol, all the way to CPU inference at 180 ms latency.</p>
+<p>The four-band physiological grounding is worth noting:</p>
+<ul>
+<li><strong>Theta (4–8 Hz)</strong>: memory encoding, attentional gating</li>
+<li><strong>Alpha (8–13 Hz)</strong>: cortical idle states, sensorimotor mu rhythms</li>
+<li><strong>Beta (13–30 Hz)</strong>: motor planning, sustained cortical activation</li>
+<li><strong>Gamma (30–100 Hz)</strong>: local cortical processing, <em>phoneme-specific articulatory commands</em></li>
+</ul>
+<p>The fact that the model receives all four bands and uses them differentially through the temporal prenet means it can pick up the phoneme-specific gamma activity that does the actual articulatory encoding, while using the theta/alpha/beta signals as broader contextual modulators.</p>
+<h2 id="what-s-genuine-progress-and-what-s-caveat">What's Genuine Progress and What's Caveat</h2>
+<p>iPhoneme's improvement of ~3 absolute points on phoneme accuracy is significant but not earth-shattering. The deeper value is the architectural template — the temporal prenet for jitter, the 8× subsampling for CTC stability, the Pre-RMSNorm for deep-stack stability, the phoneme-level LM and WFST beam search — which is more transferable to the next dataset than any specific number.</p>
+<p>The honest limitations: this is single-subject (T15); the dataset has natural distribution shift between 2024 and 2025 sessions that makes generalisation hard; and the 192.9M parameter model is much larger than POSSM or TimeMasked Transformers — the CPU-inference claim works for inference but training requires substantial GPU resources. The chorded gaze + silent-speech interface is also clever in principle but has not yet been tested in user studies — the paper does not yet show that the interface actually delivers usable typing speeds compared to dwell-based eye-tracking.</p>
+<hr>
+<h1 id="synthesis-what-these-nine-papers-tell-us-together">Synthesis: What These Nine Papers Tell Us Together</h1>
+<p>Stepping back, these nine papers form a remarkably coherent picture of where computational neuroscience and deep learning are converging in late 2025 / early 2026. Let me trace the threads.</p>
+<h2 id="thread-1-the-brain-is-the-architectural-prior">Thread 1: The Brain Is the Architectural Prior</h2>
+<p>Five of the nine papers explicitly use neurobiological principles as architectural priors. <strong>HRM</strong> imports the brain's hierarchical, multi-timescale processing (theta/gamma coupling). <strong>TopoNets</strong> imports cortical topographic organisation. <strong>BrainStack</strong> imports functional regional modularity. <strong>EEGMoE</strong> imports the heterogeneity of EEG data sources. <strong>ZenBrain</strong> imports the entire cognitive neuroscience of memory dynamics. Each of these papers shows that respecting brain architecture <em>improves</em> model performance — there is no longer a topographic tax, a modularity tax, a hierarchical-depth tax. The brain's design choices are increasingly being shown to be near-optimal for the problems they evolved to solve.</p>
+<h2 id="thread-2-the-foundation-model-moment-for-neural-data">Thread 2: The Foundation Model Moment for Neural Data</h2>
+<p>Three papers (POSSM, BIT, EEGMoE) demonstrate that <em>cross-subject, cross-task, even cross-species</em> foundation models for neural data work. The recipe is now stable: a Transformer-style flexible front-end + lightweight subject/session adapters + a large heterogeneous pretraining corpus. POSSM and BIT both show <strong>cross-species transfer</strong> from monkey to human, which is biologically remarkable — it means primate motor cortex shares enough latent structure across species that pretraining on one transfers to the other.</p>
+<h2 id="thread-3-mixture-of-experts-is-the-right-decomposition-for-heterogeneity">Thread 3: Mixture of Experts Is the Right Decomposition for Heterogeneity</h2>
+<p>EEGMoE and BrainStack both arrive at MoE architectures for the same reason: EEG data spans domains (tasks, subjects, datasets, brain regions) too heterogeneous for a monolithic model. EEGMoE decouples <em>task domains</em>; BrainStack decouples <em>anatomical regions</em>. Both show that an MoE built around the brain's functional decompositions outperforms larger monolithic alternatives. This is a strong methodological signal: as we scale to more diverse neural data, we will increasingly need architectures that <em>factor</em> the heterogeneity rather than averaging over it.</p>
+<h2 id="thread-4-practical-speech-bcis-are-crystallising">Thread 4: Practical Speech BCIs Are Crystallising</h2>
+<p>Four papers (TimeMasked, BIT, iPhoneme, and POSSM in its speech-decoding extension) all attack the speech BCI problem with different strategies but converging insights:</p>
+<ul>
+<li><em>Replace RNN with Transformer or hybrid</em> — RNNs were the legacy choice; modern architectures consistently win</li>
+<li><em>Time-masking is a powerful regulariser</em> — heavy temporal masking forces robust phonological representations</li>
+<li><em>Phoneme-level decoding + n-gram or LLM post-processing</em> — the consensus pipeline</li>
+<li><em>Test-time adaptation matters more than chasing one more PER point</em> — neural signals drift across days, and graceful adaptation matters more than peak accuracy</li>
+<li><em>End-to-end optimisation eventually wins</em> — BIT's end-to-end audio-LLM decoder is a glimpse of the cleaner future</li>
+</ul>
+<p>These four papers together likely converge to a deployed clinical system within 2–3 years.</p>
+<h2 id="thread-5-reasoning-vs-memory-vs-perception-three-different-beasts">Thread 5: Reasoning vs Memory vs Perception — Three Different Beasts</h2>
+<p>The reading list spans three different cognitive challenges, each requiring different architectural innovation:</p>
+<ul>
+<li><strong>Reasoning</strong> (HRM): solved by <em>temporal recurrence at multiple scales</em>, not by stacking layers</li>
+<li><strong>Memory</strong> (ZenBrain): solved by <em>cognitive-neuroscience dynamics</em>, not by bigger storage</li>
+<li><strong>Perception/Decoding</strong> (POSSM, BIT, TimeMasked, iPhoneme, EEGMoE, BrainStack): solved by <em>flexible tokenisation + appropriate temporal models</em></li>
+</ul>
+<p>And <strong>TopoNets</strong> sits across all three, showing that brain-like organisation at the <em>unit</em> level is beneficial wherever you do representation learning.</p>
+<h2 id="the-open-frontier">The Open Frontier</h2>
+<p>What is <em>not</em> yet solved that this list highlights?</p>
+<ol>
+<li><strong>Unifying reasoning and language</strong>. HRM solves reasoning but does not speak. LLMs speak but cannot reason in HRM's sense. Welding them is open work.</li>
+</ol>
+<ol>
+<li><strong>Closed-loop deployment of speech BCIs</strong>. The pieces are there (POSSM for streaming, BIT for end-to-end, TimeMasked for adaptation, iPhoneme for accessibility), but no paper here demonstrates an integrated clinically deployed system.</li>
+</ol>
+<ol>
+<li><strong>Cross-modality foundation models for the brain</strong>. The papers tackle EEG separately from intracranial recordings. A unified model that handles EEG, ECoG, Utah arrays, and even fMRI through a common abstraction is the obvious next step.</li>
+</ol>
+<ol>
+<li><strong>Cognitive architecture for autonomous agents</strong>. ZenBrain is a substantial step, but it focuses on memory. A full cognitive architecture combining HRM-style reasoning, ZenBrain-style memory, and BIT-style perception is the bigger goal.</li>
+</ol>
+<ol>
+<li><strong>Theoretical understanding of why brain-like priors help</strong>. We have abundant empirical evidence (TopoNets, HRM, BrainStack, EEGMoE) that brain-inspired architectures outperform brain-agnostic ones. The <em>theory</em> of why is still rudimentary.</li>
+</ol>
+<p>I will finish where I started. The deepest lesson across these nine papers is that the brain is not just a <em>target</em> for neuroscience to understand — it is also an <em>architectural library</em> for AI to learn from. The systems we have spent fifty years studying with electrodes and fMRI machines turn out to encode design principles — hierarchical timescales, topographic organisation, modular specialisation, decay-and-consolidation dynamics, cross-region distillation — that translate directly into better-performing artificial systems. The two fields are no longer separate. They are co-evolving, and these nine papers are the fossil record of that co-evolution at a particular moment.</p>
+<hr>
+<p><em>End of comprehensive reading. Total length reflects the depth and complexity of the papers covered.</em></p>
+      </article>
+    </main>
+    <aside class="tools">
+      <section class="panel" aria-label="Report metrics">
+        <div class="metric"><strong>11</strong><span>major sections</span></div>
+        <div class="metric"><strong>68</strong><span>minute read</span></div>
+        <div class="metric"><strong>15,051</strong><span>words</span></div>
+      </section>
+      <section class="panel" aria-label="Reading controls">
+        <label class="control-label" for="measure">Measure</label>
+        <input id="measure" type="range" min="62" max="92" value="76">
+        <label class="control-label" for="scale">Type</label>
+        <input id="scale" type="range" min="94" max="116" value="100">
+        <div class="buttons" style="margin-top: 12px">
+          <button id="theme" type="button" title="Toggle theme">Theme</button>
+          <button id="top" type="button" title="Back to top">Top</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+  <script>
+    const root = document.documentElement;
+    const measure = document.querySelector("#measure");
+    const scale = document.querySelector("#scale");
+    const progress = document.querySelector("#progress");
+    const links = [...document.querySelectorAll("nav a")];
+    const sections = links.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+
+    measure.addEventListener("input", () => root.style.setProperty("--measure", measure.value + "ch"));
+    scale.addEventListener("input", () => root.style.setProperty("--font-scale", String(scale.value / 100)));
+    document.querySelector("#theme").addEventListener("click", () => {
+      document.body.dataset.theme = document.body.dataset.theme === "dark" ? "" : "dark";
+    });
+    document.querySelector("#top").addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
+
+    function updateProgress() {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.width = max > 0 ? (scrollY / max) * 100 + "%" : "0";
+      let active = sections[0];
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top < 120) active = section;
+      }
+      links.forEach((link) => link.classList.toggle("active", active && link.getAttribute("href") === "#" + active.id));
+    }
+
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+  </script>
+</body>
+</html>

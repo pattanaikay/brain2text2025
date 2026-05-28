@@ -269,10 +269,10 @@ class BrainToTextE2E(nn.Module):
             outputs = self.llm.generate(
                 inputs_embeds=combined_embeds,
                 attention_mask=attention_mask,
-                max_new_tokens=max_new_tokens,
-                num_beams=5,
-                do_sample=False,
-                early_stopping=True,
+                max_new_tokens=25,          # paper §A.3: max_new_tokens=25
+                do_sample=True,             # paper §A.3: nucleus sampling
+                top_p=0.9,                  # paper §A.3: top_p=0.9
+                temperature=0.7,            # paper §A.3: temperature=0.7
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
                 use_cache=True,

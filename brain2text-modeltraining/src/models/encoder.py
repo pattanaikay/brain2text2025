@@ -91,7 +91,7 @@ class TransformerBlock(nn.Module):
         return x
 
 class BIT_Transformer(nn.Module):
-    def __init__(self, input_dim=512, embed_dim=384, num_layers=7, num_heads=6, dropout=0.2, attn_dropout=0.4, patch_size=5, session_ids=None):
+    def __init__(self, input_dim=512, embed_dim=384, num_layers=7, num_heads=6, dropout=0.2, attn_dropout=0.4, patch_size=4, session_ids=None):
         """
         Neural Encoder for BCI with RoPE.
         Args:

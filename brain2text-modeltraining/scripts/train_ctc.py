@@ -95,8 +95,8 @@ def train_ctc(args):
     else:
         logger.warning("No session_stats provided. Training might be unstable due to probe drift.")
 
-    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size, filter_ctc=True)
-    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size, filter_ctc=True)
+    train_dataset = Preprocessed_BCI_Dataset(train_h5_files, session_stats=session_stats, patch_size=args.patch_size, filter_ctc=True, augment=True)
+    val_dataset = Preprocessed_BCI_Dataset(val_h5_files, session_stats=session_stats, patch_size=args.patch_size, filter_ctc=True, augment=False)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=bci_collate_fn, num_workers=args.num_workers, pin_memory=True)
@@ -112,7 +112,7 @@ def train_ctc(args):
         
     model = CTCPhonemeModel(encoder, num_phonemes=42).to(device)
     optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=1e-5)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
     ctc_loss_fn = nn.CTCLoss(blank=0, zero_infinity=True)
 
     best_per = float('inf')
@@ -231,13 +231,20 @@ def train_ctc(args):
 
     logger.info("CTC Fine-tuning Complete.")
 
-    # --- AUTO-PAUSE LOGIC ---
-    try:
-        instance_id = "410271" 
-        logger.info(f"Sending pause request for instance {instance_id}...")
-        requests.get(f"https://jarvislabs.ai/pause/{instance_id}") 
-    except Exception as e:
-        logger.error(f"Failed to auto-pause: {e}")
+    # --- AUTO-PAUSE LOGIC (skip if called from run_pipeline.py) ---
+    if not args.no_autopause:
+        import subprocess as _sp
+        instance_id = args.instance_id if hasattr(args, 'instance_id') and args.instance_id else "415608"
+        logger.info(f"Auto-pausing instance {instance_id} via jl CLI...")
+        try:
+            r = _sp.run(["jl", "pause", instance_id, "--yes", "--json"],
+                        capture_output=True, text=True, timeout=60)
+            if r.returncode == 0:
+                logger.info("Instance paused successfully.")
+            else:
+                logger.warning(f"jl pause failed (code {r.returncode}): {r.stderr.strip() or r.stdout.strip()}")
+        except Exception as e:
+            logger.error(f"Failed to auto-pause: {e}")
 
 def validate(model, val_loader, device, use_amp, compute_dtype):
     model.eval()
@@ -293,5 +300,6 @@ if __name__ == "__main__":
     parser.add_argument("--use_amp", action="store_true", default=True)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--patch_size", type=int, default=4, help="Patch size for temporal compression")
+    parser.add_argument("--no_autopause", action="store_true", help="Disable auto-pause (use when called from run_pipeline.py)")
     args = parser.parse_args()
     train_ctc(args)
