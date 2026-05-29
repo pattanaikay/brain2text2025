@@ -1,0 +1,36 @@
+# specs/D1d_ctc_zero.yaml
+# Track D1d: CTC Ablation — weight = 0 (CTC completely removed)
+# Identical to B0_baseline except no CTC loss at all.
+# Isolates whether CTC provides any regularization benefit in E2E training.
+# Expected: slightly higher WER than D1b (annealed CTC), confirming CTC helps early.
+#
+# Run: python run.py --experiment D1d --profile toy
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  # ctc_anneal intentionally omitted — ablation
+  - variant: contrastive
+    weight: 1.0

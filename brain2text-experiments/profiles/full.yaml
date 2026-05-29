@@ -1,0 +1,39 @@
+# profiles/full.yaml
+# Applied on top of every experiment spec when --profile full is used.
+# Requires a toy run to have been PASSED (recorded in results/leaderboard.sqlite)
+# within the last 7 days before this profile is accepted.
+
+profile: full
+
+# Training budget
+epochs:            150
+max_batches_per_epoch: null   # no cap — use entire dataset
+val_interval:      5
+accumulation_steps: 4
+batch_size:        16
+
+# Optimiser
+lr:           5.0e-5
+weight_decay: 1.0e-5
+
+# Memory (A100 40 GB)
+quantize:               false   # run in bf16 on A100
+gradient_checkpointing: false
+num_workers:            8
+
+# Val subset
+val_max_batches: null           # full validation set
+
+# Smoke-assert (also run at step 50 on full runs)
+smoke_assert:
+  max_ce_loss:         10.0
+  max_ctc_loss:         5.0
+  min_throughput_toks: 200
+  nan_check:           true
+
+# Early stopping
+patience: 50
+
+# JarvisLabs auto-pause after run completes
+auto_pause: true
+instance_id: "413754"

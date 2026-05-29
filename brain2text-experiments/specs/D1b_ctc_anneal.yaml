@@ -1,0 +1,32 @@
+# specs/D1b_ctc_anneal.yaml
+# Track D1b: CTC Linear Anneal — 0.3 → 0.0 over 75 epochs
+# Hypothesis: CTC is most useful early (random encoder); anneal it away.
+
+encoder:
+  variant:          bit
+  input_dim:        512
+  embed_dim:        384
+  patch_size:       4
+  pretrained_ckpt:  null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: 75    # linear anneal: 0.3→0.0 over 75 epochs
+  - variant: contrastive
+    weight: 1.0

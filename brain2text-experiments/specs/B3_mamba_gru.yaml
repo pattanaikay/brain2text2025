@@ -1,0 +1,43 @@
+# specs/B3_mamba_gru.yaml
+# Track B3: MambaPOSSM Encoder — GRU Fallback Mode
+# Selective SSM architecture with IndividualSpikeTokenizer cross-attention.
+# ssm_backbone: "gru" avoids the mamba-ssm C extension, runs on any GPU.
+# Swap to B3_mamba_ssm.yaml when mamba-ssm is installed for true CUDA kernels.
+#
+# Run: python run.py --experiment B3 --profile toy
+# Compare baseline: B0_bit_scratch.yaml
+
+encoder:
+  variant:       mamba
+  input_dim:     512
+  embed_dim:     384
+  patch_size:    4
+  n_layers:      8           # SSM blocks
+  d_state:       16          # state dimension per SSM block
+  ssm_backbone:  gru         # "gru" = pure-PyTorch fallback (no C ext needed)
+  # Cross-attention tokenizer for individual spike waveforms
+  use_spike_tokenizer: true
+  spike_n_heads:       6
+  dropout:       0.1
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

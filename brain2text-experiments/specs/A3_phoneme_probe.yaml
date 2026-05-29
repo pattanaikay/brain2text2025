@@ -1,0 +1,35 @@
+# specs/A3_phoneme_probe.yaml
+# Track A3: Phoneme Probing Accuracy
+# Trains a small linear classifier on top of *frozen* encoder outputs
+# to predict phoneme labels at each time step.
+# Goal: measure how much phoneme structure the encoder captures,
+# independent of the downstream LLM.
+#
+# Run: python run.py --experiment A3 --profile toy
+# Output: results/A3_probe_accuracy.json  (top-1 accuracy per phoneme class)
+# Tool:   tools/phoneme_probe.py (to be added in Track A implementation)
+
+analysis:
+  tool: phoneme_probe
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  # Probe runs on patch-level embeddings (T_patch = T_bins / patch_size)
+  pretrained_ckpt: null   # set to B0_baseline checkpoint path
+
+probe:
+  n_phoneme_classes: 42   # standard ARPAbet + blank
+  hidden_dim: null        # null = linear probe (no hidden layer)
+  dropout: 0.1
+  lr: 1.0e-3
+  epochs: 30
+  batch_size: 64
+  freeze_encoder: true    # encoder weights frozen — probe only
+
+loss:
+  - variant: ce           # standard cross-entropy over 42 classes

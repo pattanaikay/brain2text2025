@@ -1,0 +1,26 @@
+# specs/A2_perplexity.yaml
+# Track A2: Spoken-Language Perplexity Test
+# No training — measures each candidate LLM's PPL on:
+#   (a) written text (PTB / LibriSpeech transcripts)
+#   (b) BCI-session transcription targets
+# Hypothesis: audio-pretrained LLMs have lower PPL on spoken text,
+# meaning their embedding space better matches decoded BCI output style.
+#
+# Run: python run.py --experiment A2 --profile toy
+# Output: results/A2_perplexity.json  (ppl_written, ppl_spoken, ratio per model)
+
+analysis:
+  tool: perplexity
+  batch_size: 4
+  max_length: 256     # tokens per example
+
+  # Corpora — paths resolved at runtime from env BCI_DATA_ROOT
+  spoken_corpus:  "${BCI_DATA_ROOT}/transcripts_val.txt"
+  written_corpus: "${BCI_DATA_ROOT}/ptb_test.txt"
+
+  candidate_llms:
+    - Qwen/Qwen2.5-1.5B-Instruct           # text baseline
+    - Qwen/Qwen2-Audio-7B-Instruct          # audio pretrained
+    - microsoft/Phi-4-multimodal-instruct   # speech+vision pretrained
+
+  quantize: true   # 4-bit NF4 so all three fit on local GPU sequentially

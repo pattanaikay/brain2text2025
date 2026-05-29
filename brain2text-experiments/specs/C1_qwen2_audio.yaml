@@ -1,0 +1,49 @@
+# specs/C1_qwen2_audio.yaml
+# Track C1: Qwen2-Audio-7B-Instruct Decoder
+# Audio-pretrained 7B LLM used as a text-only decoder via inputs_embeds injection.
+# The audio encoder tower of Qwen2-Audio is bypassed — neural embeddings from the
+# BIT→MLP projector are injected directly into the language model via inputs_embeds.
+# Hypothesis: audio-pretrained LLM token space aligns better with BCI signal style.
+#
+# NOTE: 7B at 4-bit NF4 ≈ 3.7 GB; projector + encoder add ~1.5 GB → cloud required.
+# Run: python run.py --experiment C1 --profile full  (A100 only)
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 3584     # Qwen2-Audio-7B hidden dim (≠ 1536)
+
+decoder:
+  variant:      qwen2_audio
+  llm_name:     Qwen/Qwen2-Audio-7B-Instruct
+  inject_mode:  inputs_embeds   # bypass audio encoder, inject neural tokens directly
+  quantize:     true            # 4-bit NF4
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+  lora_target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

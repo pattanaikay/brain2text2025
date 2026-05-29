@@ -1,0 +1,38 @@
+# specs/D2d_contrastive_2x.yaml
+# Track D2d: Contrastive Loss Up-weighted — weight = 2.0 (double baseline)
+# Stress-tests stronger modality alignment.
+# If alignment already converges at weight=1.0, doubling may over-regularize.
+# If alignment is under-optimised, this may accelerate early convergence.
+#
+# Run: python run.py --experiment D2d --profile toy
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 2.0    # doubled vs baseline (1.0)

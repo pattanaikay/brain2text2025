@@ -1,0 +1,40 @@
+# profiles/toy.yaml
+# Applied on top of every experiment spec when --profile toy is used.
+# Overrides only training/data hyperparameters — never architecture params.
+#
+# Toy protocol (from EXPERIMENT_DESIGN.md):
+#   20 epochs × 200 batches × ~1 min/epoch ≈ 20 minutes on RTX 4050
+
+profile: toy
+
+# Training budget
+epochs:            20
+max_batches_per_epoch: 200    # stop each epoch after 200 batches
+val_interval:      2          # validate every 2 epochs
+accumulation_steps: 4
+batch_size:        4
+
+# Optimiser
+lr:           5.0e-5
+weight_decay: 1.0e-5
+
+# Memory
+quantize:              true    # 4-bit NF4 for LLM
+gradient_checkpointing: true
+num_workers:           2
+
+# Val subset (fast eval during toy runs)
+val_max_batches:   32          # cap validation at 32 batches
+
+# Smoke-assert thresholds (run.py checks these at step 50)
+smoke_assert:
+  max_ce_loss:         10.0
+  max_ctc_loss:         5.0
+  min_throughput_toks:  50     # tokens/sec, sanity floor
+  nan_check:           true
+
+# Ranking metrics (EXPERIMENT_DESIGN.md §Toy Training Protocol)
+ranking:
+  wer_at_epoch:  10
+  slope_epochs:  [2, 20]
+  promotion_threshold_slope_pct: 3.0   # ≥3% relative slope improvement → promote

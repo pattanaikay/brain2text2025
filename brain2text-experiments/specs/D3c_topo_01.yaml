@@ -1,0 +1,40 @@
+# specs/D3c_topo_01.yaml
+# Track D3c: TopoLoss (weight = 0.01) — Standard Cortical Regularisation
+# Same as D3b but 10x stronger regularization weight.
+# Expected to produce more structured encoder weight matrices at the cost
+# of slightly slower early convergence.
+#
+# Run: python run.py --experiment D3c --profile toy
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0
+  - variant: topo
+    weight: 0.01    # standard — 10x stronger than D3b

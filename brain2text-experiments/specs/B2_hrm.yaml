@@ -1,0 +1,42 @@
+# specs/B2_hrm.yaml
+# Track B2: HRM — Hierarchical Recurrent Model (Dual-Timescale DEQ)
+# Fixed-point Deep Equilibrium GRU operating at two timescales:
+#   fast branch: 20 ms (every patch)
+#   slow branch: 100 ms (every 5th patch via strided pooling)
+# No mamba-ssm dependency; pure PyTorch GRU.
+#
+# Run: python run.py --experiment B2 --profile toy
+# Compare baseline: B0_bit_scratch.yaml
+
+encoder:
+  variant:       hrm
+  input_dim:     512
+  embed_dim:     384
+  patch_size:    4           # 240 bins → 60 patches (fast timescale)
+  fast_layers:   2           # GRU layers at patch-level (20 ms resolution)
+  slow_layers:   2           # GRU layers at stride-5 pooled level (100 ms)
+  deq_max_iter:  12          # max Anderson/Broyden iterations
+  deq_tol:       1.0e-4     # convergence tolerance
+  dropout:       0.2
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

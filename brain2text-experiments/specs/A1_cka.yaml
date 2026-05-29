@@ -1,0 +1,42 @@
+# specs/A1_cka.yaml
+# Track A1: CKA Embedding Alignment Analysis
+# No training — loads a frozen BIT encoder + MLP projector from the B0 checkpoint,
+# then computes linear CKA between projected neural embeddings and each candidate
+# LLM's embedding layer output on the same sentence targets.
+#
+# Run: python run.py --experiment A1 --profile toy
+# Output: results/A1_cka_scores.json  (cos-sim + CKA per LLM)
+# Tool:   tools/cka_analysis.py
+
+analysis:
+  tool: cka
+  # Checkpoint to extract neural projections from.
+  # If null, run B0_baseline first and point here.
+  encoder_ckpt: null   # e.g. results/B0_baseline/best.pt
+
+  # Candidate LLMs whose embedding spaces are compared (text-only forward pass)
+  candidate_llms:
+    - Qwen/Qwen2.5-1.5B-Instruct           # text baseline
+    - Qwen/Qwen2-Audio-7B-Instruct          # audio pretrained
+    - microsoft/Phi-4-multimodal-instruct   # speech+vision pretrained
+    - openai/whisper-large-v3               # audio encoder only
+    - facebook/wav2vec2-large-960h          # speech SSL
+
+  # Number of validation sentences to embed for CKA
+  n_samples: 512
+  batch_size: 8
+
+# Encoder / projector used to produce neural embeddings (same as B0_baseline)
+encoder:
+  variant:    bit
+  input_dim:  512
+  embed_dim:  384
+  num_layers: 7
+  num_heads:  6
+  patch_size: 4
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536

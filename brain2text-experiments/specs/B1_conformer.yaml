@@ -1,0 +1,35 @@
+# specs/B1_conformer.yaml
+# Track B1: ConformerXL encoder (12 layers, JitterCorrectionPrenet)
+# Cold start — no pretrained checkpoint exists for Conformer.
+# Compare slope against B0_bit_scratch (NOT against SSL-pretrained BIT).
+
+encoder:
+  variant:     conformer
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  12
+  patch_size:  4
+  dropout:     0.1
+  attn_dropout: 0.1
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

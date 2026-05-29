@@ -1,0 +1,280 @@
+# registry.yaml
+# Single source of truth for all 25 experiments.
+# run.py refuses unknown experiment IDs.
+# expected_wer_band: [lo, hi] — post-run checker flags results outside this range.
+
+baseline_wer: 0.3673   # BIT + Qwen2.5-1.5B-Instruct, epoch 65
+target_wer:   0.10
+
+experiments:
+
+  # ── Track A: Pretraining Modality Study ─────────────────────────────────
+
+  A1:
+    track: A
+    name: "CKA Embedding Alignment"
+    description: "Which LLM backbone embedding space is most aligned with BIT encoder output?"
+    spec_ref: specs/A1_cka.yaml
+    train_required: false          # analysis only, no training
+    local_ok: true
+    expected_runtime_min: 30
+    expected_wer_band: null        # no WER — produces CKA scores
+
+  A2:
+    track: A
+    name: "Spoken Language Perplexity Test"
+    description: "Does audio-pretrained LLM have lower spoken/written PPL ratio?"
+    spec_ref: specs/A2_perplexity.yaml
+    train_required: false
+    local_ok: true
+    expected_runtime_min: 15
+    expected_wer_band: null
+
+  A3:
+    track: A
+    name: "Phoneme Probing Accuracy"
+    description: "Linear probe on frozen LLM hidden states → phoneme label accuracy"
+    spec_ref: specs/A3_phoneme_probe.yaml
+    train_required: true           # probe training, not E2E
+    local_ok: true
+    expected_runtime_min: 45
+    expected_wer_band: null        # produces probe accuracy, not WER
+
+  A4:
+    track: A
+    name: "Audio vs Vision E2E WER"
+    description: "Full E2E comparison: text-only vs audio-pretrained vs vision-pretrained LLM"
+    spec_ref: specs/A4_audio_vision_e2e.yaml
+    train_required: true
+    local_ok: false                # 7B models exceed 6 GB VRAM
+    cloud_required: true
+    depends_on: [A1, A2, A3]
+    expected_runtime_min: 180
+    expected_wer_band: [0.22, 0.38]
+
+  # ── Track B: Encoder Architecture Ablations ─────────────────────────────
+
+  B0_baseline:
+    track: B
+    name: "BIT Baseline (no SSL checkpoint)"
+    description: "BIT encoder trained from scratch — fair comparison baseline for B1-B5"
+    spec_ref: specs/B0_bit_scratch.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.25, 0.60]
+
+  B1:
+    track: B
+    name: "ConformerXL Encoder"
+    description: "Macaron conformer + JitterCorrectionPrenet (dilated conv + BiGRU)"
+    spec_ref: specs/B1_conformer.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [B0_baseline]
+    expected_runtime_min: 25
+    expected_wer_band: [0.20, 0.55]
+
+  B2:
+    track: B
+    name: "HRM Dual-Timescale Encoder"
+    description: "Fixed-point DEQ GRU at 20ms + 100ms timescales"
+    spec_ref: specs/B2_hrm.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [B0_baseline]
+    expected_runtime_min: 30       # DEQ iterations add time
+    expected_wer_band: [0.20, 0.55]
+
+  B3:
+    track: B
+    name: "MambaPOSSM Encoder (GRU fallback)"
+    description: "Selective SSM encoder with cross-attention IndividualSpikeTokenizer"
+    spec_ref: specs/B3_mamba_gru.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [B0_baseline]
+    expected_runtime_min: 22
+    expected_wer_band: [0.20, 0.55]
+
+  B3_mamba:
+    track: B
+    name: "MambaPOSSM Encoder (true Mamba SSM)"
+    description: "Requires mamba-ssm + causal-conv1d installed"
+    spec_ref: specs/B3_mamba_ssm.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [B3]
+    expected_runtime_min: 22
+    expected_wer_band: [0.18, 0.50]
+
+  B4:
+    track: B
+    name: "MoE Encoder (6 experts)"
+    description: "BIT with MoE FFN — 6 routed experts + 2 shared, load-balance aux loss"
+    spec_ref: specs/B4_moe.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [B0_baseline]
+    expected_runtime_min: 25
+    expected_wer_band: [0.18, 0.50]
+
+  B5:
+    track: B
+    name: "ZenBrain Memory-Augmented Encoder"
+    description: "Cross-attention over episodic buffer of high-confidence past trials"
+    spec_ref: specs/B5_zenbrain.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [B0_baseline]
+    expected_runtime_min: 22
+    expected_wer_band: [0.18, 0.52]
+
+  # ── Track C: LLM Decoder Variants ───────────────────────────────────────
+
+  C1:
+    track: C
+    name: "Qwen2-Audio-7B Decoder"
+    description: "Audio-pretrained 7B LLM as text-only decoder via inputs_embeds injection"
+    spec_ref: specs/C1_qwen2_audio.yaml
+    train_required: true
+    local_ok: false
+    cloud_required: true
+    expected_runtime_min: 180
+    expected_wer_band: [0.22, 0.32]
+
+  C2:
+    track: C
+    name: "Phi-4-Multimodal Decoder"
+    description: "Speech+video pretrained 5.6B — borderline 6 GB, use batch_size=1"
+    spec_ref: specs/C2_phi4mm.yaml
+    train_required: true
+    local_ok: false
+    cloud_required: true
+    expected_runtime_min: 160
+    expected_wer_band: [0.22, 0.34]
+
+  C3:
+    track: C
+    name: "Whisper-Qwen Split Stack"
+    description: "BIT → Linear(384,1280) → frozen Whisper-large-v3 → Qwen2.5-1.5B"
+    spec_ref: specs/C3_whisper_qwen.yaml
+    train_required: true
+    local_ok: true                 # ~4.1 GB fits RTX 4050
+    expected_runtime_min: 30
+    expected_wer_band: [0.24, 0.38]
+
+  # ── Track D: Loss Function Design ───────────────────────────────────────
+
+  D1b:
+    track: D
+    name: "CTC Linear Anneal"
+    description: "ctc_weight = 0.3*(1 - epoch/75), reaches 0 at epoch 75"
+    spec_ref: specs/D1b_ctc_anneal.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.40]
+
+  D1d:
+    track: D
+    name: "CTC Ablation (weight=0)"
+    description: "Remove CTC entirely — does CTC help at all in E2E?"
+    spec_ref: specs/D1d_ctc_zero.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.45]
+
+  D2a:
+    track: D
+    name: "Contrastive Loss Ablation (weight=0)"
+    description: "Test if contrastive loss is hurting by conflicting with CE"
+    spec_ref: specs/D2a_contrastive_zero.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.42]
+
+  D2d:
+    track: D
+    name: "Contrastive Loss Upweighted (weight=2)"
+    description: "Double the contrastive weight to force stronger alignment"
+    spec_ref: specs/D2d_contrastive_2x.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.42]
+
+  D3b:
+    track: D
+    name: "TopoLoss (weight=0.001)"
+    description: "Topographic cortical-map regularization on FFN weights, light"
+    spec_ref: specs/D3b_topo_001.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 21
+    expected_wer_band: [0.22, 0.40]
+
+  D3c:
+    track: D
+    name: "TopoLoss (weight=0.01)"
+    description: "Topographic cortical-map regularization on FFN weights, standard"
+    spec_ref: specs/D3c_topo_01.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 21
+    expected_wer_band: [0.22, 0.40]
+
+  D4:
+    track: D
+    name: "Label Smoothing CE (eps=0.1)"
+    description: "Prevent overconfidence on small BCI dataset with ε=0.1 smoothing"
+    spec_ref: specs/D4_label_smooth.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.40]
+
+  # ── Track E: Projector Architecture ─────────────────────────────────────
+
+  E1a:
+    track: E
+    name: "Deep MLP Projector (5-layer)"
+    description: "Expand 3-layer MLP to 5 layers with bottleneck at 2048"
+    spec_ref: specs/E1a_deep_mlp.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.40]
+
+  E1b:
+    track: E
+    name: "Gated MLP Projector"
+    description: "Multiplicative gating: h = relu(fc1(x)) * sigmoid(gate(x))"
+    spec_ref: specs/E1b_gated_mlp.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 20
+    expected_wer_band: [0.22, 0.40]
+
+  E2b:
+    track: E
+    name: "Q-Former Projector (32 queries)"
+    description: "N_QUERIES=32 learned tokens cross-attend to full neural sequence"
+    spec_ref: specs/E2b_qformer_32.yaml
+    train_required: true
+    local_ok: true
+    expected_runtime_min: 22
+    expected_wer_band: [0.18, 0.38]
+
+  E3:
+    track: E
+    name: "Patch Size × Q-Former Grid Search"
+    description: "2×3 grid: patch_size ∈ {4,5,8} × n_queries ∈ {16,32,64}"
+    spec_ref: specs/E3_patch_qformer_grid.yaml
+    train_required: true
+    local_ok: true
+    depends_on: [E2b]
+    expected_runtime_min: 120      # 6 toy runs
+    expected_wer_band: [0.18, 0.38]

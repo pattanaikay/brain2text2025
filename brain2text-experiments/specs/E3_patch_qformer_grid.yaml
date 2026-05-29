@@ -1,0 +1,55 @@
+# specs/E3_patch_qformer_grid.yaml
+# Track E3: Patch Size × Q-Former Query Count Grid Search
+# 2 × 3 grid = 6 sub-experiments:
+#   patch_size ∈ {4, 5, 8}  ×  n_queries ∈ {16, 32, 64}
+#
+# patch_size=4  → T_patch=60  (baseline temporal resolution)
+# patch_size=5  → T_patch=48  (slight compression)
+# patch_size=8  → T_patch=30  (aggressive compression; tests if Q-Former
+#                              recovers information lost by coarser patches)
+#
+# run.py reads the grid list below and spawns each combo as E3_{ps}{q} sub-run,
+# e.g. E3_p4q16, E3_p4q32, E3_p8q64, logging each to leaderboard separately.
+# Depends on E2b passing smoke gate (n_queries=32, patch_size=4).
+#
+# Run: python run.py --experiment E3 --profile toy
+
+# Grid definition — run.py iterates this and builds a Stack per combo
+grid:
+  patch_sizes: [4, 5, 8]
+  n_queries:   [16, 32, 64]
+
+# Shared encoder spec (patch_size overridden per grid cell at runtime)
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4        # overridden per grid cell
+  pretrained_ckpt: null
+
+# Shared projector spec (n_queries overridden per grid cell at runtime)
+projector:
+  variant:    qformer
+  input_dim:  384
+  output_dim: 1536
+  n_queries:  32        # overridden per grid cell
+  n_heads:    6
+  n_xattn_layers: 2    # cross-attention layers in Q-Former
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

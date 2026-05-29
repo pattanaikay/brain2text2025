@@ -1,0 +1,37 @@
+# specs/D2a_contrastive_zero.yaml
+# Track D2a: Contrastive Loss Ablation — weight = 0 (contrastive removed)
+# Tests whether the ModalityAlignmentLoss (symmetric NT-Xent) helps or hurts.
+# Hypothesis: contrastive loss may conflict with CE by pulling representations
+# in different directions, especially early in training.
+#
+# Run: python run.py --experiment D2a --profile toy
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  # contrastive intentionally omitted — ablation

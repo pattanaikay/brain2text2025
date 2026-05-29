@@ -1,0 +1,45 @@
+# specs/B5_zenbrain.yaml
+# Track B5: ZenBrain — Memory-Augmented Neural Encoder
+# Maintains a rolling episodic buffer of past high-confidence trial embeddings.
+# At each forward pass, the encoder cross-attends over the buffer to retrieve
+# contextually relevant prior neural patterns, improving representation stability.
+#
+# Run: python run.py --experiment B5 --profile toy
+# Compare baseline: B0_bit_scratch.yaml
+
+encoder:
+  variant:      zenbrain
+  input_dim:    512
+  embed_dim:    384
+  num_layers:   7
+  num_heads:    6
+  patch_size:   4
+  dropout:      0.2
+  # Episodic memory buffer
+  buffer_size:  256          # number of past trial embeddings to store
+  buffer_heads: 6            # cross-attention heads for buffer retrieval
+  buffer_dropout: 0.1
+  # Confidence gate: only enqueue trials with CE loss < ce_gate_threshold
+  ce_gate_threshold: 3.0    # nats; trials above this are not added to buffer
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

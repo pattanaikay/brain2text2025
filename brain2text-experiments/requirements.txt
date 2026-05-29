@@ -1,0 +1,27 @@
+# brain2text-experiments/requirements.txt
+# Core (same as modeltraining sibling — keep in sync)
+torch>=2.5.1
+transformers>=4.45.0
+peft>=0.13.0
+bitsandbytes>=0.44.0
+accelerate>=0.34.0
+sentencepiece
+tokenizers
+
+# Data
+h5py
+numpy
+
+# Training utilities
+tqdm
+PyYAML
+
+# Analysis tools (Track A)
+matplotlib
+
+# Optional (Track B3 Mamba mode)
+# mamba-ssm
+# causal-conv1d
+
+# Testing
+pytest

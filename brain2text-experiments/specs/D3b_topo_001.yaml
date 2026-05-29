@@ -1,0 +1,43 @@
+# specs/D3b_topo_001.yaml
+# Track D3b: TopoLoss (weight = 0.001) — Light Cortical Regularisation
+# Encourages neighbouring neurons in the BIT encoder FFN layers to develop
+# smoothly varying tuning curves (topographic map regularisation).
+# Weight 0.001 is the minimum useful signal; compare against D3c (0.01).
+#
+# Implementation: stages/loss/topo.py — requires topo_loss.attach(encoder)
+# called after Stack.from_spec() in run.py.
+#
+# Run: python run.py --experiment D3b --profile toy
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0
+  - variant: topo
+    weight: 0.001    # light — minimally invasive cortical map regularization

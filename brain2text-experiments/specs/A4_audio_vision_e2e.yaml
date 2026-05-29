@@ -1,0 +1,66 @@
+# specs/A4_audio_vision_e2e.yaml
+# Track A4: Audio vs Vision E2E WER Comparison
+# Full end-to-end training sweep — same BIT encoder, same MLP projector,
+# only the LLM decoder changes.
+# Informed by A1 CKA ranking: run whichever LLM ranked highest.
+# NOTE: 7B models require A100; local_ok: false in registry.
+#
+# Run: python run.py --experiment A4 --profile full
+# The run.py driver iterates decoder_variants and logs each to leaderboard.
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+# Multi-decoder sweep — run.py runs each variant as a sub-experiment
+# and logs A4_qwen15 / A4_qwen2audio / A4_phi4mm to leaderboard.
+decoder_variants:
+  - id: qwen15
+    variant:      qwen15
+    llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+    quantize:     true
+    lora_r:       8
+    lora_alpha:   32
+    lora_dropout: 0.2
+
+  - id: qwen2audio
+    variant:      qwen2_audio
+    llm_name:     Qwen/Qwen2-Audio-7B-Instruct
+    quantize:     true
+    lora_r:       8
+    lora_alpha:   32
+    lora_dropout: 0.2
+    # Inject neural tokens via inputs_embeds, skip audio encoder
+    inject_mode:  inputs_embeds
+
+  - id: phi4mm
+    variant:      phi4mm
+    llm_name:     microsoft/Phi-4-multimodal-instruct
+    quantize:     true
+    lora_r:       8
+    lora_alpha:   32
+    lora_dropout: 0.2
+    lora_target_modules:
+      - qkv_proj     # fused attention projection
+      - o_proj
+      - gate_up_proj
+      - down_proj
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

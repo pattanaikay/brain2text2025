@@ -1,315 +1,275 @@
-# Brain-to-Text 2025: Neural Speech Decoding
+# Brain-to-Text 2025: Multi-Track Neural Decoding Research
 
-This repository contains multiple approaches for the **[Kaggle Brain-to-Text 2025 Competition](https://www.kaggle.com/competitions/brain-to-text-25)**. The goal of the competition is to decode attempted speech directly from intracortical neural activity recorded from the speech motor cortex.
+A comprehensive research repository exploring multiple architectures and techniques for decoding intended speech directly from intracortical neural activity. This project encompasses seven major work streams: five primary neural decoding approaches, a parallel autoresearch benchmark, and a production training framework.
 
-## Project Overview
+**Competition**: [Kaggle Brain-to-Text 2025](https://www.kaggle.com/competitions/brain-to-text-25)  
+**Dataset**: 10,948 sentences from participant T15 across 45 recording sessions (256 microelectrodes, 512 neural features)  
+**Baseline WER**: 36.73% (BIT + Qwen2.5-1.5B)  
+**Target WER**: 10%
 
-The project focuses on developing sequence-to-sequence models to translate neural spiking activity (512 features from 256 microelectrodes) into text. The dataset involves 10,948 sentences from a single participant (T15) across 45 recording sessions.
+---
 
-## Approaches
+## Quick Reference: Project Structure
 
-This repository explores different architectures and post-processing techniques to improve Word Error Rate (WER):
+This repository is organized into **independent work streams**, each with its own README for detailed documentation. Start here for an overview, then navigate to the folder of interest.
 
-### 1. [Approach #1: CNN + BiGRU](./approach%20%231-%20CNN%20+%20BiGRU/)
-- **Architecture**: 1D Convolutional layers for spatial-temporal feature extraction followed by a 2-layer Bidirectional GRU.
-- **Loss**: Connectionist Temporal Classification (CTC) loss.
-- **Features**: Per-session Z-score normalization and Gaussian smoothing.
-- **Status**: Baseline model for initial exploration.
+| Folder | Purpose | Status | Key Metric |
+|--------|---------|--------|------------|
+| **[Approach #1: CNN + BiGRU](./approach%20%231-%20CNN%20+%20BiGRU/)** | Baseline CNN-BiGRU with CTC loss | ✅ Baseline | WER: Baseline |
+| **[Approach #2: CNN + BiLSTM + n-gram](./approach%20%232-%20CNN%20+%20BiLSTM%20+%20ngram/)** | CNN-BiLSTM with n-gram language model | ✅ Improved | WER: Better |
+| **[Approach #5: Transformer + Aero-1-Audio](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/)** | Transformer encoder + multimodal LLM (BIT v1) | ✅ Production | WER: Best |
+| **[Approach #6: Transformer + Aero-1-Audio + Diphones](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/)** | BIT with diphone linguistic support (BIT v2) | 🔧 Experimental | WER: Excellent |
+| **[Approach #7: NeuroMoE](./approach%20%237-%20NeuroMoE/)** | Mixture-of-Experts + Regional Experts framework | 🚀 SOTA | WER: SOTA Target |
+| **[Brain2Text Model Training](./brain2text-modeltraining/)** | **MAIN PRODUCTION**: BIT framework reference implementation | ✅ Active | WER: Monitored |
+| **[Brain2Text Experiments](./brain2text-experiments/)** | **MAIN RESEARCH**: 25-experiment framework with tracks A–E | ✅ Active | 25+ Experiments |
+| **[Brain2Text Multi-Arch](./brain2text-modeltraining-multiarchitectures/)** | Multi-architecture exploration & analysis | ✅ Active | Comparative Analysis |
+| **[ECoG Autoresearch](./ecog-autoresearch/)** | **PARALLEL**: Laptop-scale agent-driven benchmarking (finger flexion) | ✅ Active | Pearson r |
+| **[DietCorp + ZenBrain](./dietcorp-zenbrain-tta-research/)** | **RESEARCH**: Edge-device feasibility (Coral NPU simulation) | 🔬 Investigation | On-Device WER |
 
-### 2. [Approach #2: CNN + BiLSTM + n-gram](./approach%20%232-%20CNN%20+%20BiLSTM%20+%20ngram/)
-- **Architecture**: 1D Convolutional layers followed by a 2-layer Bidirectional LSTM.
-- **Language Modeling**: Incorporates an n-gram (3-gram) language model for rescoring/decoding to improve transcript accuracy.
-- **Decoding**: Beam search with language model scoring.
-- **Features**: Similar preprocessing to Approach #1 with added linguistic priors.
-- **Status**: Improved baseline with linguistic constraints.
+---
 
-### 3. [Approach #5: Transformer + Aero-1-Audio](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/)
-- **Architecture**: Transformer encoder (7 layers, 6 heads, 384 dim) with Rotary Position Embeddings (RoPE) for neural feature extraction, integrated with multimodal Aero-1-Audio LLM (1.5B parameters).
-- **Time Patching**: Groups 20ms neural bins into 100ms patches (5 bins) to improve long-range attention and reduce sequence length.
-- **Drift Correction**: Session-specific read-in layers to handle probe drift across recording sessions.
-- **Training**: Three-phase pipeline:
-  - Phase 1: Self-Supervised Learning (Masked Neural Modeling)
-  - Phase 2: End-to-End Fine-tuning with Contrastive Loss
-  - Phase 3: Optional CTC-based Phoneme Recognition
-- **Fine-Tuning**: Uses QLoRA (4-bit quantization) for parameter-efficient adaptation of Aero-1-Audio-1.5B.
-- **Loss Function**: Combined cross-entropy + InfoNCE contrastive loss ($\mathcal{L}_{BIT} = \mathcal{L}_{CE} + \mathcal{L}_{contrastive}$).
-- **Status**: Advanced multimodal approach with strong performance.
+## Work Stream Descriptions
 
-### 4. [Approach #6: Transformer + Aero-1-Audio + Diphones](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/)
-- **Architecture**: Similar to Approach #5 with extended support for diphone-level linguistic constraints.
-- **Linguistic Enhancement**: Incorporates diphone (two-phoneme) sequences for more granular phonetic modeling.
-- **Features**: Builds on Approach #5's time patching and drift correction with enhanced linguistic priors.
-- **Status**: Experimental variant exploring phonetic granularity.
+### Primary Competition Approaches (Approach #1–7)
 
-### 5. [Approach #7: NeuroMoE - Advanced Mixture-of-Experts Framework](./approach%20%237-%20NeuroMoE/)
-- **Architecture**: Integrates **EEGMoE** (Gao et al., 2026) and **BrainStack** (Zhao et al., 2026) architectures into the BIT framework.
-- **Specific & Shared Mixture-of-Experts (SSMoE)**: 
-  - **Top-K Routing (K=2)** for domain-specific features capturing subject-specific spiking patterns
-  - **Soft Routing** for universal EEG features that generalize across sessions
-- **Functionally Guided Regional Experts**: 8 regional processing modules (64 channels each) mimicking brain modularity with adaptive expert routing gates
-- **Regional CNN Processing**: Lightweight spatio-temporal convolutions per functional brain region before global Transformer
-- **Training Objective**: Multimodal loss with auxiliary load-balancing: $\mathcal{L}_{total} = \mathcal{L}_{CE} + \mathcal{L}_{contrastive} + \lambda \mathcal{L}_{aux}$ (where $\lambda = 1 \times 10^{-4}$)
-- **Configuration**: 6 specific experts, 2 shared experts, adaptive regional fusion
-- **Status**: Most advanced production-ready approach with SOTA performance targets.
+These folders explore different neural architectures for brain-to-text decoding on the Kaggle competition dataset.
 
-## Parallel Track: ECoG Autoresearch Benchmark
+#### **Approach #1: CNN + BiGRU** [(details)](./approach%20%231-%20CNN%20+%20BiGRU/README.md)
+- Baseline convolutional encoder with bidirectional GRU
+- Uses CTC loss and per-session Z-score normalization
+- Fast training, establishes performance floor
+- **Status**: ✅ Complete and validated
 
-### [ECoG Autoresearch Framework](./ecog-autoresearch/)
+#### **Approach #2: CNN + BiLSTM + n-gram** [(details)](./approach%20%232-%20CNN%20+%20BiLSTM%20+%20ngram/README.md)
+- Improves on #1 by adding LSTM and language model rescoring
+- Beam search decoding with 3-gram language model
+- Incorporates linguistic priors to improve WER
+- **Status**: ✅ Complete; improved baseline established
 
-A **laptop-sized, agent-driven autoresearch harness** for ECoG finger-flexion regression benchmarking. This is a parallel experimental track independent from the main Brain-to-Text competition approaches.
+#### **Approach #5: Transformer + Aero-1-Audio (BIT v1)** [(details)](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/README.md)
+- Time-patched Transformer encoder (RoPE, 7 layers, 384 dim)
+- Multimodal LLM (Aero-1-Audio-1.5B) decoder
+- 3-phase training: SSL pretraining → end-to-end fine-tuning → optional CTC
+- Contrastive loss for modality alignment
+- Session-specific read-in layers for drift correction
+- **Status**: ✅ Production-ready; strong performance
 
-**Purpose**: Rapid prototyping and validation of neural architecture designs on a compact, reproducible benchmark before scaling to full speech decoding tasks.
+#### **Approach #6: Transformer + Aero-1-Audio + Diphones (BIT v2)** [(details)](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/README.md)
+- Builds on #5 with diphone-level linguistic constraints
+- Enhanced phonetic modeling for better accuracy
+- Experimental variant exploring linguistic granularity
+- **Status**: 🔧 In development; shows promise
 
-**Dataset**: BCI Competition IV Dataset 4 / Miller finger-flexion ECoG (64-channel recording, 5 finger-flexion targets)
+#### **Approach #7: NeuroMoE (SOTA)** [(details)](./approach%20%237-%20NeuroMoE/README.md)
+- Advanced Mixture-of-Experts architecture (SSMoE + Regional)
+- 6 specific + 2 shared experts with Top-K routing (K=2)
+- 8 brain-region processing modules (64 channels each)
+- Integrates EEGMoE (Gao et al., 2026) + BrainStack (Zhao et al., 2026)
+- Multimodal loss with auxiliary load-balancing
+- **Status**: 🚀 Most advanced; targets SOTA performance
 
-**Supported Models**:
-- **CNN**: Compact baseline convolutional architecture
-- **Transformer**: Self-attention-based encoder
-- **NeuroMoE**: Mixture-of-Experts variant
-- **HRM** (Hierarchical Regional Models): Region-based processing (experimental)
-- **HRM+MoE**: Hierarchical + Mixture-of-Experts fusion (experimental)
+---
+
+### Main Production & Research Frameworks
+
+#### **Brain2Text Model Training** [(details)](./brain2text-modeltraining/README.md)
+The **primary reference implementation** of the BIT framework. Production-ready code for end-to-end training pipelines.
+
+- **Phase 1**: Self-supervised pretraining (Masked Neural Modeling)
+- **Phase 2**: End-to-end fine-tuning with CE + Contrastive loss
+- **Phase 3**: Optional CTC-based phoneme recognition
+- **Checkpoint management**, metric tracking, evaluation utilities
+- **Documentation**: Comprehensive technical specification and debugging guides
+- **Status**: ✅ Phase 1 complete (PER=0.5202); Phase 2 in debug
 
 **Key Features**:
+- Full training pipeline with validation monitoring
+- Multiple loss configurations
+- Results logging to SQLite leaderboard
+- Session statistics computation for normalization
+
+#### **Brain2Text Experiments** [(details)](./brain2text-experiments/README.md)
+The **research-grade experimentation framework** with 25+ experiments across 5 tracks (A–E).
+
+- **Registry system**: Central `registry.yaml` for all experiment definitions
+- **Profile system**: Toy (local, ~20 min) vs. Full (cloud A100, 150 epochs) profiles
+- **Three-step progression**: Shape tests → toy run → full run (enforced)
+- **Composed losses**: Multi-loss ablation via forward hooks
+- **Modular stages**: Swappable encoders, projectors, decoders, losses
+- **Leaderboard tracking**: SQLite database with WER, metrics, and reproducibility hashes
+
+**Experiment Tracks**:
+- **Track A**: Pretraining modality analysis (CKA, perplexity, probing)
+- **Track B**: Encoder variants (BIT, Conformer, HRM, Mamba, MoE, ZenBrain)
+- **Track C**: Decoder LLM variants (Qwen, Phi, Whisper-Qwen)
+- **Track D**: Loss function ablations (CTC, contrastive, topological)
+- **Track E**: Projector design variants (MLP, deep MLP, gated, QFormer)
+
+#### **Brain2Text Multi-Architectures** [(details)](./brain2text-modeltraining-multiarchitectures/README.md)
+Exploration and comparative analysis of multiple architecture variants.
+
+- Multi-architecture benchmarking
+- Comparative performance metrics
+- Reference implementations of emerging techniques
+- Analysis tools and visualization utilities
+- **Status**: ✅ Active research platform
+
+---
+
+### Parallel Work Streams
+
+#### **ECoG Autoresearch Benchmark** [(details)](./ecog-autoresearch/README.md)
+A **laptop-scale, agent-driven autoresearch harness** for rapid prototyping on a compact benchmark.
+
+- **Dataset**: BCI Competition IV Dataset 4 (64-channel ECoG, 5 finger-flexion targets)
+- **Primary Metric**: Validation mean Pearson correlation
+- **Models**: CNN, Transformer, NeuroMoE, HRM, HRM+MoE variants
 - **Hardware**: Optimized for ~6 GB VRAM / 24 GB RAM (laptop-friendly)
-- **Primary Metric**: Validation mean Pearson correlation (higher is better)
-- **Secondary Metrics**: RMSE, runtime, parameter count, peak VRAM, expert utilization, router entropy
-- **Autoresearch Rule**: Agents modify only `train.py` while keeping benchmark harness (`prepare_data.py`, `benchmark.py`, `plot_results.py`) fixed
-- **Change Policy**: Keep changes only if validation Pearson correlation improves without breaking benchmark contract
+- **Autoresearch**: Agents modify only `train.py`; benchmark harness (`prepare_data.py`, `benchmark.py`, `plot_results.py`) stays fixed
+- **Change Policy**: Keep changes only if validation Pearson correlation improves
+- **Status**: ✅ Active autoresearch platform
 
-## Repository Structure
+**Purpose**: Validates neural architecture designs on a compact, reproducible benchmark before scaling to full speech decoding tasks.
 
-```text
-.
-├── approach #1- CNN + BiGRU/                    # CNN-BiGRU baseline implementation
-│   ├── scripts/                                 # Training and submission scripts
-│   ├── src/                                     # Model and dataloading source code
-│   └── data/                                    # Data utilities and visualizations
-│
-├── approach #2- CNN + BiLSTM + ngram/           # CNN-BiLSTM with n-gram LM
-│   ├── scripts/                                 # Includes n-gram training and main pipeline
-│   ├── src/                                     # Source code including n-gram logic
-│   └── data/                                    # Data utilities
-│
-├── approach #5- Transformer + Aero-1-Audio/    # Transformer + multimodal LLM (BIT v1)
-│   ├── scripts/                                 # SSL pretraining, supervised FT, CTC training
-│   ├── src/                                     # Neural encoder, LLM integration, dataloading
-│   └── requirements.txt                         # Transformers, LoRA, BitsAndBytes dependencies
-│
-├── approach #6- Transformer + Aero-1-Audio + Diphones/  # BIT with diphone support (BIT v2)
-│   ├── scripts/                                 # Training and evaluation scripts
-│   ├── src/                                     # Enhanced encoder with diphone modeling
-│   └── requirements.txt                         # Project dependencies
-│
-├── approach #7- NeuroMoE/                       # Advanced SSMoE + Regional Experts framework
-│   ├── scripts/                                 # Training and evaluation scripts
-│   ├── src/                                     # MoE models, routing, regional experts
-│   ├── NeuroMoE_Changes.md                      # Detailed changelog for MoE integration
-│   ├── COMPREHENSIVE_TECHNICAL_SPEC.md         # Mathematical foundations and architecture
-│   └── requirements.txt                         # Project dependencies
-│
-├── ecog-autoresearch/                           # **PARALLEL: Laptop Autoresearch Benchmark**
-│   ├── benchmark.py                            # Hyperparameter-free benchmark harness
-│   ├── train.py                                # Modifiable training loop (agent edit zone)
-│   ├── prepare_data.py                         # BCI Comp IV Dataset 4 loader (fixed)
-│   ├── plot_results.py                         # Results visualization and aggregation (fixed)
-│   ├── results.tsv                             # Accumulated benchmark results
-│   ├── program.md                              # Autoresearch rules and metrics specification
-│   ├── pyproject.toml                          # Dependencies and project config
-│   ├── runs/                                    # Run artifacts (checkpoints, logs)
-│   └── plots/                                   # Generated result plots
-│
-├── brain2text-modeltraining/                    # **MAIN: Production BIT Framework Implementation**
-│   ├── scripts/                                 # Training pipeline (SSL, E2E, CTC)
-│   │   ├── train_ssl.py                        # Phase 1: Self-supervised pretraining (✅ Complete, PER=0.5202)
-│   │   ├── train_e2e.py                        # Phase 2: End-to-end fine-tuning (🔧 In Debug - see known issues)
-│   │   ├── train_ctc.py                        # Phase 3: CTC phoneme recognition
-│   │   ├── train_e2e_local.py                  # Phase 2 local/distributed variant
-│   │   ├── diagnostic_ctc.py                   # CTC phase debugging utility
-│   │   ├── evaluate.py                         # Evaluation and metric calculation
-│   │   ├── plot_metrics.py                     # Visualization of training metrics
-│   │   └── models/                             # Checkpoints and saved models
-│   ├── src/                                     # Core implementation
-│   │   ├── models/                             # BIT_Transformer, projectors, baseline
-│   │   ├── preprocessing/                      # Dataloaders and preprocessing utilities
-│   │   └── utils/                              # Metrics, helpers
-│   ├── outputs/                                 # Training outputs (logs, histories)
-│   ├── data/                                    # Data utilities
-│   ├── requirements.txt                         # Python dependencies
-│   ├── debug_e2e_training.md                   # Debugging guide for E2E training issues
-│   └── COMPREHENSIVE_TECHNICAL_SPEC.md         # Detailed technical documentation
-│
-├── bci-incremental-roadmap.md                   # Development roadmap and architecture evolution
-├── index.html                                   # Project overview HTML
-└── README.md                                    # This file
-```
+#### **DietCorp + ZenBrain Feasibility Study** [(details)](./dietcorp-zenbrain-tta-research/README.md)
+Investigation of edge-device feasibility for real-time BCI deployment.
+
+- **Base Architecture**: DietCorp-Compact (9.4M params, 364 MFLOPS, causal Transformer)
+- **Extension**: ZenBrain-inspired multi-tier memory layer
+- **Target Hardware**: Google Coral NPU (simulated and real)
+- **Simulation Instrument**: Cycle-accurate Verilator simulator for architectural analysis
+- **Goals**: 
+  1. Characterize feasibility under realistic edge constraints (int8, static shapes, limited memory)
+  2. Project hardware requirements for production deployment
+  3. Surface design constraints early
+  4. Produce communicable artifacts for thesis documentation
+- **Status**: 🔬 Feasibility audit complete; entering reproduction phase
+
+**Key Context**: Coral is used as a simulation microscope for edge NPU behavior, not as the deployment target. Eventual deployment targets are phones and laptops (Apple Neural Engine, Qualcomm Hexagon, Google Tensor TPU).
+
+---
 
 ## Getting Started
 
-Each approach folder contains its own `requirements.txt` and specific instructions. The **`brain2text-modeltraining/`** folder is the primary production implementation of the BIT framework.
-
-### Quick Start for Main Implementation (BIT Framework)
-
+### Option 1: Explore a Specific Approach
+Pick an approach folder and read its README:
 ```bash
-cd brain2text-modeltraining/
+cd "approach #7- NeuroMoE"
+cat README.md
 pip install -r requirements.txt
+```
 
-# Step 1: Compute session statistics for normalization
-python src/preprocessing/compute_session_stats.py --h5_list data/h5_list.json
-
-# Step 2: Phase 1 - Self-Supervised Pretraining (optional)
+### Option 2: Use the Main Production Framework
+Start with [Brain2Text Model Training](./brain2text-modeltraining/README.md):
+```bash
+cd brain2text-modeltraining
+pip install -r requirements.txt
 python scripts/train_ssl.py --epochs 50
-
-# Step 3: Phase 2 - End-to-End Fine-tuning
-python scripts/train_e2e.py --checkpoint scripts/models/ssl/best_encoder_ssl.pth --epochs 100
-
-# Step 4: Phase 3 - CTC Phoneme Recognition (optional)
-python scripts/train_ctc.py --checkpoint scripts/models/e2e/best_model_wer.pth --epochs 50
-
-# Step 5: Evaluate and Generate Predictions
-python scripts/evaluate.py --checkpoint scripts/models/e2e/best_model_wer.pth
-python scripts/plot_metrics.py
 ```
 
-### Quick Start for Alternative Approaches
-
-**Approach #1 (CNN + BiGRU)**:
+### Option 3: Run the Research Experiments Framework
+See [Brain2Text Experiments](./brain2text-experiments/README.md):
 ```bash
-cd approach\ #1-\ CNN\ +\ BiGRU/
+cd brain2text-experiments
 pip install -r requirements.txt
-python scripts/train.py
+python -m pytest tests/test_stage_shapes.py -v
+python run.py --expt B0_baseline --profile toy --train_h5 data/toy_train.hdf5 --val_h5 data/val.hdf5
 ```
 
-**Approach #2 (CNN + BiLSTM + n-gram)**:
+### Option 4: Run the Autoresearch Benchmark
+See [ECoG Autoresearch](./ecog-autoresearch/README.md):
 ```bash
-cd approach\ #2-\ CNN\ +\ BiLSTM\ +\ ngram/
+cd ecog-autoresearch
 pip install -r requirements.txt
-python scripts/train.py              # Train neural model
-python scripts/train_ngram.py        # Train n-gram LM
-python scripts/submission.py         # Generate predictions
+python prepare_data.py --subject 1
+python benchmark.py --model auto --budget-minutes 5
+python plot_results.py
 ```
 
-**Approach #5 (Transformer + Aero-1-Audio)**:
+### Option 5: Investigate Edge Deployment
+See [DietCorp + ZenBrain](./dietcorp-zenbrain-tta-research/README.md):
 ```bash
-cd approach\ #5-\ Transformer\ +\ Aero-1-Audio/
-pip install -r requirements.txt
-python scripts/train_ssl.py --epochs 50          # Optional pretraining
-python scripts/train_e2e.py --epochs 100         # Fine-tuning
-python scripts/evaluate.py                       # Evaluation
+# See folder README for simulation and analysis setup
 ```
 
-**Approach #6 (Transformer + Aero-1-Audio + Diphones)**:
-```bash
-cd approach\ #6-\ Transformer\ +\ Aero-1-Audio\ +\ Diphones/
-pip install -r requirements.txt
-python scripts/train_ssl.py --epochs 50          # Optional pretraining
-python scripts/train_e2e.py --epochs 100         # Fine-tuning
-python scripts/evaluate.py                       # Evaluation
-```
+---
 
-**Approach #7 (NeuroMoE)**:
-```bash
-cd approach\ #7-\ NeuroMoE/
-pip install -r requirements.txt
-python scripts/train_ssl.py --epochs 50          # Optional pretraining with MoE
-python scripts/train_e2e.py --epochs 100         # End-to-end MoE fine-tuning
-python scripts/evaluate.py                       # Evaluation and metrics
-```
+## Key Documentation Files
 
-**ECoG Autoresearch Benchmark**:
-```bash
-cd ecog-autoresearch/
-pip install -r requirements.txt
+| Document | Scope | Location |
+|----------|-------|----------|
+| **Approach-specific READMEs** | Detailed setup, architecture, results for each approach | Each approach folder |
+| **Brain2Text Model Training README** | Production BIT framework and training pipeline | `brain2text-modeltraining/` |
+| **Brain2Text Experiments README** | 25-experiment research framework and registry system | `brain2text-experiments/` |
+| **ECoG Autoresearch README** | Agent-driven benchmarking for finger-flexion | `ecog-autoresearch/` |
+| **DietCorp README** | Edge-device feasibility studies and Coral NPU simulation | `dietcorp-zenbrain-tta-research/` |
+| **BCI Incremental Roadmap** | Historical development from RNN baseline to BIT framework | `bci-incremental-roadmap.md` |
+| **Technical Specifications** | Deep dives on architecture, loss functions, training pipelines | `*/COMPREHENSIVE_TECHNICAL_SPEC.md` |
 
-# Prepare BCI Comp IV Dataset 4
-python prepare_data.py --subject 1 --sfreq 200 --window-sec 1.5 --stride-sec 0.25
+---
 
-# Run model benchmarks (CNN, Transformer, NeuroMoE, HRM, HRM+MoE)
-python benchmark.py --model auto --budget-minutes 5 --seed 13
+## Architecture Comparison at a Glance
 
-# Visualize results
-python plot_results.py                          # Generates plots in plots/
-```
-
-### General Setup
-
-1. **Data Setup**: Ensure the competition data is placed in the expected directory (usually `../t15_copyTask_neuralData/`).
-2. **GPU Requirements**: 
-   - Approach #1-2: 6GB+ VRAM recommended
-   - Approach #5-6 & brain2text-modeltraining: 16GB+ VRAM recommended (due to LLM quantization and transformer computations)
-3. **Python Version**: Python 3.10+ recommended
-4. **Recommended Approach**: Use `brain2text-modeltraining/` for the most up-to-date implementation with all advanced features.
-
-### Project Documentation
-
-- **[BCI Incremental Roadmap](./bci-incremental-roadmap.md)**: Documents the iterative development from baseline RNN to the BIT framework
-- **[Main Technical Specification](./brain2text-modeltraining/COMPREHENSIVE_TECHNICAL_SPEC.md)**: Comprehensive technical details of the BIT framework
-- **[Approach #5 Specification](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/COMPREHENSIVE_TECHNICAL_SPEC.md)**: Detailed architecture documentation for Approach #5
-- **[Approach #6 Specification](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/COMPREHENSIVE_TECHNICAL_SPEC.md)**: Detailed documentation for the diphone variant
-
-## Approach Comparison
-
-| Feature | Approach #1 | Approach #2 | Approach #5 | Approach #6 | Approach #7 |
-|---------|------------|------------|------------|------------|-------------|
-| **Architecture** | CNN + BiGRU | CNN + BiLSTM | Transformer + LLM | Transformer + LLM + Diphones | Transformer + SSMoE + Regional Experts |
-| **MoE/Routing** | — | — | — | — | Top-K (K=2) + Soft routing |
-| **Experts** | — | — | — | — | 6 specific + 2 shared experts |
-| **Regional Processing** | — | — | — | — | 8 brain regions (64ch each) |
-| **Decoding** | Greedy | Beam Search | LLM generation | LLM generation | LLM generation |
-| **Language Model** | None | Explicit n-gram | Implicit (LLM) | Implicit (LLM) + Diphone LM | Implicit (LLM) |
-| **Position Encoding** | N/A | N/A | RoPE | RoPE | RoPE |
-| **Drift Correction** | Session norm | Session norm | Session read-in | Session read-in | Session read-in |
-| **Load-Balancing Loss** | — | — | — | — | $\lambda L_{aux} = 10^{-4}$ |
-| **Memory (Training)** | ~6GB | ~6GB | ~16GB+ | ~16GB+ | ~20GB+ |
-| **Training Time** | ~2-4 hrs | ~3-5 hrs | ~6-10 hrs | ~6-10 hrs | ~8-12 hrs |
-| **Inference Speed** | Fast | Medium | Slow | Slow | Slow |
-| **Expected WER** | Baseline | Better | Best | Excellent | SOTA |
+| Feature | #1 | #2 | #5 | #6 | #7 |
+|---------|----|----|----|----|-----|
+| **Encoder** | CNN | CNN | Transformer | Transformer | Transformer |
+| **Decoder** | Greedy | Beam+n-gram | LLM | LLM+Diphone | LLM |
+| **Memory/Routing** | — | — | — | — | SSMoE + Regional |
+| **Pretraining** | None | None | Optional SSL | Optional SSL | Optional SSL |
+| **Drift Handling** | Norm | Norm | Read-in | Read-in | Read-in |
+| **Training Time** | 2-4 hrs | 3-5 hrs | 6-10 hrs | 6-10 hrs | 8-12 hrs |
+| **Expected WER** | Baseline | Better | Best | Excellent | **SOTA** |
 | **Complexity** | Low | Medium | High | High+ | Very High |
-| **Status** | Baseline | Improved | Production | Experimental | Advanced SOTA |
+| **Status** | ✅ Complete | ✅ Complete | ✅ Prod | 🔧 Exp | 🚀 SOTA |
 
-## Known Issues & Current Status
+---
 
-### Training Pipeline Status
+## Known Issues & Status
 
-| Phase | Status | Details | Location |
-|-------|--------|---------|----------|
-| **Phase 1: SSL Pretraining** | ✅ Complete | PER = 0.5202 on validation set | `brain2text-modeltraining/scripts/train_ssl.py` |
-| **Phase 2: E2E Fine-tuning** | 🔧 In Debug | CE loss anomaly (~0.03 epoch 1), padding token masking issues | `brain2text-modeltraining/scripts/train_e2e.py` |
-| **Phase 3: CTC Phoneme** | ✅ Complete | Ready for testing | `brain2text-modeltraining/scripts/train_ctc.py` |
+### Brain2Text Model Training
+- **Phase 1 (SSL)**: ✅ Complete (PER=0.5202)
+- **Phase 2 (E2E)**: 🔧 In debug (CE loss anomaly, padding masking issues)
+- **Phase 3 (CTC)**: ✅ Complete and ready for testing
+- **Details**: See [debug_e2e_training.md](./brain2text-modeltraining/debug_e2e_training.md)
 
-### Known Issues in `brain2text-modeltraining`
+### Brain2Text Experiments
+- **Registry**: ✅ Complete (25+ experiments defined)
+- **Stage Builders**: ✅ Complete (all encoders, projectors, decoders)
+- **Shape Testing**: ✅ Complete
+- **Loss Composition**: ✅ Complete
+- **Full Run Tracking**: ✅ Complete (leaderboard.sqlite)
 
-#### Issue 1: Cross-Entropy Loss Anomaly (Phase 2 E2E)
-- **Symptom**: CE loss suspiciously low (~0.03) in epoch 1
-- **Root Causes**:
-  - Padding tokens not properly masked to `-100` in loss calculation
-  - Possible label leakage (model can see ground truth in input)
-  - Loss reduction issue (sum over ignored positions)
-- **Impact**: Model training dynamics are unstable; WER plateau not achieved
-- **Documentation**: See [debug_e2e_training.md](./brain2text-modeltraining/debug_e2e_training.md) for detailed analysis
+---
 
-#### Issue 2: Hyperparameter Misconfiguration (Phase 2 E2E)
-- **Symptom**: Currently configured for 600 epochs
-- **Correct Setting**: Should use **150 epochs** for Phase 2 E2E fine-tuning per paper specification (Zhang et al., 2025, Section R)
-- **Impact**: Risk of overfitting on downstream LLM task
-- **Status**: Awaiting fix before next training run
+## Contributing & Collaboration
 
-#### Issue 3: Data Flow Validation
-- **Status**: Diagnostic scripts added (`diagnostic_ctc.py`, `train_e2e_local.py`)
-- **Action Required**: Verify data pipeline matches paper fidelity before production deployment
+When adding to this repository:
 
-### Recommendations
-1. **Immediate**: Review [debug_e2e_training.md](./brain2text-modeltraining/debug_e2e_training.md) for step-by-step debugging guide
-2. **Next**: Correct padding masking and verify label construction in data collators
-3. **Follow-up**: Validate full pipeline against Zhang et al. (2025) paper (Appendices A-R, pp. 14-25)
-4. **Production**: Run diagnostic utilities before full training iterations
+1. **New Approach**: Create a folder with its own `README.md`, `requirements.txt`, and `scripts/` + `src/` structure
+2. **Experiment Addition**: Add entry to `brain2text-experiments/registry.yaml` and corresponding spec YAML
+3. **Code Changes**: Keep changes scoped to the work stream; document in the folder's README
+4. **Documentation**: Update the relevant folder's README and this main README's quick reference table
+
+---
 
 ## References
-- **Competition**: [Brain-to-Text 2025](https://www.kaggle.com/competitions/brain-to-text-25)
-- **Data Source**: [Dryad Dataset](https://doi.org/10.5061/dryad.dncjsxm85)
-- **Papers Referenced**:
+
+- **Competition**: [Kaggle Brain-to-Text 2025](https://www.kaggle.com/competitions/brain-to-text-25)
+- **Dataset**: [Dryad: Brain-to-Text Dataset](https://doi.org/10.5061/dryad.dncjsxm85)
+- **Papers**:
   - Zhang et al. (2025). "A cross-species neural foundation model for end-to-end speech decoding" (BIT Framework)
+  - Feghhi et al. (2025). "DietCorp-Compact: Efficient test-time adaptation for neural decoding" (arXiv:2507.02800)
   - Gao et al. (2026). "EEGMoE: Mixture-of-Experts for EEG Analysis"
   - Zhao et al. (2026). "BrainStack: Regional Brain Processing Architecture"
-- **Aero-1-Audio**: [LMMS-Lab Multimodal LLM](https://github.com/LMM-Lab/Aero)
-- **LoRA**: [Hu et al. 2021 - Low-Rank Adaptation](https://arxiv.org/abs/2106.09685)
+  - Bering et al. (2026). "ZenBrain: Neuroscience-grounded memory architecture for autonomous AI" (arXiv:2604.23878)
+- **Tools**:
+  - [Aero-1-Audio](https://github.com/LMM-Lab/Aero): Multimodal LLM
+  - [LoRA](https://arxiv.org/abs/2106.09685): Low-rank adaptation (Hu et al., 2021)
+  - [Google Coral](https://coral.ai/): Edge TPU & NPU platforms
 - **Lab**: [UC Davis Neuroprosthetics Lab](https://neuroprosthetics.science/)
+
+---
+
+**Last Updated**: May 29, 2026  
+**Repository Status**: Active multi-track research  
+**Primary Contact**: Brain-to-Text 2025 Research Team

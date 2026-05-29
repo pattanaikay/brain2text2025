@@ -1,0 +1,45 @@
+# specs/E1a_deep_mlp.yaml
+# Track E1a: Deep MLP Projector (5-layer with bottleneck)
+# Replaces the 3-layer baseline projector with a 5-layer version:
+#   384 → 1024 → 2048 → 2048 → 1024 → 1536
+# Bottleneck at 2048 tests whether extra capacity in the projector
+# can compensate for a frozen or under-trained encoder.
+#
+# Run: python run.py --experiment E1a --profile toy
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:     deep_mlp
+  input_dim:   384
+  hidden_dims:           # explicit per-layer dims (5 layers total)
+    - 1024
+    - 2048
+    - 2048
+    - 1024
+  output_dim:  1536
+  dropout:     0.1
+  norm_each_layer: true  # LayerNorm after each hidden layer (not just final)
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

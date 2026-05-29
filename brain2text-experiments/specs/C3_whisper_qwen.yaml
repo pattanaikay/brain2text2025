@@ -1,0 +1,32 @@
+# specs/C3_whisper_qwen.yaml
+# Track C3: WhisperQwen split-stack decoder
+# BIT encoder (384) → Whisper-large-v3 bridge → Qwen2.5-1.5B
+# Fits on 6 GB RTX 4050 (~4.1 GB total)
+
+encoder:
+  variant:          bit
+  input_dim:        512
+  embed_dim:        384
+  patch_size:       4
+  pretrained_ckpt:  null   # fill in your CTC checkpoint path
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 384   # pass-through to whisper_qwen decoder (it handles Whisper bridging)
+
+decoder:
+  variant:       whisper_qwen
+  neural_dim:    384
+  whisper_name:  openai/whisper-large-v3
+  llm_name:      Qwen/Qwen2.5-1.5B-Instruct
+  quantize:      true
+  lora_r:        8
+  lora_alpha:    32
+  lora_dropout:  0.2
+
+loss:
+  - variant: ce
+  - variant: contrastive
+    weight: 0.5   # reduced weight: Whisper bridge already aligns representations

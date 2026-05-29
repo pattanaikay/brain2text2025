@@ -1,0 +1,44 @@
+# specs/B3_mamba_ssm.yaml
+# Track B3 (SSM variant): MambaPOSSM Encoder — True Mamba Selective SSM
+# Requires: pip install mamba-ssm causal-conv1d
+# Uncomment in requirements.txt before use.
+# Hardware: needs GPU with CUDA 11.8+ and ~2 GB extra VRAM for SSM state.
+# Depends on B3 (GRU fallback) passing toy smoke gate first.
+#
+# Run: python run.py --experiment B3_mamba --profile toy
+
+encoder:
+  variant:       mamba
+  input_dim:     512
+  embed_dim:     384
+  patch_size:    4
+  n_layers:      8
+  d_state:       16
+  ssm_backbone:  mamba       # true Mamba2 selective SSM (C extension)
+  expand_factor: 2           # inner_dim = expand_factor * embed_dim
+  dt_rank:       auto        # A/B/C projection rank (auto = embed_dim / 16)
+  use_spike_tokenizer: true
+  spike_n_heads:       6
+  dropout:       0.1
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

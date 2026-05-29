@@ -1,0 +1,11 @@
+# docks/PINS.txt
+# Pinned upstream commit hashes for the two sibling repos.
+# Bump these manually after verifying compatibility.
+# run.py asserts git HEAD matches these pins before any experiment starts.
+#
+# Format:  REPO_KEY  <relative path from this file's grandparent>  <git commit SHA or "HEAD">
+#
+# Use "HEAD" during active development; lock to a SHA before cloud runs.
+
+brain2text-modeltraining               ../brain2text-modeltraining                HEAD
+brain2text-modeltraining-multiarch     ../brain2text-modeltraining-multiarchitectures   HEAD

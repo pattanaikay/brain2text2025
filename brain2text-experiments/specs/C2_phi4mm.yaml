@@ -1,0 +1,45 @@
+# specs/C2_phi4mm.yaml
+# Track C2: Phi-4-Multimodal Decoder (speech + video pretrained, 5.6B)
+# Phi-4-MM uses *fused* QKV projection (one weight matrix, not q/k/v separately).
+# LoRA must target "qkv_proj" — standard "q_proj","k_proj","v_proj" will fail.
+# Hidden dim: 3072. Projector output_dim must match.
+#
+# NOTE: Borderline 6 GB — set batch_size=1, accumulation_steps=16.
+# Run: python run.py --experiment C2 --profile full  (cloud recommended)
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 3072    # Phi-4-MM hidden dim
+
+decoder:
+  variant:      phi4mm
+  llm_name:     microsoft/Phi-4-multimodal-instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+  # Fused QKV — do NOT use q_proj/k_proj/v_proj here
+  lora_target_modules:
+    - qkv_proj
+    - o_proj
+    - gate_up_proj
+    - down_proj
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0
