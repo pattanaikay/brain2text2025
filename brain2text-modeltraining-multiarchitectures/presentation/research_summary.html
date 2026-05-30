@@ -5,367 +5,805 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Research Progress — Brain2Text 2025 &amp; DietCorp-ZenBrain BCI</title>
 <style>
-  /* ── Reset & Base ─────────────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 15px; scroll-behavior: smooth; }
-  body {
-    font-family: "Georgia", "Times New Roman", serif;
-    color: #1a1a1a;
-    background: #fafaf8;
-    line-height: 1.7;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 3rem 2.5rem 6rem;
-  }
-  /* ── Typography ───────────────────────────────────────────────────── */
-  h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
-  h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; margin-top: 3rem; margin-bottom: 0.75rem; }
-  h3 { font-size: 1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.5rem; font-family: system-ui, sans-serif; }
-  h4 { font-size: 0.875rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.25rem; font-family: system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
-  p  { margin-bottom: 0.9rem; }
-  a  { color: #2563eb; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  code {
-    font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
-    font-size: 0.82em;
-    background: #f0ede8;
-    padding: 0.1em 0.35em;
-    border-radius: 3px;
-    color: #c2410c;
-  }
-  strong { font-weight: 700; }
-  em     { font-style: italic; }
-  ul, ol { padding-left: 1.4rem; margin-bottom: 0.9rem; }
-  li     { margin-bottom: 0.25rem; }
-  /* ── Structural elements ──────────────────────────────────────────── */
-  .rule { border: none; border-top: 1px solid #ddd; margin: 2.5rem 0; }
-  .rule-heavy { border: none; border-top: 2px solid #1a1a1a; margin: 3rem 0 2rem; }
-  /* ── Header ───────────────────────────────────────────────────────── */
-  .page-header { margin-bottom: 2.5rem; }
-  .page-header .meta {
-    font-family: system-ui, sans-serif;
-    font-size: 0.78rem;
-    color: #888;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 0.6rem;
-  }
-  .page-header h1 { margin-bottom: 0.5rem; }
-  .page-header .subtitle {
-    font-size: 1rem;
-    color: #555;
-    font-style: italic;
-  }
-  /* ── Project section headers ─────────────────────────────────────── */
-  .project-header {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid currentColor;
-  }
-  .project-header h2 { margin: 0; font-size: 1.35rem; }
-  .project-tag {
-    font-family: system-ui, sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    padding: 0.15rem 0.55rem;
-    border-radius: 3px;
-    white-space: nowrap;
-  }
-  .p1 { color: #1d4ed8; border-color: #1d4ed8; }
-  .p1 .project-tag { background: #eff6ff; color: #1d4ed8; }
-  .p2 { color: #0f766e; border-color: #0f766e; }
-  .p2 .project-tag { background: #f0fdfa; color: #0f766e; }
-  /* ── Status badges ───────────────────────────────────────────────── */
-  .badge {
-    display: inline-block;
-    font-family: system-ui, sans-serif;
-    font-size: 0.70rem;
-    font-weight: 600;
-    padding: 0.12rem 0.5rem;
-    border-radius: 20px;
-    letter-spacing: 0.03em;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-  .badge-done    { background: #dcfce7; color: #166534; }
-  .badge-active  { background: #dbeafe; color: #1e40af; }
-  .badge-planned { background: #f3f4f6; color: #4b5563; }
-  .badge-cloud   { background: #fef9c3; color: #854d0e; }
-  .badge-local   { background: #f0fdf4; color: #166534; }
-  .badge-risk    { background: #fef2f2; color: #991b1b; }
-  /* ── Info grid (key-value pairs) ─────────────────────────────────── */
-  .kv-grid {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 0.25rem 1.5rem;
-    font-family: system-ui, sans-serif;
-    font-size: 0.85rem;
-    margin-bottom: 1.25rem;
-  }
-  .kv-key   { color: #6b7280; white-space: nowrap; padding-top: 0.05rem; }
-  .kv-val   { color: #1a1a1a; }
-  /* ── Experiment table ────────────────────────────────────────────── */
-  .exp-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: system-ui, sans-serif;
-    font-size: 0.82rem;
-    margin-bottom: 1.5rem;
-  }
-  .exp-table thead tr { border-bottom: 2px solid #1a1a1a; }
-  .exp-table thead th {
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #6b7280;
-    padding: 0.4rem 0.75rem 0.4rem 0;
-  }
-  .exp-table tbody tr { border-bottom: 1px solid #e5e7eb; }
-  .exp-table tbody tr:last-child { border-bottom: none; }
-  .exp-table td {
-    padding: 0.55rem 0.75rem 0.55rem 0;
-    vertical-align: top;
-    line-height: 1.45;
-  }
-  .exp-table td:first-child { font-weight: 600; white-space: nowrap; color: #374151; }
-  .exp-table .metric { color: #6b7280; font-size: 0.78rem; }
-  .exp-table .hw { text-align: center; }
-  /* ── Track cards ─────────────────────────────────────────────────── */
-  .track-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  .track-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 1rem 1.1rem;
-    background: white;
-    position: relative;
-  }
-  .track-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    border-radius: 6px 0 0 6px;
-    background: var(--tc);
-  }
-  .track-card .track-id {
-    font-family: system-ui, sans-serif;
-    font-size: 0.70rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--tc);
-    margin-bottom: 0.25rem;
-  }
-  .track-card h4 { margin: 0 0 0.4rem; text-transform: none; letter-spacing: 0; color: #1a1a1a; font-size: 0.9rem; }
-  .track-card p  { font-family: system-ui, sans-serif; font-size: 0.8rem; color: #4b5563; margin: 0 0 0.5rem; line-height: 1.5; }
-  .track-card .exps { font-family: system-ui, sans-serif; font-size: 0.75rem; color: #6b7280; }
-  /* ── Stage cards (DietCorp) ──────────────────────────────────────── */
-  .stage-list { margin-bottom: 1.5rem; }
-  .stage-item {
-    display: grid;
-    grid-template-columns: 3.5rem 1fr;
-    gap: 0 1.25rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid #e5e7eb;
-    align-items: start;
-  }
-  .stage-item:last-child { border-bottom: none; }
-  .stage-num {
-    font-family: system-ui, sans-serif;
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #e5e7eb;
-    line-height: 1;
-    padding-top: 0.15rem;
-    user-select: none;
-  }
-  .stage-body h3 { margin-top: 0; font-size: 0.95rem; }
-  .stage-body p  { font-family: system-ui, sans-serif; font-size: 0.83rem; color: #4b5563; margin-bottom: 0.5rem; }
-  .stage-weeks {
-    font-family: system-ui, sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #9ca3af;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    margin-bottom: 0.25rem;
-  }
-  /* ── Investigation modes ─────────────────────────────────────────── */
-  .mode-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-    margin-bottom: 1.5rem;
-  }
-  .mode-item {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 5px;
-    padding: 0.65rem 0.9rem;
-    font-family: system-ui, sans-serif;
-    font-size: 0.80rem;
-  }
-  .mode-item .mode-n {
-    font-weight: 700;
-    color: #0f766e;
-    margin-bottom: 0.15rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .mode-item p { margin: 0; color: #374151; line-height: 1.45; }
-  /* ── Risks ───────────────────────────────────────────────────────── */
-  .risk-list { margin-bottom: 1.5rem; }
-  .risk-item {
-    display: flex;
-    gap: 0.75rem;
-    align-items: baseline;
-    padding: 0.45rem 0;
-    border-bottom: 1px solid #f3f4f6;
-    font-family: system-ui, sans-serif;
-    font-size: 0.83rem;
-  }
-  .risk-item:last-child { border-bottom: none; }
-  .risk-label { font-weight: 700; color: #7c3aed; white-space: nowrap; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
-  .risk-text  { color: #374151; line-height: 1.5; }
-  /* ── Feasibility matrix ──────────────────────────────────────────── */
-  .feas-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: system-ui, sans-serif;
-    font-size: 0.80rem;
-    margin-bottom: 1.5rem;
-  }
-  .feas-table thead tr { border-bottom: 2px solid #1a1a1a; }
-  .feas-table thead th {
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #6b7280;
-    padding: 0.35rem 0.65rem 0.35rem 0;
-  }
-  .feas-table tbody tr { border-bottom: 1px solid #f0ede8; }
-  .feas-table td { padding: 0.4rem 0.65rem 0.4rem 0; vertical-align: middle; }
-  .feas-table td:first-child { font-weight: 500; }
-  .dot-local  { color: #16a34a; font-weight: 700; }
-  .dot-cloud  { color: #d97706; font-weight: 700; }
-  /* ── Callout ─────────────────────────────────────────────────────── */
-  .callout {
-    border-left: 3px solid #e5e7eb;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.25rem;
-    background: white;
-    font-family: system-ui, sans-serif;
-    font-size: 0.83rem;
-    color: #374151;
-    line-height: 1.6;
-  }
-  .callout.blue  { border-color: #3b82f6; background: #eff6ff; }
-  .callout.teal  { border-color: #0d9488; background: #f0fdfa; }
-  .callout.amber { border-color: #f59e0b; background: #fffbeb; }
-  .callout strong { color: #1a1a1a; }
-  /* ── Footnotes / caption ─────────────────────────────────────────── */
-  .caption {
-    font-family: system-ui, sans-serif;
-    font-size: 0.75rem;
-    color: #9ca3af;
-    margin-top: -1rem;
-    margin-bottom: 1.25rem;
-  }
-  /* ── TOC ─────────────────────────────────────────────────────────── */
-  .toc {
-    font-family: system-ui, sans-serif;
-    font-size: 0.80rem;
-    margin-bottom: 2.5rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
-    background: white;
-  }
-  .toc p { font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; margin-bottom: 0.5rem; }
-  .toc ol { padding-left: 1.2rem; margin: 0; }
-  .toc li { margin-bottom: 0.2rem; }
-  .toc a { color: #374151; }
-  .toc a:hover { color: #1a1a1a; }
-  /* ── Separator label ─────────────────────────────────────────────── */
-  .section-label {
-    font-family: system-ui, sans-serif;
-    font-size: 0.70rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #9ca3af;
-    margin-bottom: 0.35rem;
-  }
-  /* ── Print ───────────────────────────────────────────────────────── */
-  @media print {
-    body { background: white; padding: 1.5rem; }
-    .track-card, .mode-item { break-inside: avoid; }
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+body {
+  font-family: "Georgia", "Times New Roman", serif;
+  color: #111827;
+  background: #f3f4f6;
+  min-height: 100vh;
+}
+.layout {
+  display: flex;
+  max-width: 1100px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: white;
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 205px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-right: 1px solid #e5e7eb;
+  padding: 1.5rem 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidebar-brand {
+  padding: 0 1.1rem 1.1rem;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+.sb-label {
+  font-family: system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+.sb-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.35;
+  margin-top: 0.25rem;
+}
+.nav-group { margin-bottom: 0.25rem; }
+.nav-group-label {
+  font-family: system-ui, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 0.5rem 1.1rem 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.nav-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nav-item {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.76rem;
+  color: #6b7280;
+  text-decoration: none;
+  padding: 0.2rem 1.1rem;
+  border-left: 2px solid transparent;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+  line-height: 1.45;
+}
+.nav-item:hover { color: #111827; background: #f3f4f6; }
+.nav-item.active-p1 { color: #1d4ed8; border-left-color: #1d4ed8; background: #eff6ff; font-weight: 600; }
+.nav-item.active-p2 { color: #0f766e; border-left-color: #0f766e; background: #f0fdfa; font-weight: 600; }
+.nav-divider { border: none; border-top: 1px solid #e5e7eb; margin: 0.6rem 0; }
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 2.5rem 3rem 5rem;
+}
+
+/* ── Page header ─────────────────────────────────────────────────────── */
+.page-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.page-header .meta {
+  font-family: system-ui, sans-serif;
+  font-size: 0.70rem;
+  color: #9ca3af;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.page-header h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #111827;
+  margin-bottom: 0.6rem;
+}
+.page-header .subtitle {
+  font-size: 0.92rem;
+  color: #6b7280;
+  line-height: 1.65;
+  font-style: italic;
+}
+.project-pills {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+.pp {
+  font-family: system-ui, sans-serif;
+  font-size: 0.70rem;
+  font-weight: 600;
+  padding: 0.22rem 0.6rem;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+.pp-p1 { background: #eff6ff; color: #1d4ed8; }
+.pp-p2 { background: #f0fdfa; color: #0f766e; }
+
+/* ── Project header ──────────────────────────────────────────────────── */
+.project-section-label {
+  font-family: system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.35rem;
+}
+.project-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+  flex-wrap: wrap;
+}
+.project-title-row h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.p1 .project-title-row h2 { color: #1d4ed8; }
+.p2 .project-title-row h2 { color: #0f766e; }
+.project-tag {
+  font-family: system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+}
+.p1 .project-tag { background: #eff6ff; color: #1d4ed8; }
+.p2 .project-tag { background: #f0fdfa; color: #0f766e; }
+
+/* ── Stat strip ──────────────────────────────────────────────────────── */
+.stat-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.stat-cell {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border-right: 1px solid #e5e7eb;
+  min-width: 0;
+}
+.stat-cell:last-child { border-right: none; }
+.stat-n {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-l {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+.p1 .stat-cell:first-child .stat-n { color: #1d4ed8; }
+.p2 .stat-cell:first-child .stat-n { color: #0f766e; }
+
+/* ── Typography ──────────────────────────────────────────────────────── */
+h3 { font-size: 1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.55rem; }
+h4 {
+  font-family: system-ui, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-top: 1.2rem;
+  margin-bottom: 0.35rem;
+}
+p { margin-bottom: 0.9rem; line-height: 1.7; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  font-size: 0.80em;
+  background: #f3f4f6;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  color: #c2410c;
+}
+strong { font-weight: 700; }
+em { font-style: italic; }
+ul, ol { padding-left: 1.4rem; margin-bottom: 0.9rem; }
+li { margin-bottom: 0.25rem; line-height: 1.6; }
+.rule { border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+.rule-heavy { border: none; border-top: 2px solid #111827; margin: 2.75rem 0 2rem; }
+.caption {
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-top: -1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.67rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.badge-done    { background: #dcfce7; color: #166534; }
+.badge-active  { background: #dbeafe; color: #1e40af; }
+.badge-planned { background: #f3f4f6; color: #4b5563; }
+.badge-cloud   { background: #fef9c3; color: #854d0e; }
+.badge-local   { background: #f0fdf4; color: #166534; }
+
+/* ── Callout ─────────────────────────────────────────────────────────── */
+.callout {
+  border-left: 3px solid #e5e7eb;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.25rem;
+  background: white;
+  font-family: system-ui, sans-serif;
+  font-size: 0.81rem;
+  color: #374151;
+  line-height: 1.65;
+  border-radius: 0 5px 5px 0;
+}
+.callout.blue  { border-color: #3b82f6; background: #eff6ff; }
+.callout.teal  { border-color: #0d9488; background: #f0fdfa; }
+.callout.amber { border-color: #f59e0b; background: #fffbeb; }
+.callout strong { color: #111827; }
+
+/* ── KV grid ─────────────────────────────────────────────────────────── */
+.kv-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 1.4rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.81rem;
+  margin-bottom: 1.25rem;
+}
+.kv-key { color: #9ca3af; white-space: nowrap; padding-top: 0.06rem; }
+.kv-val { color: #111827; }
+
+/* ── Track cards ─────────────────────────────────────────────────────── */
+.track-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.track-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.95rem 1rem;
+  background: white;
+  position: relative;
+  overflow: hidden;
+}
+.track-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--tc);
+}
+.track-id {
+  font-family: system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tc);
+  margin-bottom: 0.2rem;
+}
+.track-card h4 {
+  margin: 0 0 0.35rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #111827;
+  font-size: 0.87rem;
+  font-weight: 700;
+}
+.track-card p {
+  font-family: system-ui, sans-serif;
+  font-size: 0.77rem;
+  color: #4b5563;
+  margin: 0 0 0.4rem;
+  line-height: 1.5;
+}
+.track-card .exps {
+  font-family: system-ui, sans-serif;
+  font-size: 0.70rem;
+  color: #9ca3af;
+}
+
+/* ── Experiment tables ───────────────────────────────────────────────── */
+.exp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: system-ui, sans-serif;
+  font-size: 0.79rem;
+  margin-bottom: 1.5rem;
+}
+.exp-table thead tr { border-bottom: 2px solid #111827; }
+.exp-table thead th {
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 0.38rem 0.6rem 0.38rem 0;
+}
+.exp-table tbody tr { border-bottom: 1px solid #f3f4f6; }
+.exp-table tbody tr:last-child { border-bottom: none; }
+.exp-table td { padding: 0.5rem 0.6rem 0.5rem 0; vertical-align: top; line-height: 1.45; }
+.exp-table td:first-child { font-weight: 600; color: #374151; white-space: nowrap; }
+.exp-table .metric { color: #9ca3af; font-size: 0.73rem; margin-top: 0.18rem; }
+.exp-table .hw { text-align: center; }
+
+/* ── Feasibility table ───────────────────────────────────────────────── */
+.feas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: system-ui, sans-serif;
+  font-size: 0.79rem;
+  margin-bottom: 1.5rem;
+}
+.feas-table thead tr { border-bottom: 2px solid #111827; }
+.feas-table thead th {
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 0.35rem 0.6rem 0.35rem 0;
+}
+.feas-table tbody tr { border-bottom: 1px solid #f3f4f6; }
+.feas-table td { padding: 0.38rem 0.6rem 0.38rem 0; vertical-align: middle; }
+.feas-table td:first-child { font-weight: 500; }
+.dot-local { color: #16a34a; font-weight: 700; }
+.dot-cloud { color: #d97706; font-weight: 700; }
+
+/* ── Timeline (Brain2Text phases) ────────────────────────────────────── */
+.timeline {
+  position: relative;
+  margin-bottom: 1.5rem;
+  padding-left: 0;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  bottom: 16px;
+  width: 1px;
+  background: #e5e7eb;
+}
+.tl-item {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+.tl-item:last-child { margin-bottom: 0; }
+.tl-dot {
+  flex-shrink: 0;
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, sans-serif;
+  font-size: 0.70rem;
+  font-weight: 700;
+  color: #9ca3af;
+  z-index: 1;
+  margin-top: 0.05rem;
+}
+.tl-dot.is-active { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; }
+.tl-content { flex: 1; padding-bottom: 0.25rem; }
+.tl-label {
+  font-family: system-ui, sans-serif;
+  font-size: 0.67rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+}
+.tl-content h3 { font-size: 0.92rem; margin-top: 0; margin-bottom: 0.25rem; }
+.tl-content p {
+  font-family: system-ui, sans-serif;
+  font-size: 0.79rem;
+  color: #6b7280;
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+/* ── Stage items (DietCorp) ──────────────────────────────────────────── */
+.stage-list { margin-bottom: 1.5rem; }
+.stage-item {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0 1.1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: start;
+}
+.stage-item:last-child { border-bottom: none; }
+.stage-num {
+  font-family: system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #e5e7eb;
+  line-height: 1;
+  padding-top: 0.2rem;
+  user-select: none;
+}
+.stage-body h3 { margin-top: 0; font-size: 0.93rem; }
+.stage-body p { font-family: system-ui, sans-serif; font-size: 0.79rem; color: #6b7280; margin-bottom: 0.5rem; line-height: 1.55; }
+.stage-weeks {
+  font-family: system-ui, sans-serif;
+  font-size: 0.67rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Investigation modes ─────────────────────────────────────────────── */
+.mode-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-bottom: 1.5rem;
+}
+.mode-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  padding: 0.65rem 0.85rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.77rem;
+}
+.mode-n {
+  font-weight: 700;
+  color: #0f766e;
+  margin-bottom: 0.15rem;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.mode-item p { margin: 0; color: #374151; line-height: 1.45; }
+
+/* ── Risk / finding list ─────────────────────────────────────────────── */
+.risk-list { margin-bottom: 1.5rem; }
+.risk-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-family: system-ui, sans-serif;
+  font-size: 0.81rem;
+}
+.risk-item:last-child { border-bottom: none; }
+.risk-label {
+  font-weight: 700;
+  color: #7c3aed;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  min-width: 5.5rem;
+}
+.risk-text { color: #374151; line-height: 1.55; }
+
+/* ── ASCII diagram ───────────────────────────────────────────────────── */
+.diagram {
+  font-family: 'SFMono-Regular', 'Consolas', monospace;
+  font-size: 0.69rem;
+  line-height: 1.55;
+  color: #374151;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  padding: 1.25rem;
+  overflow-x: auto;
+  white-space: pre;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+.page-footer {
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+.page-footer p { margin-bottom: 0.3rem; line-height: 1.5; }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+/* ── Research Statement ─────────────────────────────────────────────── */
+.research-statement {
+  border-left: 3px solid #111827;
+  background: white;
+  padding: 1.35rem 1.6rem;
+  margin-bottom: 2.5rem;
+  border-radius: 0 6px 6px 0;
+  border: 1px solid #e5e7eb;
+  border-left-width: 3px;
+  border-left-color: #111827;
+}
+.rs-label {
+  font-family: system-ui, sans-serif;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.65rem;
+}
+.research-statement p {
+  font-size: 0.92rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.78;
+  color: #1a1a1a;
+}
+.research-statement p:last-child { margin-bottom: 0; }
+
+/* ── Track A deep-dive ───────────────────────────────────────────────── */
+.track-deepdive {
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: #f0f9ff;
+}
+.td-label {
+  font-family: system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #0284c7;
+  margin-bottom: 0.25rem;
+}
+.td-title {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.65rem;
+  font-family: "Georgia", serif;
+}
+.phase-head {
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1.1rem;
+  margin-bottom: 0.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid #bae6fd;
+}
+.phase-sub {
+  font-family: system-ui, sans-serif;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+/* ── DietCorp clinical context ───────────────────────────────────────── */
+.clinical-box {
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #374151;
+  border-radius: 0 6px 6px 0;
+  background: #f9fafb;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.80rem;
+  color: #374151;
+  line-height: 1.6;
+}
+.clinical-box strong { color: #111827; }
+.clinical-box ul { margin-bottom: 0.5rem; }
+.clinical-box li { margin-bottom: 0.35rem; }
+
+@media (max-width: 780px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #e5e7eb; }
+  .main { padding: 1.5rem 1.25rem 3rem; }
+  .track-grid, .mode-list { grid-template-columns: 1fr; }
+  .stat-row { flex-wrap: wrap; }
+  .stat-cell { flex: 1 1 40%; }
+}
+@media print {
+  body { background: white; }
+  .sidebar { display: none; }
+  .main { padding: 1.5rem; }
+  .track-card, .mode-item, .tl-item { break-inside: avoid; }
+}
 </style>
 </head>
 <body>
+<div class="layout">
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE HEADER -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- SIDEBAR                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <span class="nav-dot" style="background:#1d4ed8;"></span>
+        Project I · Brain2Text
+      </div>
+      <a class="nav-item" href="#bt-baseline">Baseline &amp; Status</a>
+      <a class="nav-item" href="#bt-tracks">Five Tracks (A–E)</a>
+      <a class="nav-item" href="#bt-experiments">Experiment Catalogue</a>
+      <a class="nav-item" href="#bt-feasibility">Feasibility &amp; Roadmap</a>
+    </div>
+    <hr class="nav-divider">
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <span class="nav-dot" style="background:#0f766e;"></span>
+        Project II · DietCorp
+      </div>
+      <a class="nav-item" href="#dc-ask">The Ask</a>
+      <a class="nav-item" href="#dc-findings">Feasibility Audit</a>
+      <a class="nav-item" href="#dc-modes">Investigation Modes</a>
+      <a class="nav-item" href="#dc-stages">Four-Stage Plan</a>
+      <a class="nav-item" href="#dc-tools">Tools &amp; Substrates</a>
+      <a class="nav-item" href="#dc-risks">Risks &amp; Decisions</a>
+      <a class="nav-item" href="#dc-advisor">Advisor Questions</a>
+      <a class="nav-item" href="#dc-status">Status</a>
+    </div>
+  </nav>
+</aside>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- MAIN                                                              -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+<!-- Page header -->
 <header class="page-header">
-  <div class="meta">Research Progress Summary &nbsp;·&nbsp; Compiled 29 May 2026</div>
+  <div class="meta">Research Progress Summary &nbsp;·&nbsp;</div>
   <h1>Neural Speech Decoding:<br>Active Experiments &amp; Research Plan</h1>
   <p class="subtitle">
     Two concurrent lines of work — Brain2Text multi-architecture ablations (WER reduction toward &lt;10%)
     and a memory-augmented on-device BCI for ALS / brainstem-stroke patients (DietCorp-ZenBrain on Coral).
   </p>
+  <div class="project-pills">
+    <span class="pp pp-p1">Project I · Brain2Text 2025 · Multi-Architecture Ablations</span>
+    <span class="pp pp-p2">Project II · DietCorp-ZenBrain · Edge Deployment Study</span>
+  </div>
 </header>
-
-<!-- Table of Contents -->
-<nav class="toc">
-  <p>Contents</p>
-  <ol>
-    <li><a href="#bt">Brain2Text 2025 — Multi-Architecture Experiment Design</a>
-      <ol>
-        <li><a href="#bt-baseline">Baseline &amp; current training status</a></li>
-        <li><a href="#bt-tracks">Five experiment tracks (A–E)</a></li>
-        <li><a href="#bt-experiments">Experiment catalogue</a></li>
-        <li><a href="#bt-feasibility">Local feasibility &amp; roadmap</a></li>
-      </ol>
-    </li>
-    <li><a href="#dc">DietCorp-ZenBrain Memory BCI — On-Device Deployment Study</a>
-      <ol>
-        <li><a href="#dc-ask">Research question</a></li>
-        <li><a href="#dc-modes">Investigation modes</a></li>
-        <li><a href="#dc-stages">Four-stage experiment plan</a></li>
-        <li><a href="#dc-risks">Risks &amp; open decisions</a></li>
-        <li><a href="#dc-status">Status</a></li>
-      </ol>
-    </li>
-  </ol>
-</nav>
 
 <hr class="rule-heavy">
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- PROJECT 1: BRAIN2TEXT 2025 -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<section id="bt">
-  <div class="section-label">Project I</div>
-  <div class="project-header p1">
+<!-- Research Statement -->
+<div class="research-statement">
+  <div class="rs-label"> Research Statement &nbsp;·&nbsp; &nbsp;·&nbsp;</div>
+  <p>
+    Neural speech decoding for patients with ALS or brainstem stroke — conditions that sever motor
+    pathways while leaving cognition intact — is the central problem motivating both projects
+    documented here. The clinical goal is a speech brain–computer interface that restores real-time
+    communication from intracortical recordings, without cloud dependency, on hardware the patient
+    already owns.
+  </p>
+  <p>
+    Two parallel research threads pursue this goal. The first — <strong>Brain2Text 2025</strong> —
+    systematically ablates the architectural design space of neural decoders: from classical sequence
+    models (RNNs, LSTMs, GRUs) through modern attention-based architectures (Transformers, Mamba)
+    and state-space models, to audio-pretrained, vision-pretrained, and multimodal LLMs. The primary
+    aims are (a) to replicate and surpass current state-of-the-art decoding performance on the
+    Brain-to-Text Benchmark '24, and (b) to identify which architectural priors drive the performance
+    gap — enabling principled design decisions rather than blind architectural search.
+  </p>
+  <p>
+    The second — <strong>DietCorp-ZenBrain</strong> — investigates whether a compact, well-designed
+    decoder can be deployed on consumer hardware (phones, laptops) using open-source quantised
+    inference, and whether a neuroscience-inspired multi-tier memory hierarchy can sustain accurate
+    decoding across days without recalibration sessions.
+  </p>
+  <p>
+    The deeper intellectual question threading both projects: when a neural network learns to decode
+    motor-cortex signals, what has it actually learned about how the motor system encodes speech
+    intention — and which computational structures best reflect that biology?
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PROJECT I: BRAIN2TEXT 2025                                        -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<section id="bt" class="p1">
+  <div class="project-section-label">Project I</div>
+  <div class="project-title-row">
     <h2>Brain2Text 2025</h2>
     <span class="project-tag">Multi-Architecture Ablations</span>
+  </div>
+
+  <!-- Stat strip -->
+  <div class="stat-row">
+    <div class="stat-cell">
+      <span class="stat-n">0.3673</span>
+      <span class="stat-l">Current WER</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">Ep 65/150</span>
+      <span class="stat-l">Training progress</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">0.1567</span>
+      <span class="stat-l">Published best WER</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">16</span>
+      <span class="stat-l">Planned experiments</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">5 tracks</span>
+      <span class="stat-l">A · B · C · D · E</span>
+    </div>
   </div>
 
   <p>
@@ -376,7 +814,6 @@
 
   <!-- ─── Baseline ──────────────────────────────────────────────────── -->
   <h3 id="bt-baseline">Baseline &amp; Current Training Status</h3>
-
   <div class="kv-grid">
     <span class="kv-key">Pipeline</span>
     <span class="kv-val">BIT_Transformer (7L, 384d, RoPE, session read-in, SSL pretrained) → MLP Projector (384→1024→1024→1536) → Qwen2.5-1.5B + QLoRA</span>
@@ -401,9 +838,8 @@
     Audio-pretraining experiments (Track A, C) are the primary path to the 0.10 target.
   </div>
 
-  <!-- ─── Toy protocol ──────────────────────────────────────────────── -->
   <h4>Toy Training Protocol</h4>
-  <p style="font-family:system-ui,sans-serif;font-size:0.83rem;color:#374151;">
+  <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;">
     All ablation experiments run first on <strong>15% of training data, 20 epochs, 200 batches/epoch (~20 min local)</strong>
     before any full A100 commitment. Promotion decision uses WER slope (epoch 2→20):
     ≥5% relative → full cloud run immediately; 3–5% → combine + retry; &lt;1% → discard.
@@ -411,223 +847,274 @@
 
   <hr class="rule">
 
-  <!-- ─── Tracks ─────────────────────────────────────────────────────── -->
+  <!-- ─── Five Tracks ───────────────────────────────────────────────── -->
   <h3 id="bt-tracks">Five Experiment Tracks</h3>
-
   <div class="track-grid">
-    <!-- Track A -->
     <div class="track-card" style="--tc:#38BDF8">
       <div class="track-id">Track A &nbsp;·&nbsp; 4 experiments</div>
       <h4>Pretraining Modality</h4>
-      <p>
-        Why does audio pretraining help neural decoding? Comparative analysis: audio vs image/video vs
-        text-only LLM backbones. Tests four mechanistic hypotheses (phoneme prior, spoken language prior,
-        embedding geometry, temporal structure).
-      </p>
-      <div class="exps">
-        A1 CKA alignment &nbsp;·&nbsp; A2 Spoken perplexity &nbsp;·&nbsp;
-        A3 Phoneme probe &nbsp;·&nbsp; A4 Full E2E WER comparison
-      </div>
+      <p>Why does audio pretraining help neural decoding? Comparative analysis: audio vs image/video vs text-only LLM backbones. Tests four mechanistic hypotheses (phoneme prior, spoken language prior, embedding geometry, temporal structure).</p>
+      <div class="exps">A1 CKA alignment &nbsp;·&nbsp; A2 Spoken perplexity &nbsp;·&nbsp; A3 Phoneme probe &nbsp;·&nbsp; A4 Full E2E WER comparison</div>
     </div>
-    <!-- Track B -->
     <div class="track-card" style="--tc:#A78BFA">
       <div class="track-id">Track B &nbsp;·&nbsp; 5 experiments</div>
       <h4>Encoder Architecture</h4>
-      <p>
-        Five drop-in replacements for BIT_Transformer — all output <code>(B, T_patch, 384)</code>.
-        ConformerXL (spike-jitter correction), HRM (dual-timescale DEQ), MambaPOSSM (SSM + cross-attention
-        tokeniser), MoE (6 specific + 2 shared experts), ZenBrain (episodic memory).
-      </p>
+      <p>Five drop-in replacements for BIT_Transformer — all output <code>(B, T_patch, 384)</code>. ConformerXL (spike-jitter correction), HRM (dual-timescale DEQ), MambaPOSSM (SSM + cross-attention tokeniser), MoE (6 specific + 2 shared experts), ZenBrain (episodic memory).</p>
       <div class="exps">B1 ConformerXL &nbsp;·&nbsp; B2 HRM &nbsp;·&nbsp; B3 MambaPOSSM &nbsp;·&nbsp; B4 MoE &nbsp;·&nbsp; B5 ZenBrain</div>
     </div>
-    <!-- Track C -->
     <div class="track-card" style="--tc:#34D399">
       <div class="track-id">Track C &nbsp;·&nbsp; 3 experiments</div>
       <h4>LLM Decoder Variants</h4>
-      <p>
-        BIT encoder held constant; only the LLM decoder changes. Tests three audio/multimodal LLMs
-        as drop-in Qwen2.5-1.5B replacements. C3 (WhisperQwen) is the only locally runnable audio-LLM option.
-      </p>
+      <p>BIT encoder held constant; only the LLM decoder changes. Tests three audio/multimodal LLMs as drop-in Qwen2.5-1.5B replacements. C3 (WhisperQwen) is the only locally runnable audio-LLM option.</p>
       <div class="exps">C1 Qwen2-Audio-7B &nbsp;·&nbsp; C2 Phi-4-Multimodal &nbsp;·&nbsp; C3 Whisper-Large-v3 + Qwen2.5</div>
     </div>
-    <!-- Track D -->
     <div class="track-card" style="--tc:#FB923C">
       <div class="track-id">Track D &nbsp;·&nbsp; 4 experiments</div>
       <h4>Loss Function Design</h4>
-      <p>
-        Ablations on the three-term loss: <code>CE + 0.3×CTC + 1.0×Contrastive</code>. Tests CTC annealing
-        schedules, contrastive weight grid, topographic regularisation (FFN cortical map constraint),
-        and label smoothing for low-data regimes.
-      </p>
+      <p>Ablations on the three-term loss: <code>CE + 0.3×CTC + 1.0×Contrastive</code>. Tests CTC annealing schedules, contrastive weight grid, topographic regularisation (FFN cortical map constraint), and label smoothing for low-data regimes.</p>
       <div class="exps">D1 CTC annealing &nbsp;·&nbsp; D2 Contrastive weight &nbsp;·&nbsp; D3 Topographic loss &nbsp;·&nbsp; D4 Label smoothing</div>
     </div>
-    <!-- Track E -->
     <div class="track-card" style="--tc:#F472B6">
       <div class="track-id">Track E &nbsp;·&nbsp; 3 experiments</div>
       <h4>Projector Architecture</h4>
-      <p>
-        Currently: MLP 384→1024→1024→1536 + LayerNorm. E2 (Q-Former cross-attention projector with
-        N learned queries) is the highest-impact change — produces fixed-length output independent of
-        neural sequence length.
-      </p>
+      <p>Currently: MLP 384→1024→1024→1536 + LayerNorm. E2 (Q-Former cross-attention projector with N learned queries) is the highest-impact change — produces fixed-length output independent of neural sequence length.</p>
       <div class="exps">E1 MLP depth variants &nbsp;·&nbsp; E2 Q-Former projector &nbsp;·&nbsp; E3 Patch-size × token-count grid</div>
     </div>
-    <!-- Summary -->
     <div class="track-card" style="--tc:#6b7280; background:#f9fafb;">
       <div class="track-id" style="color:#6b7280;">Summary</div>
       <h4>16 total experiments</h4>
-      <p>12 runnable locally on RTX 4050 (6 GB VRAM, batch=2, accumulation=8).<br>
-         4 require A100 cloud (C1, C2, A4, select full-data runs).</p>
+      <p>12 runnable locally on RTX 4050 (6 GB VRAM, batch=2, accumulation=8).<br>4 require A100 cloud (C1, C2, A4, select full-data runs).</p>
       <div class="exps">All toy runs: ~20 min local &nbsp;·&nbsp; Full A100 run: 15 hr</div>
     </div>
   </div>
 
+  <!-- Track A deep-dive -->
+  <div class="track-deepdive">
+    <div class="td-label">Track A · Research Deep-Dive</div>
+    <div class="td-title">Investigating Multimodal Alignment in Neural Decoding: Audio vs. Visual Pretraining</div>
+
+    <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;margin-bottom:0.5rem;">
+      Initial observations indicate that audio-pretrained LLMs outperform text-only baselines when
+      decoding neural signals via an MLP projector. The experiments in Track A are designed to isolate
+      the root cause through three controlled ablations, then characterise the modality gap more deeply
+      through representational similarity analysis and temporal boundary synchronisation.
+    </p>
+
+    <div class="phase-head">Phase 1 — Isolating the Audio Pretraining Advantage</div>
+    <table class="exp-table" style="background:white;border-radius:4px;">
+      <thead><tr>
+        <th style="width:9rem">Hypothesis</th>
+        <th>Premise</th>
+        <th style="width:14rem">Ablation Strategy</th>
+        <th style="width:10rem">Success Metric</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>H1 · Phoneme Prior</td>
+          <td>Audio models are robust to sub-word noise, allowing phonetic reconstruction from degraded signals.</td>
+          <td>Inject embedding-level Gaussian noise/masking into both audio and text LLMs.</td>
+          <td>WER/CER degradation curves under increasing noise</td>
+        </tr>
+        <tr>
+          <td>H2 · Spoken Language Prior</td>
+          <td>Neural data reflects the statistical distribution of spoken language (shorter syntax, repetitions).</td>
+          <td>Train a text-only LLM purely on spoken transcripts and swap into the decoding pipeline.</td>
+          <td>BLEU/METEOR score parity with the audio baseline</td>
+        </tr>
+        <tr>
+          <td>H3 · Embedding Alignment</td>
+          <td>The geometric topology of an audio latent space naturally resembles cortical semantic representations.</td>
+          <td>Extract raw embeddings and compute representational similarity before MLP projection.</td>
+          <td>Higher RSA / SVCCA scores for the audio model</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="phase-head">Phase 2 — The Modality Gap (Heard vs. Seen)</div>
+    <p style="font-family:system-ui,sans-serif;font-size:0.80rem;color:#374151;margin-bottom:0.5rem;">
+      To determine whether the brain's internal semantic convergence zones map more naturally to
+      continuous auditory manifolds or spatial visual spaces, the pipeline leverages both JEPA and
+      non-JEPA architectures.
+    </p>
+
+    <div class="phase-sub">Part A — JEPA-Based Latent Alignment</div>
+    <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.4rem;">
+      Joint-Embedding Predictive Architectures (JEPAs) are well-suited for modelling high-dimensional
+      brain data because they prioritise latent predictability over pixel/waveform reconstruction.
+    </p>
+    <ul style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.5rem;">
+      <li><strong>Modality Latent Alignment:</strong> Project identical fMRI/EEG data (captured during
+        combined audio-visual stimuli) into frozen Audio-JEPA and Vision-JEPA spaces. Lower L2/cosine
+        distance from the neural embeddings to the target space indicates the dominant modality.</li>
+      <li><strong>Distributional Regularisation:</strong> Apply LeJEPA-style variance-covariance
+        regularisation to the neural encoder's output. Forcing the neural data into an isotropic
+        Gaussian shape prior to projection tests whether structural misalignment — rather than missing
+        data — is the primary bottleneck.</li>
+    </ul>
+
+    <div class="phase-sub">Part B — Non-JEPA Manifold Topology</div>
+    <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.4rem;">
+      Contrastive models (CLAP, CLIP) prioritise global semantics; generative/autoregressive models
+      (Whisper, ViT, Audio-LLMs) prioritise local sequential dependencies.
+    </p>
+    <ul style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.5rem;">
+      <li><strong>Intrinsic Dimensionality &amp; Procrustes Analysis:</strong> Use Centered Kernel
+        Alignment (CKA) or Procrustes analysis to compare the raw neural manifold directly against
+        CLAP/CLIP and Audio-LLM/Vision-LLM spaces without training a projector.</li>
+      <li><strong>Representational Granularity:</strong> Measure alignment at varying levels of
+        abstraction (single word vs. full narrative) to determine whether audio models win because they
+        natively preserve temporal narrative context better than visual spaces.</li>
+    </ul>
+
+    <div class="phase-head">Phase 3 — Temporal Dynamics via Selective Decoding (Neural Drift)</div>
+    <p style="font-family:system-ui,sans-serif;font-size:0.80rem;color:#374151;margin-bottom:0.5rem;">
+      To validate that the targeted latent space captures genuine semantic meaning rather than temporal
+      noise, the pipeline tracks <strong>Neural Drift</strong> — continuous shifts in the brain's
+      internal representational state — through the latent space.
+    </p>
+    <ol style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.25rem;">
+      <li><strong>Tracking State Shifts:</strong> Measure the continuous cosine distance between
+        sequential neural vectors. A spike above a strict statistical threshold indicates a fundamental
+        shift in the brain's internal representational state.</li>
+      <li><strong>Event Boundary Synchronisation:</strong> Correlate the timestamps of neural drift
+        spikes with independent stimulus boundaries:
+        <ul style="margin-top:0.25rem;">
+          <li><em>Visual boundaries:</em> camera cuts, distinct optical flow changes, scene transitions.</li>
+          <li><em>Auditory boundaries:</em> phoneme onsets, speaker changes, musical cues.</li>
+        </ul>
+      </li>
+      <li><strong>Determining the Anchor Modality:</strong> If neural drift correlates primarily with
+        visual boundaries, cortical representation is visually anchored — favouring Vision-Language
+        target spaces. If it correlates with acoustic onsets (even during static visual frames), it
+        confirms that higher-level semantics are structured sequentially like audio, cementing the
+        architectural advantage of audio pretraining.</li>
+    </ol>
+  </div>
+
   <hr class="rule">
 
-  <!-- ─── Experiment catalogue ─────────────────────────────────────── -->
+  <!-- ─── Experiment Catalogue ──────────────────────────────────────── -->
   <h3 id="bt-experiments">Experiment Catalogue</h3>
 
-  <!-- Track A -->
   <h4>Track A — Pretraining Modality</h4>
   <table class="exp-table">
-    <thead>
-      <tr>
-        <th style="width:4.5rem">ID</th>
-        <th style="width:10rem">Name</th>
-        <th>Method &amp; Models</th>
-        <th style="width:9rem">Metric</th>
-        <th style="width:5rem">HW</th>
-        <th style="width:4.5rem">Time</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="width:3.8rem">ID</th>
+      <th style="width:8.5rem">Name</th>
+      <th>Method &amp; Models</th>
+      <th style="width:8rem">Metric</th>
+      <th style="width:4.5rem">HW</th>
+      <th style="width:3.8rem">Time</th>
+    </tr></thead>
     <tbody>
       <tr>
-        <td>A1</td>
-        <td>CKA Embedding Alignment</td>
+        <td>A1</td><td>CKA Alignment</td>
         <td>Linear CKA between BIT encoder output and each LLM embedding space, validation set, no training.
           <div class="metric">5 LLMs: text-1.5B, text-7B, vision-3B, audio-7B, phi4-MM</div></td>
-        <td>CKA score ↑ = better alignment</td>
+        <td>CKA score ↑</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
         <td>30 min</td>
       </tr>
       <tr>
-        <td>A2</td>
-        <td>Spoken Language Perplexity</td>
+        <td>A2</td><td>Spoken Perplexity</td>
         <td>Perplexity of each frozen LLM on BCI competition sentences (spoken) vs Wikipedia (written). Tests spoken/written calibration gap.
           <div class="metric">Qwen2.5-1.5B · Qwen2.5-7B · Qwen2-Audio-7B</div></td>
-        <td>PPL_spoken / PPL_written ↓ = better</td>
+        <td>PPL_spoken / PPL_written ↓</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
         <td>15 min</td>
       </tr>
       <tr>
-        <td>A3</td>
-        <td>Phoneme Probing</td>
+        <td>A3</td><td>Phoneme Probing</td>
         <td>Freeze LLM. Train Linear(llm_dim → 42) probe on hidden states to predict phoneme class. Identical probe + data across all models.
           <div class="metric">3 frozen LLMs compared</div></td>
-        <td>Phoneme top-1 accuracy ↑</td>
+        <td>Phoneme top-1 acc ↑</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
         <td>45 min</td>
       </tr>
       <tr>
-        <td>A4</td>
-        <td>Full E2E WER Comparison</td>
+        <td>A4</td><td>Full E2E WER</td>
         <td>Train each decoder on toy data, 20 epochs. Compare WER learning slope. C3 (WhisperQwen) is a locally runnable A4 proxy.
           <div class="metric">4 LLM decoders × 20 toy epochs</div></td>
-        <td>WER@epoch10 + slope (epoch 2→20)</td>
+        <td>WER@ep10 + slope (ep 2→20)</td>
         <td class="hw"><span class="badge badge-cloud">Cloud</span></td>
         <td>~3 hr</td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Track B -->
   <h4>Track B — Encoder Architecture</h4>
   <table class="exp-table">
-    <thead>
-      <tr>
-        <th style="width:4.5rem">ID</th>
-        <th style="width:10rem">Encoder</th>
-        <th>Key Innovation</th>
-        <th style="width:7rem">Extra Params</th>
-        <th style="width:5rem">HW</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="width:3.8rem">ID</th>
+      <th style="width:9rem">Encoder</th>
+      <th>Key Innovation</th>
+      <th style="width:6.5rem">Extra Params</th>
+      <th style="width:4.5rem">HW</th>
+    </tr></thead>
     <tbody>
       <tr>
-        <td>B0</td>
-        <td>BIT (baseline)</td>
+        <td>B0</td><td>BIT (baseline)</td>
         <td>RoPE Transformer · 7L · MAE SSL pretrained · per-session ModuleDict read-in layers</td>
         <td>—</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>B1</td>
-        <td>ConformerXL</td>
+        <td>B1</td><td>ConformerXL</td>
         <td>JitterCorrectionPrenet: 3 dilated conv branches (d=1,2,4) + BiGRU corrects spike-timing jitter before patching. Macaron blocks: FFN×0.5 → MHSA → DepthwiseConv → FFN×0.5</td>
         <td>+3M</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>B2</td>
-        <td>HRM</td>
+        <td>B2</td><td>HRM</td>
         <td>Dual-timescale GRU: L-module (20ms bins, GRUCell gated by H context) + H-module (100ms patches). Fixed-point DEQ solver per patch — O(1) memory, no cross-patch BPTT</td>
         <td>−10M</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>B3</td>
-        <td>MambaPOSSM</td>
+        <td>B3</td><td>MambaPOSSM</td>
         <td>IndividualSpikeTokenizer: 64 learned queries cross-attend to 4 KV frames per patch → sum-pool → 1 token. SSMBlock (Mamba / GRU fallback) with input-dependent state selection</td>
         <td>+1M</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>B4</td>
-        <td>MoE Encoder</td>
+        <td>B4</td><td>NeuroMoE Encoder</td>
         <td>SSMoEBlock: 6 specific experts (top-2 TopK routing) + 2 always-active shared experts replace FFN in all 7 TransformerBlocks. Load-balance auxiliary loss λ=0.01</td>
         <td>+40M</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>B5</td>
-        <td>ZenBrain</td>
-        <td>DualMemoryBlock: self-attn + cross-attn over episodic buffer (M=3000 × 384 ring buffer). Buffer fills from CTC-confident patches (>0.7) at inference. <code>use_memory=False</code> during training</td>
+        <td>B5</td><td>ZenBrain</td>
+        <td>DualMemoryBlock: self-attn + cross-attn over episodic buffer (M=3000 × 384 ring buffer). Buffer fills from CTC-confident patches (&gt;0.7) at inference. <code>use_memory=False</code> during training</td>
         <td>+2M</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Track C -->
   <h4>Track C — LLM Decoder Variants</h4>
   <table class="exp-table">
-    <thead>
-      <tr>
-        <th style="width:4.5rem">ID</th>
-        <th style="width:10rem">Decoder</th>
-        <th>Pipeline &amp; Notes</th>
-        <th style="width:5rem">HW</th>
-        <th style="width:4.5rem">VRAM</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="width:3.8rem">ID</th>
+      <th style="width:9rem">Decoder</th>
+      <th>Pipeline &amp; Notes</th>
+      <th style="width:4.5rem">HW</th>
+      <th style="width:4rem">VRAM</th>
+    </tr></thead>
     <tbody>
       <tr>
-        <td>C1</td>
-        <td>Qwen2-Audio-7B-Instruct</td>
+        <td>C1</td><td>Qwen2-Audio-7B</td>
         <td>Loaded as AutoModelForCausalLM (bypasses built-in Whisper encoder). BIT embeddings via <code>inputs_embeds</code>. LoRA: q, k, v, o, gate, up, down. <em>Closest equivalent to paper's Aero1-Audio.</em></td>
         <td class="hw"><span class="badge badge-cloud">Cloud</span></td>
         <td>~7 GB</td>
       </tr>
       <tr>
-        <td>C2</td>
-        <td>Phi-4-Multimodal-Instruct</td>
+        <td>C2</td><td>Phi-4-Multimodal</td>
         <td>Speech + video + image pretrained (Azure Speech data). Fused QKV — LoRA targets <code>qkv_proj, o_proj, gate_up_proj, down_proj</code>. Both temporal and acoustic priors.</td>
         <td class="hw"><span class="badge badge-cloud">Cloud</span></td>
         <td>~6 GB</td>
       </tr>
       <tr>
-        <td>C3</td>
-        <td>Whisper-Large-v3 + Qwen2.5-1.5B</td>
+        <td>C3</td><td>Whisper-L + Qwen2.5</td>
         <td>Frozen Whisper encoder as speech manifold normaliser: BIT(384) → Linear(384,1280)+LN → frozen Whisper → Linear(1280,1536) → Qwen2.5 + LoRA. Most principled test of H3 (embedding geometry). <em>Locally feasible.</em></td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
         <td>~4.1 GB</td>
@@ -635,39 +1122,32 @@
     </tbody>
   </table>
 
-  <!-- Track D+E combined -->
   <h4>Track D — Loss Function Design</h4>
   <table class="exp-table">
-    <thead>
-      <tr>
-        <th style="width:4.5rem">ID</th>
-        <th style="width:8rem">Ablation</th>
-        <th>Variants tested</th>
-        <th style="width:5rem">HW</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="width:3.8rem">ID</th>
+      <th style="width:8rem">Ablation</th>
+      <th>Variants tested</th>
+      <th style="width:4.5rem">HW</th>
+    </tr></thead>
     <tbody>
       <tr>
-        <td>D1</td>
-        <td>CTC Annealing</td>
+        <td>D1</td><td>CTC Annealing</td>
         <td>CTC weight 0.3→0.0 over 75 epochs. Variants: fixed 0.3 / linear / step / zero from epoch 0. Tests whether CTC constrains late E2E specialisation.</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>D2</td>
-        <td>Contrastive Weight</td>
+        <td>D2</td><td>Contrastive Weight</td>
         <td>Grid: {0.0, 0.1, 1.0, 2.0}. If weight=0 improves WER the contrastive loss is conflicting with CE and should be rescheduled or removed.</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>D3</td>
-        <td>Topographic Loss</td>
+        <td>D3</td><td>Topographic Loss</td>
         <td>Forces FFN first-linear weights to form 2D cortical-like maps (Gaussian blur + cosine similarity). Zero new parameters. Weight ∈ {0.001, 0.01, 0.1}. Requires <code>d_hidden=1024</code> (=32²).</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>D4</td>
-        <td>Label Smoothing</td>
+        <td>D4</td><td>Label Smoothing</td>
         <td>ε ∈ {0, 0.05, 0.10, 0.20}. ~1000 BCI samples makes overconfidence on training sentences a real risk. Cross-entropy KL-softened target.</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
@@ -676,30 +1156,25 @@
 
   <h4>Track E — Projector Architecture</h4>
   <table class="exp-table">
-    <thead>
-      <tr>
-        <th style="width:4.5rem">ID</th>
-        <th style="width:8rem">Variant</th>
-        <th>Description</th>
-        <th style="width:5rem">HW</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="width:3.8rem">ID</th>
+      <th style="width:8rem">Variant</th>
+      <th>Description</th>
+      <th style="width:4.5rem">HW</th>
+    </tr></thead>
     <tbody>
       <tr>
-        <td>E1</td>
-        <td>MLP Depth</td>
-        <td>3-layer MLP (current: 384→1024→1024→1536) vs 5-layer vs Gated MLP with multiplicative interaction (element-wise gate × value). Tests whether projector depth is the semantic bridge bottleneck.</td>
+        <td>E1</td><td>MLP Depth</td>
+        <td>3-layer MLP (current: 384→1024→1024→1536) vs 5-layer vs Gated MLP with multiplicative interaction. Tests whether projector depth is the semantic bridge bottleneck.</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>E2</td>
-        <td>Q-Former Projector</td>
+        <td>E2</td><td>Q-Former Projector</td>
         <td>N learned query tokens cross-attend over the full neural encoder output → project to LLM dim. Fixed-length output (N_Q ∈ {16, 32, 64}) regardless of neural sequence length. No padding waste in LLM attention. <em>Highest-impact projector change.</em></td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
       <tr>
-        <td>E3</td>
-        <td>Patch-size × Token Grid</td>
+        <td>E3</td><td>Patch × Token Grid</td>
         <td>2×3 grid: patch_size ∈ {4, 5, 8} × N_Q ∈ {16, 32, 64}. Paper uses patch_size=5. Controls the trade-off between temporal resolution and LLM sequence length.</td>
         <td class="hw"><span class="badge badge-local">Local</span></td>
       </tr>
@@ -712,13 +1187,11 @@
   <h3 id="bt-feasibility">Local Feasibility &amp; 5-Phase Roadmap</h3>
 
   <table class="feas-table">
-    <thead>
-      <tr>
-        <th style="width:22rem">Experiments</th>
-        <th style="width:5rem">Location</th>
-        <th>Est. VRAM</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="width:19rem">Experiments</th>
+      <th style="width:5rem">Location</th>
+      <th>Est. VRAM</th>
+    </tr></thead>
     <tbody>
       <tr><td>A1–A3 &nbsp;CKA · Perplexity · Phoneme Probe</td><td><span class="dot-local">● Local</span></td><td>~4 GB</td></tr>
       <tr><td>B1 ConformerXL + Qwen1.5B</td><td><span class="dot-local">● Local</span></td><td>~3 GB</td></tr>
@@ -736,50 +1209,45 @@
   <p class="caption">RTX 4050 Laptop GPU, 6 GB VRAM, CUDA 8.9, PyTorch 2.5.1+cu121. Toy runs: batch=2, accumulation=8.</p>
 
   <h4>Execution Phases</h4>
-  <div class="stage-list">
-    <div class="stage-item">
-      <div class="stage-num">01</div>
-      <div class="stage-body">
-        <div class="stage-weeks">Phase 1 &nbsp;·&nbsp; Analysis, no training &nbsp;·&nbsp; ~2 hr</div>
-        <h3>A1 CKA · A2 Perplexity · A3 Phoneme Probe</h3>
-        <p>Inference-only experiments on frozen LLMs. Establishes which pretraining modality
-           best aligns with neural projections — without committing any training compute.</p>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot is-active">1</div>
+      <div class="tl-content">
+        <div class="tl-label">Phase 1 &nbsp;·&nbsp; Analysis, no training &nbsp;·&nbsp; ~2 hr</div>
+        <h3>A1 CKA &nbsp;·&nbsp; A2 Perplexity &nbsp;·&nbsp; A3 Phoneme Probe</h3>
+        <p>Inference-only experiments on frozen LLMs. Establishes which pretraining modality best aligns with neural projections — without committing any training compute.</p>
       </div>
     </div>
-    <div class="stage-item">
-      <div class="stage-num">02</div>
-      <div class="stage-body">
-        <div class="stage-weeks">Phase 2 &nbsp;·&nbsp; Toy encoder ablations &nbsp;·&nbsp; ~3 hr local</div>
+    <div class="tl-item">
+      <div class="tl-dot">2</div>
+      <div class="tl-content">
+        <div class="tl-label">Phase 2 &nbsp;·&nbsp; Toy encoder ablations &nbsp;·&nbsp; ~3 hr local</div>
         <h3>B1–B5 on 15% toy data, 20 epochs each</h3>
-        <p>BIT_Transformer trained from scratch as the within-phase baseline (no SSL checkpoint).
-           Rank encoders by WER slope. Top 2 proceed to Phase 4.</p>
+        <p>BIT_Transformer trained from scratch as the within-phase baseline (no SSL checkpoint). Rank encoders by WER slope. Top 2 proceed to Phase 4.</p>
       </div>
     </div>
-    <div class="stage-item">
-      <div class="stage-num">03</div>
-      <div class="stage-body">
-        <div class="stage-weeks">Phase 3 &nbsp;·&nbsp; Loss + projector ablations &nbsp;·&nbsp; ~5 hr local</div>
-        <h3>D1–D4 loss variants · E1–E3 projector variants</h3>
-        <p>Run on BIT baseline to isolate loss/projector effects from encoder effects.
-           Q-Former (E2) and CTC annealing (D1) are the highest-priority sub-experiments.</p>
+    <div class="tl-item">
+      <div class="tl-dot">3</div>
+      <div class="tl-content">
+        <div class="tl-label">Phase 3 &nbsp;·&nbsp; Loss + projector ablations &nbsp;·&nbsp; ~5 hr local</div>
+        <h3>D1–D4 loss variants &nbsp;·&nbsp; E1–E3 projector variants</h3>
+        <p>Run on BIT baseline to isolate loss/projector effects from encoder effects. Q-Former (E2) and CTC annealing (D1) are the highest-priority sub-experiments.</p>
       </div>
     </div>
-    <div class="stage-item">
-      <div class="stage-num">04</div>
-      <div class="stage-body">
-        <div class="stage-weeks">Phase 4 &nbsp;·&nbsp; Cloud full runs &nbsp;·&nbsp; ~6 hr × 2 (A100)</div>
+    <div class="tl-item">
+      <div class="tl-dot">4</div>
+      <div class="tl-content">
+        <div class="tl-label">Phase 4 &nbsp;·&nbsp; Cloud full runs &nbsp;·&nbsp; ~6 hr × 2 (A100)</div>
         <h3>Top 2 encoders × best projector/loss combo</h3>
-        <p>Full 80-epoch A100 runs. Winner of Phase 2 encoder × winner of Phase 3 loss+projector.
-           Decision gate: ≥5% relative WER slope improvement in toy run required.</p>
+        <p>Full 80-epoch A100 runs. Winner of Phase 2 encoder × winner of Phase 3 loss+projector. Decision gate: ≥5% relative WER slope improvement in toy run required.</p>
       </div>
     </div>
-    <div class="stage-item">
-      <div class="stage-num">05</div>
-      <div class="stage-body">
-        <div class="stage-weeks">Phase 5 &nbsp;·&nbsp; Audio LLM experiments &nbsp;·&nbsp; ~3 hr (A100)</div>
-        <h3>C1 Qwen2-Audio-7B · A4 video comparison · C3 WhisperQwen</h3>
-        <p>Audio-pretrained LLM decoders on full-data A100 training.
-           C3 can be piloted locally first. A4 adds Qwen2.5-VL-3B (video) as the temporal-structure control.</p>
+    <div class="tl-item">
+      <div class="tl-dot">5</div>
+      <div class="tl-content">
+        <div class="tl-label">Phase 5 &nbsp;·&nbsp; Audio LLM experiments &nbsp;·&nbsp; ~3 hr (A100)</div>
+        <h3>C1 Qwen2-Audio-7B &nbsp;·&nbsp; A4 video comparison &nbsp;·&nbsp; C3 WhisperQwen</h3>
+        <p>Audio-pretrained LLM decoders on full-data A100 training. C3 can be piloted locally first. A4 adds Qwen2.5-VL-3B (video) as the temporal-structure control.</p>
       </div>
     </div>
   </div>
@@ -788,105 +1256,261 @@
 
 <hr class="rule-heavy">
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- PROJECT 2: DIETCORP-ZENBRAIN BCI -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<section id="dc">
-  <div class="section-label">Project II</div>
-  <div class="project-header p2">
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PROJECT II: DIETCORP-ZENBRAIN                                     -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<section id="dc" class="p2">
+  <div class="project-section-label">Project II</div>
+  <div class="project-title-row">
     <h2>DietCorp-ZenBrain Memory BCI</h2>
-    <span class="project-tag">On-Device Deployment Study</span>
+    <span class="project-tag">Edge Deployment &amp; Simulation Study</span>
+  </div>
+
+  <!-- Stat strip -->
+  <div class="stat-row">
+    <div class="stat-cell">
+      <span class="stat-n">12.17%</span>
+      <span class="stat-l">DietCorp WER</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">9.4M</span>
+      <span class="stat-l">Model parameters</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">18 ms</span>
+      <span class="stat-l">TTA per trial</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">4 stages</span>
+      <span class="stat-l">Experiment plan</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-n">12 wks</span>
+      <span class="stat-l">Plan horizon</span>
+    </div>
   </div>
 
   <p>
-    A memory-augmented speech BCI targeting ALS and brainstem-stroke patients,
-    with a clinical requirement for streaming, on-device inference without cloud dependency.
-    The study asks whether the composite system can be deployed on Google's Coral platform,
-    and whether multi-tier layered memory improves test-time adaptation under day-to-day
-    electrode distribution shift.
+    A memory-augmented intracortical speech BCI targeting ALS and brainstem-stroke patients.
+    The base model is DietCorp-Compact; the extension adds a ZenBrain-inspired multi-tier memory
+    hierarchy to improve test-time adaptation under day-to-day electrode distribution shift.
+    The study characterises the composite system's behaviour under realistic edge-deployment
+    constraints using Google's Coral platform as a simulation instrument.
   </p>
 
-  <!-- ─── Research question ─────────────────────────────────────────── -->
-  <h3 id="dc-ask">Research Question</h3>
-
-  <div class="kv-grid">
-    <span class="kv-key">Base architecture</span>
-    <span class="kv-val">DietCorp-Compact (arXiv:2507.02800) — time-masked Transformer + DietCORP TTA. Chosen as the only design simultaneously delivering low WER, streaming/real-time decoding, low compute (on-device feasibility), and TTA-based robustness to distribution shift.</span>
-    <span class="kv-key">Extension</span>
-    <span class="kv-val">Multi-tier memory layer inspired by ZenBrain's 7-layer neuroscience architecture. Hypothesis: layered memory with differentiated time constants improves TTA under distribution shift beyond single-shot per-trial adaptation.</span>
-    <span class="kv-key">Target hardware</span>
-    <span class="kv-val">Google Coral platform (Edge TPU) — the only candidatefor truly on-device, battery-powered BCI inference at clinical scale.</span>
-    <span class="kv-key">Core sub-questions</span>
-    <span class="kv-val">(a) Can DietCorp inference run on Coral? (b) Can DietCorp + ZenBrain memory + TTA run on Coral? (c) Which performance metrics can the NPU simulator capture vs. which require real silicon?</span>
-    <span class="kv-key">Audit stance</span>
-    <span class="kv-val">Explicitly skeptical — not a rubber stamp. Goal is to identify simulator-free, custom-instrumentation, and real-silicon-required claims separately before any hardware purchase.</span>
-    <span class="kv-key">Feasibility audit</span>
-    <span class="kv-val"><span class="badge badge-done">Complete</span> &nbsp;28 May 2026 &nbsp;·&nbsp; <code>Coral_Feasibility_DietCorp_ZenBrain.md</code></span>
+  <div class="callout teal">
+    <strong>Coral is an instrument, not a deployment target.</strong>
+    Coral is used as a <em>simulation microscope</em> — a representative, instrumentable edge-NPU substrate
+    that characterises how DietCorp (and memory-augmented versions) behave under realistic edge-deployment
+    constraints: int8 quantisation, static shapes, limited control flow, bounded on-chip memory,
+    and no on-device backprop — without committing to any specific production chip.
+    The eventual deployment class is phones and laptops (Apple Neural Engine,
+    Qualcomm Hexagon, Google Tensor TPU).
+    <br><br>
+    <strong>Analogy:</strong> Coral is to this project what a wind tunnel is to an airframe designer —
+    you don't fly a plane in a wind tunnel, but the data you collect tells you what will fly.
+    The primary deliverable is a <strong>Hardware Requirements Spec</strong>
+    (a falsifiable spec sheet any candidate deployment substrate can be matched against), not a shipping decision.
   </div>
 
-  <div class="callout teal">
-    <strong>Why Coral?</strong> Edge TPU delivers ~4 TOPS at 2W TDP — the only commercially available NPU
-    meeting both the latency budget (&lt;50ms per utterance) and the power budget (&lt;5W) required for an
-    untethered, battery-powered BCI device. Alternatives (Jetson Orin Nano, Hailo-8, phone NPUs) are evaluated
-    as part of the platform comparison study (Stage 3).
+  <!-- ─── The Ask ────────────────────────────────────────────────────── -->
+  <h3 id="dc-ask">1. The Ask</h3>
+
+  <h4>Clinical motivation</h4>
+  <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;">
+    ALS and brainstem stroke destroy motor pathways while leaving cognition intact.
+    A clinically useful BCI needs all four simultaneously:
+  </p>
+  <ol style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;margin-bottom:1rem;">
+    <li><strong>Low WER</strong> — text the patient and their family can actually read.</li>
+    <li><strong>Streaming, real-time decoding</strong> — output appears as the patient attempts to speak.</li>
+    <li><strong>On-device feasibility</strong> — runs on hardware the patient already owns, no cloud dependency.</li>
+    <li><strong>Robustness to distribution shift</strong> — neural recordings drift day-to-day; the model adapts without re-calibration sessions.</li>
+  </ol>
+  <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;">
+    Most published BCI work optimises (1) at the expense of (2)–(4). This thesis is built around the four-objective version of the problem.
+  </p>
+
+  <h4>Why this architecture: the clinical constraints</h4>
+  <div class="clinical-box">
+    <p style="margin-bottom:0.55rem;">
+      High-performance speech neuroprostheses have historically relied on deep GRUs paired with
+      large language models. While accurate on benchmarks, they carry two structural flaws that
+      limit real-world clinical deployment:
+    </p>
+    <ul style="margin-bottom:0.65rem;">
+      <li><strong>Processing redundancy.</strong> Because GRUs have a lossy memory architecture,
+        they require heavily overlapping temporal inputs — 87.5% overlap in standard configurations —
+        creating immense computational waste and early overfitting on sparse clinical datasets.</li>
+      <li><strong>Susceptibility to neural drift.</strong> Physical shifts at the electrode interface
+        (micro-movements, impedance changes over days) progressively alter the recorded signal
+        statistics. Uncalibrated decoders break down completely within a week: in controlled studies,
+        WER climbs from 22.7% on day one to 66.5% WER over eight held-out days without adaptation.</li>
+    </ul>
+    <p style="margin-bottom:0.55rem;"><strong>DietCorp-Compact is designed around both constraints:</strong></p>
+    <ul style="margin-bottom:0;">
+      <li><strong>Causal Transformers with non-overlapping patches</strong> replace the GRU. The
+        architecture processes entirely non-overlapping 100 ms patches of neural data, eliminating
+        redundant computation and reducing parameter count by 83% and peak memory by 52% relative
+        to the GRU baseline.</li>
+      <li><strong>High-volume time-masking</strong> (~53% of temporal patches masked per training
+        trial) prevents overfitting to noisy biological datasets by forcing the network to discover
+        structural features that generalise across electrode configurations — without changing the
+        inference path.</li>
+      <li><strong>DietCORP TTA</strong> combats neural drift continuously and without storing
+        historical data. After each decoded sentence, it generates 64 time-masked augmentations of
+        the trial, refines the raw phonetic output into a pseudo-label via an n-gram LM, and takes
+        exactly one AdamW gradient step — updating only the patch-embedding module at the network's
+        input. This realigns shifted electrode signals while keeping the core language logic frozen.
+        Cost: 18 ms per trial, 1.33 GiB peak GPU memory.</li>
+    </ul>
+  </div>
+
+  <h4>Base architecture — DietCorp-Compact</h4>
+  <div class="kv-grid">
+    <span class="kv-key">Paper</span>
+    <span class="kv-val">Feghhi et al., 2025 &nbsp;·&nbsp; arXiv:2507.02800</span>
+    <span class="kv-key">Architecture</span>
+    <span class="kv-val">Unidirectional causal Transformer — 5 layers, hidden dim 384, <strong>9.4 M parameters</strong>. Decodes 256-channel microelectrode-array activity into phonemes at 10 Hz.</span>
+    <span class="kv-key">Time-masking</span>
+    <span class="kv-val">~53% of each trial masked on average during training. Sharply delays overfitting; lifts accuracy without changing inference path.</span>
+    <span class="kv-key">DietCORP TTA</span>
+    <span class="kv-val">Per trial: generate 64 time-masked augmentations → beam-search decode + n-gram LM pseudo-label → <strong>one AdamW step on CTC loss, patch-embedding module only</strong>. 18 ms TTA per trial.</span>
+    <span class="kv-key">Published result</span>
+    <span class="kv-val"><strong>12.17% WER</strong> with 3-gram LM (20% relative improvement over BtT-Benchmark '24 GRU baseline). 1.33 GiB peak GPU. WER without adaptation degrades 22.7% → 66.5% over 8 held-out days; with DietCORP it stays stable.</span>
+  </div>
+
+  <h4>Proposed extension — ZenBrain-inspired memory layer</h4>
+  <div class="kv-grid">
+    <span class="kv-key">Source</span>
+    <span class="kv-val">Bering, 2026 &nbsp;·&nbsp; arXiv:2604.23878. A neuroscience-grounded memory architecture for autonomous AI systems.</span>
+    <span class="kv-key">ZenBrain structure</span>
+    <span class="kv-val">7 memory layers (working, short-term, episodic, semantic, procedural, core, cross-context) + 15 algorithms (Two-Factor synaptic edges, vmPFC-coupled FSRS, Simulation-Selection sleep, neuromodulator dynamics, TripleCopy stores, etc.).</span>
+    <span class="kv-key">Hypothesis</span>
+    <span class="kv-val">Giving DietCorp a layered memory hierarchy — with differentiated time constants, prioritisation, and consolidation rules — should improve TTA under distribution shift beyond single-shot per-trial adaptation.</span>
+    <span class="kv-key">Important note</span>
+    <span class="kv-val">ZenBrain is an LLM-agent memory orchestrator (knowledge-graph storage, BM25 + embedding retrieval, FSRS scheduling). ~14 of 15 components belong on the host CPU. The one on-NPU primitive earning its place is a <strong>fixed-shape working-memory KV cache</strong> co-located with DietCorp's patch-embedding module.</span>
+  </div>
+
+  <h4>Specific feasibility questions</h4>
+  <ol style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;margin-bottom:1rem;">
+    <li>(a) Can DietCorp-Compact be simulated on Coral — what does the conversion path look like, which ops are supported, how accurate are cycle / latency / power estimates?</li>
+    <li>(b) Can the augmented architecture (DietCorp + memory layer + TTA) be simulated on Coral given Edge TPU / Coral NPU constraints?</li>
+    <li>(c) What metrics can be captured to make the comparison meaningful — and which require real silicon?</li>
+  </ol>
+  <p style="font-family:system-ui,sans-serif;font-size:0.77rem;color:#9ca3af;">
+    Full audit: <code>Coral_Feasibility_DietCorp_ZenBrain.md</code> &nbsp;·&nbsp;
+    Summary: <code>Progress_Summary_Scope_and_Plan.md</code>
+  </p>
+
+  <hr class="rule">
+
+  <!-- ─── Audit findings ─────────────────────────────────────────────── -->
+  <h3 id="dc-findings">2. Feasibility Audit Findings <span class="badge badge-done">Complete · 28 May 2026</span></h3>
+
+  <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#374151;margin-bottom:0.75rem;">
+    Three landing points carry the rest of the work:
+  </p>
+  <div class="risk-list">
+    <div class="risk-item">
+      <span class="risk-label">Finding 1</span>
+      <span class="risk-text">
+        <strong>Both Coral substrates are useful, for complementary reasons.</strong>
+        First-gen Edge TPU (USB Accelerator, Dev Board) is a closed Google ASIC with real silicon — gives wall-clock int8 latency numbers.
+        The new Coral NPU is an open RISC-V reference IP with two public simulators (functional MPACT-CoralNPU + cycle-accurate Verilator) — gives cycle-level architectural visibility on an open toolchain.
+        Both substrates feed the projection workstream as complementary data sources rather than competing options.
+      </span>
+    </div>
+    <div class="risk-item">
+      <span class="risk-label">Finding 2</span>
+      <span class="risk-text">
+        <strong>DietCorp's inference path is a clean fit on either substrate; the no-backprop-on-NPU limit is a non-issue.</strong>
+        The model is small (~10 MB int8, ~36 MFLOPs per 100 ms patch), causal, streaming, dominated by matmul / softmax / LayerNorm.
+        DietCORP's per-trial backward pass and Adam step run in host PyTorch driving the simulator — faithful to how production deployment would work on phone NPUs too.
+      </span>
+    </div>
+    <div class="risk-item">
+      <span class="risk-label">Finding 3</span>
+      <span class="risk-text">
+        <strong>ZenBrain stays largely host-side; the simulation work can be more exploratory than a shipping-product audit.</strong>
+        ~14 of 15 ZenBrain components belong on host CPU. The one on-NPU primitive is the fixed-shape working-memory KV cache.
+        Under simulation-as-instrument framing, more aggressive on-NPU placements can be tried — and when the simulator pushes back, those negative results are <em>kept and reported</em> as constraint findings for the spec sheet.
+      </span>
+    </div>
   </div>
 
   <hr class="rule">
 
   <!-- ─── Investigation modes ───────────────────────────────────────── -->
-  <h3 id="dc-modes">Six Investigation Modes</h3>
-  <p style="font-family:system-ui,sans-serif;font-size:0.83rem;color:#4b5563;margin-bottom:1rem;">
-    All six modes are active throughout the four stages — not sequential phases.
-    Each stage draws on a different weighted combination.
+  <h3 id="dc-modes">3. Seven Investigation Modes</h3>
+  <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#4b5563;margin-bottom:1rem;">
+    All seven modes are active throughout the four stages — not sequential phases.
+    Mode 7 (Hardware Requirements Projection) is the <strong>primary deliverable workstream</strong>.
   </p>
-
   <div class="mode-list">
     <div class="mode-item">
       <div class="mode-n">Mode 1 &nbsp;·&nbsp; Architecture &amp; Paper Reading</div>
-      <p>Close reading of DietCorp and ZenBrain to extract op graphs, parameter counts, and behavioural mechanisms. Produces the forward-pass op inventory used in Mode 3.</p>
+      <p>Close reading of DietCorp and ZenBrain to extract exact op graphs, parameter counts, training hyperparameters, and behavioural mechanisms. ZenBrain's appendix (B.1–B.11) is where the actual algorithms live — skipping it leads to treating ZenBrain as a neural network when it is an LLM-agent memory orchestrator.</p>
     </div>
     <div class="mode-item">
       <div class="mode-n">Mode 2 &nbsp;·&nbsp; Toolchain &amp; Platform Research</div>
-      <p>Coral NPU simulator stack (MPACT + Verilator), Edge TPU compiler, LiteRT / MLIR / IREE, int8 PTQ/QAT, op-compatibility lists. Skeptical assessment of simulator maturity claims.</p>
+      <p>Coral NPU simulator stack (MPACT + Verilator), Edge TPU compiler, LiteRT / MLIR / IREE, int8 PTQ/QAT, op-compatibility lists. Track simulator maturity — the Coral NPU matrix execution unit is currently "under development and evaluation"; cycle counts from today's Verilator understate throughput production silicon will deliver. Document as explicit uncertainty bands.</p>
     </div>
     <div class="mode-item">
       <div class="mode-n">Mode 3 &nbsp;·&nbsp; Op-Level Compatibility Analysis</div>
-      <p>For every op in DietCorp's forward pass: does it map natively, fuse, fall back to vector execution, or force CPU offload? Result is a per-op placement table with estimated cycle cost.</p>
+      <p>For every op in DietCorp's forward pass — patch-embed (LayerNorm/Linear/LN), 5× Transformer blocks (causal MHA with T5-style relative-position bias, residual, FFN, GeLU), output head — does it map natively, fuse, fall back to vector execution, or force CPU offload? Determines the realistic latency floor. Repeated after any memory-tier addition.</p>
     </div>
     <div class="mode-item">
       <div class="mode-n">Mode 4 &nbsp;·&nbsp; Placement Reasoning</div>
-      <p>For each ZenBrain memory tier and TTA algorithm: NPU vs host CPU vs off-device. Structured argument from access pattern, latency budget, memory size, and whether the subsystem is inside the streaming loop.</p>
+      <p>For each ZenBrain layer and algorithm: NPU vs host CPU vs off-device. Structured argument from access patterns (sparse vs dense, static-shape vs dynamic), latency budget, memory size, and whether the subsystem is inside the streaming inference loop or runs at session boundaries. Iterative — try more aggressive on-NPU placements and let the simulator push back.</p>
     </div>
     <div class="mode-item">
       <div class="mode-n">Mode 5 &nbsp;·&nbsp; Alternative Platform Scan</div>
-      <p>Controlled comparison: Coral USB Accelerator, Coral NPU sim, Jetson Orin Nano, Hailo-8, Apple Neural Engine, Qualcomm Hexagon, and Renode (whole-SoC co-simulation). Controlled variables: latency, power, SDK maturity, op coverage.</p>
+      <p>Controlled reference points so projected requirements aren't anchored to one substrate. Shortlist: first-gen Coral USB Accelerator (real int8 silicon), Coral NPU Verilator sim (cycle-level, open RISC-V), Apple Neural Engine via Core ML (phone-class sanity check). Phone-NPU run is not a deployment commitment — it validates that the eventual deployment-class device can plausibly hit the same envelope.</p>
     </div>
     <div class="mode-item">
       <div class="mode-n">Mode 6 &nbsp;·&nbsp; Simulator vs Real-Silicon Separation</div>
-      <p>Strict classification of every metric as (i) simulator-free, (ii) requires custom instrumentation, or (iii) requires real silicon. This discipline prevents thesis over-claiming and scopes hardware purchase decisions.</p>
+      <p>Strict classification of every metric: (i) <strong>simulator-free</strong> — total cycles, per-instruction traces, AXI traffic, on-chip memory residency; (ii) <strong>requires custom instrumentation</strong> — per-op timing, streaming throughput, full TTA loop (needs CSR cycle reads + host harness scripts); (iii) <strong>requires real hardware</strong> — wall-clock latency on production silicon, real power, thermal effects, and end-to-end TTA latency with weight reload. Prevents thesis over-claiming.</p>
+    </div>
+    <div class="mode-item" style="background:#f0fdfa;border-color:#99f6e4;grid-column:1/-1;">
+      <div class="mode-n" style="color:#0f766e;">Mode 7 &nbsp;·&nbsp; Hardware Requirements Projection &nbsp;<em>(primary deliverable)</em></div>
+      <p>Derive a concrete spec sheet from simulation runs. Targets:
+        <strong>sustained compute</strong> (MACs/sec at 10 Hz patch rate),
+        <strong>peak compute</strong> (instantaneous MACs/cycle for heaviest op),
+        <strong>on-chip memory</strong> (activation working set + quantized-weight residency),
+        <strong>off-chip bandwidth</strong> (AXI/DRAM traffic per inference),
+        <strong>op set</strong> (TFLite/MLIR ops + quantisation variants),
+        <strong>latency budget breakdown</strong> (per-Transformer-block, per-attention-head, per-LayerNorm),
+        <strong>TTA cost envelope</strong> (host-side gradient step + weight-reload latency),
+        <strong>energy envelope</strong> (estimated from cycle counts, explicitly low-confidence until hardware-validated),
+        <strong>memory-tier delta</strong> (per-variant delta on all above metrics vs vanilla DietCorp).</p>
     </div>
   </div>
 
   <hr class="rule">
 
-  <!-- ─── Experiment stages ─────────────────────────────────────────── -->
-  <h3 id="dc-stages">Four-Stage Experiment Plan</h3>
-
+  <!-- ─── Four-Stage Plan ────────────────────────────────────────────── -->
+  <h3 id="dc-stages">4. Four-Stage Experiment Plan</h3>
+  <p style="font-family:system-ui,sans-serif;font-size:0.81rem;color:#4b5563;margin-bottom:1rem;">
+    Each stage is independently shippable. Objectives are framed around what simulation data is extracted, not around shipping decisions.
+  </p>
   <div class="stage-list">
+
     <div class="stage-item">
       <div class="stage-num">01</div>
       <div class="stage-body">
         <div class="stage-weeks">Weeks 0–2 &nbsp;·&nbsp; <span class="badge badge-active">Starting next week</span></div>
-        <h3>Host Baseline Reproduction</h3>
-        <p>
-          Reproduce the published DietCorp-Compact benchmark on host CPU/GPU hardware.
-          Deliverable: exact WER match with arXiv:2507.02800 figures.
-          Establishes the reference point all subsequent stages are measured against.
-          Independently shippable as a reproducibility contribution.
-        </p>
-        <div class="kv-grid" style="margin-top:0.5rem;">
-          <span class="kv-key">Modes active</span><span class="kv-val">1 (architecture reading), 2 (toolchain setup)</span>
-          <span class="kv-key">Success gate</span><span class="kv-val">WER within ±0.5% absolute of published result on held-out test set</span>
+        <h3>Reproduce DietCorp-Compact Baseline</h3>
+        <p>A known-good DietCorp setup that downstream changes are measured against. Toy data for fast iteration; real Brain-to-Text Benchmark '24 data for headline numbers.</p>
+        <ul style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.5rem;">
+          <li>Clone <code>github.com/ebrahimfeghhi/transformers_with_dietcorp</code> and reproduce 12.17% WER with 3-gram LM.</li>
+          <li>Build a synthetic toy dataset preserving the shape and temporal structure of real input (256 features × 50 Hz bins × ~5 s trials) but using procedurally generated phoneme sequences. Used for fast quantisation experiments and simulator iteration.</li>
+          <li>Store fp32, fp16, and dynamic-int8 reference checkpoints.</li>
+        </ul>
+        <div class="kv-grid" style="margin-top:0.4rem;">
+          <span class="kv-key">Modes active</span><span class="kv-val">1 (op graph extraction), 2 (toolchain setup)</span>
+          <span class="kv-key">Success gate</span><span class="kv-val">WER within ±0.5% absolute of published result</span>
+          <span class="kv-key">Deliverable</span><span class="kv-val">Reproduction notebook + checkpoints (fp32, fp16, int8) + toy dataset + WER metrics</span>
         </div>
       </div>
     </div>
@@ -895,16 +1519,18 @@
       <div class="stage-num">02</div>
       <div class="stage-body">
         <div class="stage-weeks">Weeks 2–4 &nbsp;·&nbsp; <span class="badge badge-planned">Planned</span></div>
-        <h3>int8 Quantisation &amp; CPU Latency Floor</h3>
-        <p>
-          Quantise DietCorp to int8 via PTQ. Escalate to QAT if WER degradation exceeds 1% absolute.
-          Measure CPU-only inference latency end-to-end. This floor is the reference latency for
-          Stage 3 NPU speedup claims.
-        </p>
-        <div class="kv-grid" style="margin-top:0.5rem;">
+        <h3>Quantisation Characterisation &amp; CPU Latency Floor</h3>
+        <p>Map the int8 accuracy cliff and identify which layers are quantisation-sensitive. Feeds directly into the Hardware Requirements Spec — the per-layer sensitivity table tells the spec how much quantisation headroom exists.</p>
+        <ul style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.5rem;">
+          <li>Export PyTorch → TFLite int8 via PTQ using ~500 validation trials as representative dataset.</li>
+          <li>Measure absolute WER degradation vs fp32 baseline. Target ≤ 1% absolute. If higher, escalate to QAT for one pass.</li>
+          <li>Layer-wise sensitivity analysis: per-layer quantisation error + per-layer WER contribution. <em>Patch-embedding module (the DietCORP TTA target) gets extra scrutiny.</em></li>
+          <li>CPU latency baseline via <code>tflite_runtime</code> — the floor any NPU run must beat.</li>
+        </ul>
+        <div class="kv-grid" style="margin-top:0.4rem;">
           <span class="kv-key">Modes active</span><span class="kv-val">2 (PTQ/QAT toolchain), 3 (per-op quantisation sensitivity)</span>
-          <span class="kv-key">Decision point</span><span class="kv-val">If QAT required: add 2 weeks. Threshold: &gt;1% absolute WER degradation from PTQ triggers QAT.</span>
-          <span class="kv-key">Deliverable</span><span class="kv-val">int8 TFLite / LiteRT model + CPU latency profile (per-block breakdown)</span>
+          <span class="kv-key">Decision point</span><span class="kv-val">PTQ degradation &gt;1% absolute → escalate to QAT (adds ~2 weeks)</span>
+          <span class="kv-key">Deliverable</span><span class="kv-val">int8 <code>.tflite</code> model + quantisation sensitivity table (per-layer error + WER contribution) + CPU latency baseline via <code>tflite_runtime</code> (the floor any NPU run must beat)</span>
         </div>
       </div>
     </div>
@@ -912,23 +1538,30 @@
     <div class="stage-item">
       <div class="stage-num">03</div>
       <div class="stage-body">
-        <div class="stage-weeks">Weeks 4–8 &nbsp;·&nbsp; <span class="badge badge-planned">Planned</span> &nbsp;·&nbsp; Parallel setup starts Week 0</div>
-        <h3>Two-Platform NPU Comparison</h3>
-        <p>
-          Runs two parallel NPU tracks simultaneously.
-          <strong>Track A — Coral NPU Verilator simulator:</strong> cycle-level architectural insight —
-          per-block cycles, AXI traffic, on-chip residency, power model.
-          <strong>Track B — Coral USB Accelerator:</strong> wall-clock reality check on real silicon,
-          validates whether simulator cycle counts translate to actual latency.
+        <div class="stage-weeks">Weeks 4–8 &nbsp;·&nbsp; <span class="badge badge-planned">Planned</span> &nbsp;·&nbsp; Toolchain setup runs parallel to Stage 1 (stub MobileNet)</div>
+        <h3>Two-Substrate Simulation Campaign — Vanilla DietCorp</h3>
+        <p>Characterise DietCorp's edge-deployment envelope across both Coral substrates. Produce Hardware Requirements Spec v1 covering vanilla DietCorp. Run simultaneously.</p>
+
+        <h4 style="margin-top:0.75rem;">Stage 3a — Coral NPU Verilator Simulator</h4>
+        <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;">
+          Compile via LiteRT or MLIR to RISC-V <code>.elf</code>. Run a 10-second streaming inference with
+          <code>--trace --instr_trace --debug_axi</code>. Extract per-Transformer-block cycle attribution,
+          AXI traffic (read/write bytes per phase), on-chip ITCM/DTCM residency, and estimated steady-state
+          latency per 100 ms patch with explicit uncertainty band reflecting matrix-engine maturity.
         </p>
-        <p>
-          Platform setup (simulator + USB Accelerator) runs in <strong>parallel with Stage 1</strong>
-          using a stub MobileNet, so the toolchain is validated before DietCorp is ready to deploy.
+
+        <h4>Stage 3b — Coral USB Accelerator</h4>
+        <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;">
+          Run <code>edgetpu_compiler</code> on the int8 model; capture the static op-mapping report.
+          Benchmark via <code>tflite_runtime</code> over 1,200 trials. If LayerNorm or GeLU forces
+          a CPU fallback, attempt fused-op rewrites and document the impact. Measure wall-clock latency,
+          USB-bus transfer time, and (with a current meter) idle vs busy power.
         </p>
-        <div class="kv-grid" style="margin-top:0.5rem;">
-          <span class="kv-key">Modes active</span><span class="kv-val">2 (MPACT+Verilator), 3 (op mapping), 5 (platform comparison), 6 (sim vs real separation)</span>
-          <span class="kv-key">Comparison shortlist</span><span class="kv-val">Coral USB Accelerator · Coral NPU sim · Jetson Orin Nano · Hailo-8 · Apple Neural Engine · Qualcomm Hexagon · (Renode for whole-SoC)</span>
-          <span class="kv-key">Key question</span><span class="kv-val">Which Coral platform anchors the thesis: first-gen USB for wall-clock reality or new NPU for cycle-level insight? (pending advisor 1:1)</span>
+
+        <div class="kv-grid" style="margin-top:0.4rem;">
+          <span class="kv-key">Modes active</span><span class="kv-val">2 (MPACT+Verilator, edgetpu_compiler), 3 (op mapping), 5 (substrate comparison), 6 (sim vs real separation)</span>
+          <span class="kv-key">Cross-substrate</span><span class="kv-val">Where do the two substrates agree and disagree on bottlenecks? Each disagreement is a finding for the report.</span>
+          <span class="kv-key">Deliverable</span><span class="kv-val">Two-substrate benchmark report + Hardware Requirements Spec v1 (vanilla DietCorp) + compute-bound vs memory-bound interpretation per substrate</span>
         </div>
       </div>
     </div>
@@ -937,94 +1570,205 @@
       <div class="stage-num">04</div>
       <div class="stage-body">
         <div class="stage-weeks">Weeks 8–12 &nbsp;·&nbsp; <span class="badge badge-planned">Planned</span></div>
-        <h3>ZenBrain Memory + DietCORP TTA &mdash; Research Hypothesis Test</h3>
-        <p>
-          Tests the core research hypothesis: that multi-tier layered memory with differentiated
-          time constants improves TTA under distribution shift beyond single-shot per-trial adaptation.
+        <h3>Memory-Augmented Variant Simulation Campaign</h3>
+        <p>Tests the research hypothesis. Produces Hardware Requirements Spec v2 with per-variant deltas. Three variants in escalating ambition; negative results from each are <em>kept</em> as constraint findings.</p>
+
+        <h4 style="margin-top:0.75rem;">Variant A — Conservative (starting point)</h4>
+        <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;">
+          Static-shape KV cache of N=8 recent patch embeddings + learnable cross-attention gate before the first Transformer block. Re-quantise, re-simulate on both substrates.
         </p>
-        <p>
-          <strong>On-NPU component:</strong> static-shape KV cache + cross-attention gate — the only ZenBrain
-          memory tier with a defensible NPU placement (fixed shapes, no Python runtime dependency,
-          inside the streaming loop). All other ZenBrain mechanisms implemented host-side.
+
+        <h4>Variant B — More ambitious (if A leaves headroom)</h4>
+        <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;">
+          Second static-shape memory tier with longer effective horizon (N=16 with a learned decay scalar mimicking a TripleCopy fast/medium pair). Condition: proceed only if Variant A leaves &gt;20% of the streaming budget unused.
         </p>
-        <p>
-          Full DietCORP TTA loop: drive the 5- and 8-held-out-day evaluation protocol.
-          Replicate on Apple Neural Engine as a phones/laptops deployment proxy.
+
+        <h4>Variant C — Stress test (always run)</h4>
+        <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;">
+          Any simulation result that breaks the 100 ms streaming budget is <em>kept</em> and reported as a constraint finding — not discarded. Directly informs the spec sheet ("this variant requires ≥X× more compute than the substrate provides").
         </p>
-        <div class="kv-grid" style="margin-top:0.5rem;">
-          <span class="kv-key">Modes active</span><span class="kv-val">4 (placement reasoning), 5 (Apple Neural Engine), 6 (metric classification)</span>
-          <span class="kv-key">ZenBrain placement</span>
-          <span class="kv-val">
-            NPU — static-shape KV cache, cross-attention gate<br>
-            Host CPU — episodic buffer management, buffer update logic, TTA gradient steps<br>
-            Off-device — initial SSL pretraining of memory encoder
-          </span>
-          <span class="kv-key">Evaluation protocol</span><span class="kv-val">5-held-out-day and 8-held-out-day WER. Primary metric: WER improvement over non-memory DietCorp baseline under distribution shift.</span>
-          <span class="kv-key">Replication target</span><span class="kv-val">Apple Neural Engine (M-series Mac / iPhone 15+) as phones/laptops deployment proxy</span>
+
+        <h4>Host-side ZenBrain components</h4>
+        <ul style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;margin-bottom:0.5rem;">
+          <li><strong>Working-memory tier:</strong> the static KV cache (on-NPU).</li>
+          <li><strong>Short-term memory buffer:</strong> session-bounded in-memory store (host CPU).</li>
+          <li><strong>Decay scheduler:</strong> single Ebbinghaus-style τ initially; TripleCopy with three τ values if time permits.</li>
+          <li><strong>Priority signal:</strong> gates which trials feed the TTA gradient step (confidence-weighted).</li>
+        </ul>
+
+        <h4>Full DietCORP TTA loop (host PyTorch → simulator)</h4>
+        <p style="font-family:system-ui,sans-serif;font-size:0.79rem;color:#374151;">
+          64 augmented forwards through the simulator / USB Accelerator → beam-search decode + pseudo-label on host → gradient step on patch-embed + gate on host → weight reload to the device. Measure per-trial wall-clock budget.
+        </p>
+
+        <div class="kv-grid" style="margin-top:0.4rem;">
+          <span class="kv-key">Modes active</span><span class="kv-val">4 (placement reasoning), 5 (Apple Neural Engine bonus), 6 (metric classification), 7 (spec v2)</span>
+          <span class="kv-key">Evaluation</span><span class="kv-val">5-held-out-day and 8-held-out-day WER. Compare each variant against vanilla DietCORP baseline.</span>
+          <span class="kv-key">Bonus</span><span class="kv-val">Replicate best-performing variant on Apple Neural Engine via Core ML — phone-NPU sanity check (light-touch: single model, single device, inference timing only)</span>
+          <span class="kv-key">Deliverable</span><span class="kv-val">WER degradation curves under distribution shift (vanilla vs each variant) + latency overhead breakdown for each variant + Hardware Requirements Spec v2 with per-variant deltas + written analysis of which ZenBrain mechanisms earned their place <em>inside</em> the inference graph, which sit usefully <em>around</em> it, and which add cost without benefit</span>
         </div>
       </div>
+    </div>
+
+  </div>
+
+  <hr class="rule">
+
+  <!-- ─── Tools & Substrates ────────────────────────────────────────── -->
+  <h3 id="dc-tools">5. Tools &amp; Substrates</h3>
+  <table class="exp-table">
+    <thead><tr>
+      <th style="width:6.5rem">Category</th>
+      <th>Item</th>
+      <th style="width:5.5rem">Stages</th>
+      <th>Notes</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Hardware</td><td>RTX-3090 or equivalent</td><td>1, 2, 4</td><td>DietCorp training, host-side TTA gradient step, simulator driving</td></tr>
+      <tr><td>Hardware</td><td>Coral USB Accelerator (~$60)</td><td>3b, 4</td><td>Cheapest real int8 silicon for wall-clock latency and power numbers</td></tr>
+      <tr><td>Hardware</td><td>iPhone / M-series Mac (ANE)</td><td>4 bonus</td><td>Phone-NPU sanity check; supports "phones/laptops" deployment-class claim</td></tr>
+      <tr><td>Hardware</td><td>USB current monitor (~$30)</td><td>3b, 4</td><td>Real power numbers on the USB Accelerator (idle vs busy)</td></tr>
+      <tr><td>Software</td><td>PyTorch + accelerate</td><td>1, 2, 4</td><td>DietCorp training, host-side TTA gradient steps</td></tr>
+      <tr><td>Software</td><td>TFLite + LiteRT + <code>edgetpu_compiler</code></td><td>2, 3b, 4</td><td>int8 quantisation + Edge TPU model compilation</td></tr>
+      <tr><td>Software</td><td>Coral NPU repo (MPACT + Verilator)</td><td>3a, 4</td><td>Bazel build; Debian Trixie is best-tested host environment</td></tr>
+      <tr><td>Software</td><td><code>coremltools</code></td><td>4 bonus</td><td>Apple Neural Engine deployment path</td></tr>
+      <tr><td>Datasets</td><td>Brain-to-Text Benchmark '24 (public)</td><td>1, 2, 4</td><td>Headline WER numbers; real electrode recordings</td></tr>
+      <tr><td>Datasets</td><td>Synthetic toy dataset (procedurally generated)</td><td>1, 2, 3a</td><td>Fast iteration + simulator runs. <em>Safe path: perturb real calibration-day trials to preserve noise statistics.</em></td></tr>
+      <tr><td>Compute</td><td>One GPU-week for QAT fallback</td><td>2</td><td>Only if PTQ WER degradation exceeds 1% absolute</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="rule">
+
+  <!-- ─── Risks & Decisions ──────────────────────────────────────────── -->
+  <h3 id="dc-risks">6. Risks &amp; Open Decisions</h3>
+  <div class="callout amber">
+    <strong>Four decisions resolvable in a single advisor 1:1.</strong>
+    None are blockers for Stage 1 or Stage 3 parallel toolchain setup.
+  </div>
+  <div class="risk-list">
+    <div class="risk-item">
+      <span class="risk-label">Decision 1</span>
+      <span class="risk-text"><strong>Which Coral substrate gets primary simulator attention?</strong> Both are needed, but compute budget may force prioritisation. First-gen USB Accelerator turns around faster and gives wall-clock numbers directly. Coral NPU Verilator gives cycle-level architectural detail for a rigorous spec sheet. <em>If forced to pick: Verilator first, USB second</em> — the spec sheet is the primary deliverable.</span>
+    </div>
+    <div class="risk-item">
+      <span class="risk-label">Decision 2</span>
+      <span class="risk-text"><strong>How aggressively to escalate memory-tier variants in Stage 4?</strong> Variant A is safe and likely fits the streaming budget. Initial plan: A first, B if A leaves &gt;20% of streaming budget unused, C as stress-test ablation regardless.</span>
+    </div>
+    <div class="risk-item">
+      <span class="risk-label">Decision 3</span>
+      <span class="risk-text"><strong>Toy dataset fidelity.</strong> Safe path: generate by perturbing recorded calibration-day trials from the public benchmark (preserves real noise statistics); use fully synthetic generative model only for early simulator-loop debugging.</span>
+    </div>
+    <div class="risk-item">
+      <span class="risk-label">Decision 4</span>
+      <span class="risk-text"><strong>Depth of the phone-NPU bonus run.</strong> Light-touch (one model, one device, single inference timing) is enough to support the deployment-class claim. Initial plan: light-touch in the thesis chapter; deep characterisation reserved for follow-on work.</span>
+    </div>
+    <div class="risk-item">
+      <span class="risk-label">Risk</span>
+      <span class="risk-text"><strong>Coral NPU simulator maturity.</strong> MPACT + Verilator matrix execution unit is "under development and evaluation" per official docs. Mitigation: Stage 3b USB Accelerator provides real-silicon wall-clock validation; all simulator estimates carry an explicit uncertainty band in the spec sheet.</span>
     </div>
   </div>
 
   <hr class="rule">
 
-  <!-- ─── Risks & decisions ─────────────────────────────────────────── -->
-  <h3 id="dc-risks">Risks &amp; Open Decisions</h3>
-
-  <div class="callout amber">
-    <strong>Four decisions resolvable in a single advisor 1:1.</strong>
-    None are blockers for Stage 1 or Stage 3 parallel setup.
-  </div>
-
+  <!-- ─── Advisor questions ─────────────────────────────────────────── -->
+  <h3 id="dc-advisor">7. Questions for Advisor Review</h3>
   <div class="risk-list">
     <div class="risk-item">
-      <span class="risk-label">Decision 1</span>
-      <span class="risk-text"><strong>Which Coral platform anchors the thesis?</strong> Coral USB Accelerator (first-gen) for real wall-clock latency measurements, or new Coral NPU for cycle-level simulator insight? Trade-off: hardware availability vs. toolchain maturity vs. what the thesis needs to claim.</span>
+      <span class="risk-label">Q1</span>
+      <span class="risk-text"><strong>QAT up-front vs wait for PTQ results?</strong> QAT roughly doubles training cost but is the standard way to recover 1–2% WER on Transformer quantisation. Starting QAT in parallel with Stage 1 would remove the 2-week contingency window — but only matters if PTQ degrades beyond 1% absolute.</span>
     </div>
     <div class="risk-item">
-      <span class="risk-label">Decision 2</span>
-      <span class="risk-text"><strong>Is on-device TTA non-negotiable for the clinical narrative?</strong> If TTA gradient steps must run on-device, the ZenBrain host-CPU placement is insufficient and the feasibility claim weakens. If TTA can run at session start only (offline), host-CPU is defensible.</span>
+      <span class="risk-label">Q2</span>
+      <span class="risk-text"><strong>Hardware Requirements Spec format: single combined document or per-variant spec sheets?</strong> Single document (vanilla DietCorp + Variant A + Variant B in one table) is tidier. Per-variant sheets are easier for a deployment engineer to act on independently.</span>
     </div>
     <div class="risk-item">
-      <span class="risk-label">Decision 3</span>
-      <span class="risk-text"><strong>How "inside" the streaming loop does the memory layer need to sit?</strong> Retrieval latency budget: if memory cross-attention must complete within the 50ms utterance window, NPU placement is required. If asynchronous retrieval is acceptable, host-CPU is sufficient.</span>
-    </div>
-    <div class="risk-item">
-      <span class="risk-label">Decision 4</span>
-      <span class="risk-text"><strong>Full platform shortlist for the comparison study.</strong> Current candidates: Coral USB, Coral NPU sim, Jetson Orin Nano, Hailo-8, Apple Neural Engine, Qualcomm Hexagon, Renode. Depends on what hardware is available in lab and advisor preference for the comparison frame.</span>
-    </div>
-    <div class="risk-item">
-      <span class="risk-label">Risk</span>
-      <span class="risk-text"><strong>Coral simulator maturity.</strong> MPACT + Verilator is a research-grade tool, not production-validated. Cycle counts may not match USB Accelerator wall-clock times within a factor of 2. Stage 3 Track B (USB Accelerator) is the planned mitigation — real silicon validates simulator claims before any thesis commitment.</span>
+      <span class="risk-label">Q3</span>
+      <span class="risk-text"><strong>Negative-result framing in Stage 4.</strong> The plan explicitly treats "memory variant X breaks the streaming budget" as a publishable input to the spec sheet. Does the simulation-as-instrument framing make negative results acceptable as primary contributions here?</span>
     </div>
   </div>
+
+  <hr class="rule">
+
+  <!-- ─── System diagram ────────────────────────────────────────────── -->
+  <h3 id="dc-diagram">8. System Architecture</h3>
+  <pre class="diagram">            Patient (ALS / brainstem stroke)
+                        │
+                 intracortical MEA
+                        │
+              256-channel neural activity
+                        │
+      ┌─────────────────┴─────────────────┐
+      │     DietCorp-Compact (forward)    │  ← runs through the
+      │  patch_embed → 5× Transformer →   │     Coral simulator
+      │           output_head             │     (instrument, not target)
+      └─────────────────┬─────────────────┘
+                        │
+                   phoneme logits
+                        │
+            beam search + n-gram LM        ← host CPU
+                        │
+                        ▼
+                   decoded text
+                        │
+      ┌─────────────────┴─────────────────┐
+      │   DietCORP TTA (between trials)   │  ← gradient step on host CPU
+      │  64 aug forwards → pseudo-label   │     forwards through simulator
+      │   → one AdamW step, patch_embed   │     weights reloaded to device
+      └─────────────────┬─────────────────┘
+                        │
+                        ▼
+      ┌─────────────────────────────────────┐
+      │   ZenBrain-inspired memory layer    │
+      │                                     │
+      │  [NPU] working-memory KV cache      │  ← static shape, fused with
+      │         + cross-attention gate      │     patch_embed module
+      │                                     │
+      │  [Host CPU] short-term buffer       │  ← session-bounded
+      │             decay scheduler (τ)     │  ← Ebbinghaus / TripleCopy
+      │             priority signal         │  ← confidence-weighted TTA gate
+      │             episodic / semantic /   │
+      │             procedural / core /     │
+      │             cross-context layers    │
+      └─────────────────┬───────────────────┘
+                        │
+                        ▼
+            ┌───────────────────────────┐
+            │  Hardware Requirements    │  ← PRIMARY DELIVERABLE
+            │       Spec (v1, v2)       │  MACs/s · on-chip memory · ops
+            │                           │  latency · bandwidth · energy
+            │                           │  per-variant deltas
+            └───────────────────────────┘
+                        │
+                        ▼
+      (informs future deployment-substrate choice:
+        phone NPU, laptop NPU, dedicated edge module …)</pre>
 
   <hr class="rule">
 
   <!-- ─── Status ────────────────────────────────────────────────────── -->
-  <h3 id="dc-status">Status &amp; Files</h3>
-
+  <h3 id="dc-status">9. Status</h3>
   <div class="kv-grid">
     <span class="kv-key">Feasibility audit</span>
     <span class="kv-val"><span class="badge badge-done">Complete</span> &nbsp;28 May 2026 &nbsp;·&nbsp; <code>Coral_Feasibility_DietCorp_ZenBrain.md</code></span>
     <span class="kv-key">Progress summary</span>
     <span class="kv-val"><span class="badge badge-done">Complete</span> &nbsp;<code>Progress_Summary_Scope_and_Plan.md</code></span>
     <span class="kv-key">Stage 1</span>
-    <span class="kv-val"><span class="badge badge-active">Starting next week</span> &nbsp;Host baseline reproduction — targeting WER match with arXiv:2507.02800</span>
+    <span class="kv-val"><span class="badge badge-active">Starting next week</span> &nbsp;Host baseline reproduction — targeting ±0.5% WER vs arXiv:2507.02800</span>
     <span class="kv-key">Stage 3 setup</span>
     <span class="kv-val"><span class="badge badge-active">Parallel with Stage 1</span> &nbsp;Coral simulator + USB Accelerator toolchain validation using stub MobileNet</span>
-    <span class="kv-key">Stages 2, 4</span>
-    <span class="kv-val"><span class="badge badge-planned">Planned</span> &nbsp;Weeks 2–4 and 8–12 respectively</span>
+    <span class="kv-key">Stage 2</span>
+    <span class="kv-val"><span class="badge badge-planned">Planned</span> &nbsp;Weeks 2–4 — PTQ quantisation characterisation</span>
+    <span class="kv-key">Stage 4</span>
+    <span class="kv-val"><span class="badge badge-planned">Planned</span> &nbsp;Weeks 8–12 — Memory-augmented variant simulation (Variants A, B, C)</span>
+    <span class="kv-key">Open decisions</span>
+    <span class="kv-val">Sections 6 &amp; 7 — to be resolved with advisor in next 1:1</span>
   </div>
 
 </section>
 
-<hr class="rule">
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- FOOTER -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<footer style="font-family:system-ui,sans-serif;font-size:0.75rem;color:#9ca3af;margin-top:3rem;padding-top:1rem;border-top:1px solid #e5e7eb;">
+<!-- Footer -->
+<footer class="page-footer">
   <p>
     <strong style="color:#6b7280;">Brain2Text 2025</strong> — 5 tracks · 16 experiments · baseline WER 0.3673 · target &lt;0.10 ·
     A100 instance 417023 (JarvisLabs) · RTX 4050 6 GB (local)
@@ -1036,5 +1780,32 @@
   <p style="margin-top:0.5rem;">Compiled 29 May 2026.</p>
 </footer>
 
+</main>
+</div>
+
+<script>
+// Sidebar active state via IntersectionObserver
+const navItems = document.querySelectorAll('.nav-item');
+
+const onEnter = (id) => {
+  const href = '#' + id;
+  navItems.forEach(item => {
+    item.classList.remove('active-p1', 'active-p2');
+    if (item.getAttribute('href') === href) {
+      // Determine project by checking if the target is inside #bt or #dc
+      const el = document.getElementById(id);
+      const inP1 = el && el.closest('#bt');
+      item.classList.add(inP1 ? 'active-p1' : 'active-p2');
+    }
+  });
+};
+
+const targets = document.querySelectorAll('h3[id], section[id]');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) onEnter(e.target.id); });
+}, { rootMargin: '-5% 0px -80% 0px', threshold: 0 });
+
+targets.forEach(t => observer.observe(t));
+</script>
 </body>
 </html>
