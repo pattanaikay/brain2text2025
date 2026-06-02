@@ -489,6 +489,20 @@ def _run_adapt(expt_id: str, spec: dict, args):
             return self.ctc_head(tok)
 
     model = _PhonemeModel(encoder, nn.Linear(embed_dim, n_phonemes)).to(device)
+
+    # FIX 1: Load the TRAINED CTC head from the checkpoint.
+    # bit.py stage only loads encoder.* keys, intentionally skipping head.*.
+    # We load head.weight / head.bias here so pseudo-labels are real, not random.
+    ckpt_path = enc_spec.get("pretrained_ckpt")
+    if ckpt_path and os.path.exists(str(ckpt_path)):
+        _ckpt = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+        if "head.weight" in _ckpt and "head.bias" in _ckpt:
+            model.ctc_head.weight.data.copy_(_ckpt["head.weight"])
+            model.ctc_head.bias.data.copy_(_ckpt["head.bias"])
+            print(f"[adapt] Loaded trained CTC head from checkpoint "
+                  f"(shape: {_ckpt['head.weight'].shape})")
+        else:
+            print("[adapt] WARNING: checkpoint has no head.weight — CTC head is random")
     model.eval()
 
     target_params = select_patch_embed_params(
@@ -500,8 +514,40 @@ def _run_adapt(expt_id: str, spec: dict, args):
     d = a.get("drift", {})
     n_days     = d.get("n_days", 8)
     max_trials = d.get("max_trials", 32)
-    base = [(torch.randn(T_bins, input_dim, device=device), None)
-            for _ in range(max_trials)]
+
+    # FIX 2: Use REAL neural data when --val_h5 is provided.
+    # Random Gaussian tensors fed to a trained model produce near-uniform CTC
+    # outputs (confidence ~0.07) → garbage pseudo-labels → immediate collapse.
+    # Real recordings are in-distribution and produce meaningful phoneme decodes.
+    base = None
+    if getattr(args, "val_h5", None):
+        try:
+            from docks.multiarch_dock import Preprocessed_BCI_Dataset, bci_collate_fn
+            from torch.utils.data import DataLoader
+            val_h5s = _find_h5(args.val_h5, "data_val.hdf5")
+            if val_h5s:
+                ds  = Preprocessed_BCI_Dataset(
+                          val_h5s,
+                          patch_size=enc_spec.get("patch_size", 4),
+                          augment=False)
+                ldr = DataLoader(ds, batch_size=1, shuffle=False,
+                                 collate_fn=bci_collate_fn, num_workers=0)
+                base = []
+                for i, batch in enumerate(ldr):
+                    if i >= max_trials:
+                        break
+                    neural = batch["neural"][0].to(device)  # (T, C)
+                    base.append((neural, None))
+                print(f"[adapt] Loaded {len(base)} real trials from {val_h5s[0]}")
+        except Exception as e:
+            print(f"[adapt] WARNING: could not load real data ({e}), falling back to synthetic")
+            base = None
+
+    if base is None:
+        print("[adapt] Using synthetic random base trials (confidence will be low with a trained model)")
+        base = [(torch.randn(T_bins, input_dim, device=device), None)
+                for _ in range(max_trials)]
+
     days = synthesize_drift(base, n_days=n_days,
                             scale_std=d.get("scale_std", 0.15),
                             shift_std=d.get("shift_std", 0.15),

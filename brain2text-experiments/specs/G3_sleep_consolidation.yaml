@@ -21,7 +21,7 @@ encoder:
   num_layers:  7
   num_heads:   6
   patch_size:  4
-  pretrained_ckpt: null
+  pretrained_ckpt: "C:/Users/Pratik/Downloads/ctc/best_model_per (1).pth"
 
 adapt:
   n_phonemes:           42
