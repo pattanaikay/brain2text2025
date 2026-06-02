@@ -1,0 +1,52 @@
+# specs/H2_zenbrain_live.yaml
+# Track H2: ZenBrain episodic-memory — LIVE end-to-end training.
+#
+# Reference: github.com/zensation-ai/zenbrain
+#
+# This is the runnable counterpart to the H1 interface entry. A standard BIT
+# encoder feeds the live episodic-memory STAGE (ring buffer + cross-attention
+# read head + learnable fusion gate, session-keyed + confidence-gated writes),
+# then the usual MLP projector + Qwen2.5 decoder. The loss is CE + the live
+# episodic-consistency objective ("recall-the-past-latent").
+#
+# The memory stage is invoked by run.py between encoder and projector, and its
+# memory_query/memory_retrieved are merged into outputs for the episodic loss.
+#
+# Run (toy E2E):
+#   py -3 run.py --expt H2 --profile toy --train_h5 data/toy_train.hdf5 --val_h5 data/toy_val.hdf5
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+memory:
+  variant:              episodic_buffer
+  embed_dim:            384
+  buffer_size:          256
+  n_heads:              6
+  confidence_threshold: 0.5        # session-keyed + confidence-gated write policy
+  gate_init:            0.1        # fusion gate starts near identity for stability
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: episodic_consistency   # LIVE: recall-the-past-latent (weight 1.0)
+    weight: 1.0

@@ -1,0 +1,31 @@
+# tools/dietcorp_paper_oracle.yaml
+# Frozen expected-metric checkpoints for the DietCorp toy reproduction.
+#
+# PURPOSE (ADHD convergence, frame: competitor-trying-to-break-it): a toy
+# reproduction can silently DIVERGE from the paper's technique and still produce
+# a plausible-looking loss curve. Pinning expected numbers turns a wrong default
+# or a bad refactor into a loud regression instead of an invisible drift.
+#
+# HOW TO POPULATE: run the vendored upstream loop ONCE at the pinned SHA on the
+# shipped toy data, then record loss-at-step-N below together with the exact
+# conditions that produced it. A frozen metric without provenance is meaningless.
+#
+# STATUS: placeholder — numbers are nulls until the upstream is vendored & run.
+
+provenance:
+  upstream_repo:   "github.com/ebrahimfeghhi/transformers_with_dietcorp"
+  upstream_sha:    null          # fill from PINS.txt after `git submodule add`
+  torch_version:   null
+  seed:            0
+  device:          "cpu"         # toy oracle on CPU for reproducibility
+  data_source:     "upstream"    # the repo's own shipped toy tensors
+
+tolerance:
+  rel: 0.15                       # flag DIVERGED if |live-expected|/expected > 15%
+
+# Expected loss at step N (fill after first upstream run).
+expected_loss_at_step:
+  1:   null
+  2:   null
+  10:  null
+  50:  null

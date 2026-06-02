@@ -1,0 +1,10 @@
+{
+  "experiment": "H1",
+  "state": "partial",
+  "last_touched": "2026-06-01",
+  "owner": "pratikpattanaik821@gmail.com",
+  "reference": "github.com/zensation-ai/zenbrain",
+  "resume_note": "LIVE. The skeleton has been resolved. Write/evict policy = session-keyed + confidence-gated (EpisodicWritePolicy in stages/memory/episodic_buffer.py). forward() reads the ring buffer via cross-attention, fuses with a learnable gate, writes confident latents back, and emits memory_query/memory_retrieved. stages/loss/episodic_consistency.py is live (the `* 0.0` was removed). The training experiment is H2 (specs/H2_zenbrain_live.yaml). Remaining design space (Track H Phase 4): make the buffer a replay source for an offline between-session sleep pass with ZenBrain Simulation-Selection priority |TD|+confidence+novelty; optionally add same-session read masking using buf_session.",
+  "blocked_on": null,
+  "tripwire_test": "tests/test_zenbrain_stub_tripwire.py"
+}

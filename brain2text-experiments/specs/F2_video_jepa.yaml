@@ -1,0 +1,47 @@
+# specs/F2_video_jepa.yaml
+# Track F2: VIDEO/VISUAL-JEPA self-supervised pretraining backbone.
+#
+# CONTROLLED A/B: this file MUST be byte-identical to F1_audio_jepa.yaml and
+# F3_neural_jepa.yaml except for the single `modality:` line below. The whole
+# scientific point of the track is that ONLY the input modality differs.
+# tools/diff_specs.py enforces this (and tests/test_jepa_smoke.py runs it).
+#
+# SKELETON STATUS: the EMA target-encoder + stop-grad + masked-latent
+# prediction is real; the per-modality patchifier is a random-init stub.
+# Swap stubs for real backbones (wav2vec2 1D / DINOv2 2D) later — the seam
+# below the projector never changes.
+#
+# Run (pretrain smoke):  python -m pytest tests/test_jepa_smoke.py -v
+
+encoder:
+  variant:       jepa
+  modality:      video          # <-- THE ONLY LINE THAT DIFFERS ACROSS F1/F2/F3
+  input_dim:     512
+  embed_dim:     384
+  num_layers:    4
+  num_heads:     6
+  patch_size:    4
+  mask_ratio:    0.5
+  ema_momentum:  0.996
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+# Pretraining objective. During the JEPA pretrain phase only these two run;
+# the CE/decoder losses kick in for the downstream fine-tune phase.
+loss:
+  - variant: jepa_varcov         # anti-collapse guard (see stages/loss/jepa_varcov.py)
+    var_weight: 1.0
+    cov_weight: 0.04
+  - variant: ce                  # downstream fine-tune signal (post-pretrain)

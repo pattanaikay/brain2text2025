@@ -132,8 +132,11 @@ def _validate(model_stack, val_loader, device, compute_dtype, composed_loss,
     enc = model_stack.encoder
     proj = model_stack.projector
     dec = model_stack.decoder
+    mem = model_stack._modules.get("memory")   # Track H (optional)
 
     enc.eval(); proj.eval(); dec.eval()
+    if mem is not None:
+        mem.eval()
     with torch.no_grad():
         for bi, batch in enumerate(tqdm(val_loader, desc="Val", leave=False)):
             if max_batches and bi >= max_batches:
@@ -144,9 +147,17 @@ def _validate(model_stack, val_loader, device, compute_dtype, composed_loss,
 
             with torch.autocast(device_type="cuda", dtype=compute_dtype):
                 tokens = enc(neural, session_id=sid, neural_lengths=lengths)
+                mem_out = {}
+                if mem is not None:                 # Track H: episodic memory stage
+                    tokens  = mem(tokens, session_id=sid)
+                    mem_out = mem.last_read
                 proj_out = proj(tokens)
                 outputs = dec(proj_out, labels=batch["text"],
                                neural_lengths=lengths)
+                outputs["neural_tokens"]    = tokens
+                outputs["projected_embeds"] = proj_out
+                outputs["batch"]            = batch
+                outputs.update(mem_out)
                 total, breakdown = composed_loss(batch, model_stack, outputs)
 
             total_loss += total.item()
@@ -187,6 +198,11 @@ def run(args):
     ranking_cfg  = profile.get("ranking", {})
     auto_pause   = profile.get("auto_pause", False)
     instance_id  = profile.get("instance_id", "413754")
+
+    # 2b. Adaptation mode (Track G2/G3): drift-eval + sleep consolidation.
+    if getattr(args, "adapt", False) or expt_meta.get("mode") == "adapt":
+        _run_adapt(args.expt, spec, args)
+        return
 
     # 3. Full-profile gate: require toy PASSED
     if args.profile == "full":
@@ -243,6 +259,7 @@ def run(args):
     enc  = stack.encoder.to(device)
     proj = stack.projector.to(device)
     dec  = stack.decoder  # decoder manages its own device_map
+    mem  = stack._modules["memory"].to(device) if stack.has_stage("memory") else None  # Track H
 
     # 8. Wire CTC head + TopoLoss if in loss spec
     composed_loss = compose_from_spec(spec.get("loss", [{"variant": "ce"}]))
@@ -258,6 +275,8 @@ def run(args):
         list(proj.parameters()) +
         [p for p in dec.parameters() if p.requires_grad]
     )
+    if mem is not None:
+        trainable += list(mem.parameters())   # episodic read head + fusion gate
     for fn in composed_loss._fns:
         if hasattr(fn, "parameters"):
             trainable.extend(fn.parameters())
@@ -318,6 +337,10 @@ def run(args):
 
                 with torch.autocast(device_type="cuda", dtype=compute_dtype):
                     tokens   = enc(neural, session_id=sid, neural_lengths=lengths)
+                    mem_out  = {}
+                    if mem is not None:                 # Track H: episodic memory stage
+                        tokens  = mem(tokens, session_id=sid)
+                        mem_out = mem.last_read         # memory_query / memory_retrieved
                     proj_out = proj(tokens)
                     outputs  = dec(proj_out, labels=batch["text"],
                                     neural_lengths=lengths)
@@ -325,6 +348,7 @@ def run(args):
                     outputs["neural_tokens"]   = tokens
                     outputs["projected_embeds"] = proj_out
                     outputs["batch"]           = batch
+                    outputs.update(mem_out)
 
                     total, breakdown = composed_loss(batch, stack, outputs)
                     total = total / accum_steps
@@ -431,6 +455,100 @@ def run(args):
                 logger.warning(f"Auto-pause failed: {pe}")
 
 
+def _run_adapt(expt_id: str, spec: dict, args):
+    """
+    Track G2/G3: build encoder + CTC head (no LLM), construct an ordered day
+    sequence, and sweep the consolidation depth N through the DietCorp TTA loop.
+    Writes a PER-vs-day curve per N + a wake-latency / consolidate-cost table.
+    """
+    from stages.encoder.bit import build as enc_build
+    from adapt.dietcorp_tta import (
+        TTAConfig, select_patch_embed_params, ctc_greedy_decode,
+    )
+    from tools.drift_eval import synthesize_drift, split_by_session, run_drift_eval
+    import torch.nn.functional as F
+
+    a = spec.get("adapt", {})
+    enc_spec   = spec.get("encoder", {"variant": "bit"})
+    input_dim  = enc_spec.get("input_dim", 512)
+    embed_dim  = enc_spec.get("embed_dim", 384)
+    n_phonemes = a.get("n_phonemes", 42)
+    blank      = a.get("blank", 0)
+    T_bins     = 240
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # ── Build the LLM-free phoneme model: encoder → CTC head ──────────────────
+    enc_spec = dict(enc_spec); enc_spec.pop("variant", None)
+    encoder, _ = enc_build(enc_spec, (T_bins, input_dim))
+
+    class _PhonemeModel(nn.Module):
+        def __init__(self, encoder, ctc_head):
+            super().__init__(); self.encoder = encoder; self.ctc_head = ctc_head
+        def forward(self, neural):                         # (B,T,C) -> (B,T',P)
+            tok = self.encoder(neural, session_id=None, neural_lengths=None)
+            return self.ctc_head(tok)
+
+    model = _PhonemeModel(encoder, nn.Linear(embed_dim, n_phonemes)).to(device)
+    model.eval()
+
+    target_params = select_patch_embed_params(
+        model.encoder, tuple(a.get("target_param_hints", ("patch", "read_in", "embed"))))
+    print(f"[adapt] {expt_id}: target params (patch-embed) = {len(target_params)} tensors "
+          f"({sum(p.numel() for p in target_params)} weights)")
+
+    # ── Base trials → ordered days ───────────────────────────────────────────
+    d = a.get("drift", {})
+    n_days     = d.get("n_days", 8)
+    max_trials = d.get("max_trials", 32)
+    base = [(torch.randn(T_bins, input_dim, device=device), None)
+            for _ in range(max_trials)]
+    days = synthesize_drift(base, n_days=n_days,
+                            scale_std=d.get("scale_std", 0.15),
+                            shift_std=d.get("shift_std", 0.15),
+                            noise_std=d.get("noise_std", 0.05),
+                            seed=d.get("seed", 0))
+
+    # No ground-truth phonemes for synthetic data → use the fresh model's day-0
+    # greedy decode as each trial's reference, so PER measures how far the decode
+    # has DRIFTED from its clean-day baseline.
+    with torch.no_grad():
+        day0 = list(days.values())[0]
+        refs = [ctc_greedy_decode(F.log_softmax(model(x.unsqueeze(0)), dim=-1), blank=blank)[0]
+                for x, _ in day0]
+    for day_trials in days.values():
+        for i in range(len(day_trials)):
+            day_trials[i] = (day_trials[i][0], refs[i])
+
+    # ── Sweep N ──────────────────────────────────────────────────────────────
+    n_steps_list = args.n_steps if args.n_steps else a.get("n_steps_list", [0, 1, 2, 4, 8])
+    cfg = TTAConfig(n_aug=a.get("n_aug", 64), mask_frac=a.get("mask_frac", 0.53),
+                    mask_span=a.get("mask_span", 4), lr=a.get("lr", 1e-3),
+                    grad_clip=a.get("grad_clip", 1.0), blank=blank,
+                    confidence_threshold=a.get("confidence_threshold", 0.0))
+
+    print(f"[adapt] sweeping N = {list(n_steps_list)} over {n_days} days "
+          f"x {max_trials} trials on {device}...")
+    res = run_drift_eval(model, model, days, target_params,
+                         n_steps_list=list(n_steps_list), tta_config=cfg, blank=blank)
+
+    # ── Persist + summarise ──────────────────────────────────────────────────
+    run_dir = _HERE / "results" / "runs" / f"{expt_id}_adapt_{_spec_hash(spec)}"
+    os.makedirs(run_dir, exist_ok=True)
+    with open(run_dir / "drift_results.json", "w") as f:
+        json.dump(res, f, indent=2)
+
+    print(f"\n{'N':>4} {'PER@day0':>9} {'PER@last':>9} {'delta(L-0)':>11} "
+          f"{'wake_ms':>9} {'cons_ms':>9}")
+    for N in n_steps_list:
+        s = res["summary"][N]
+        wake = res["wake_latency_ms"][N]; cons = res["consolidate_ms"][N]
+        def _f(x, p=4): return f"{x:.{p}f}" if isinstance(x, (int, float)) else "  n/a"
+        print(f"{N:>4} {_f(s['per_first']):>9} {_f(s['per_last']):>9} "
+              f"{_f(s['per_delta']):>14} {_f(wake,2):>9} {_f(cons,2):>9}")
+    print(f"\n[adapt] H_main supported iff PER@last falls as N rises while wake_ms stays flat.")
+    print(f"[adapt] results → {run_dir / 'drift_results.json'}")
+
+
 def _run_analysis(expt_id: str, spec: dict, args):
     """Dispatch to the appropriate analysis tool."""
     dispatch = {
@@ -456,6 +574,11 @@ def main():
     parser.add_argument("--train_h5", default=None,  help="Path to training HDF5 file or directory")
     parser.add_argument("--val_h5",   default=None,  help="Path to validation HDF5 file or directory")
     parser.add_argument("--override", nargs="*",     help="Key=value spec overrides, e.g. encoder.patch_size=5")
+    parser.add_argument("--adapt", action="store_true",
+                        help="Run the DietCorp drift-eval / sleep-consolidation loop (Track G2/G3) "
+                             "instead of training. LLM-free: builds encoder + CTC head only.")
+    parser.add_argument("--n_steps", nargs="*", type=int, default=None,
+                        help="Override the consolidation-depth sweep, e.g. --n_steps 0 1 2 4 8")
     args = parser.parse_args()
 
     # Apply CLI overrides to spec (handled inside run() via spec YAML)

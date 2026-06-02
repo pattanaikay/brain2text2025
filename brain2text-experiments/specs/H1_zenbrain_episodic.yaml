@@ -1,0 +1,52 @@
+# specs/H1_zenbrain_episodic.yaml
+# Track H1: ZenBrain episodic-memory experiment — SKELETON (not runnable).
+#
+# Reference: github.com/zensation-ai/zenbrain
+#
+# >>> THIS IS A STUB. The USER will design the real experiment. <<<
+# It wires up and shape-checks but forward() is BLOCKED (allow_stub_forward:
+# false). It exists so the exercise is remembered at the right seams:
+#   - a `memory:` stage between encoder and projector (episodic ring buffer +
+#     cross-attention read head), and
+#   - an `episodic_consistency` loss occupying the slot the real objective fills.
+#
+# State is tracked in specs/H1_zenbrain_episodic.health.json and enforced by
+# tests/test_zenbrain_stub_tripwire.py — which FAILS if someone implements
+# forward() without flipping the registry state from `skeleton`.
+#
+# To exercise the WIRING (not the science):
+#   flip allow_stub_forward: true here, OR build the Stack in the tripwire test.
+
+encoder:
+  variant:     zenbrain          # existing B5 episodic-buffer encoder
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+
+memory:
+  variant:            episodic_buffer
+  embed_dim:          384
+  buffer_size:        256
+  n_heads:            6
+  allow_stub_forward: false       # <-- STUB GUARD. true only exercises wiring.
+
+projector:
+  variant:    mlp
+  input_dim:  384
+  hidden_dim: 1024
+  output_dim: 1536
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: episodic_consistency   # registered zero-loss stub (recall-the-past-latent)
+    weight: 1.0

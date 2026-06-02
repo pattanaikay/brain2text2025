@@ -1,0 +1,54 @@
+# specs/G1_dietcorp_smoke.yaml
+# Track G1: DietCorp toy reproduction smoke.
+#
+# Two ways to use this track:
+#   (a) Faithful reproduction — run the vendored upstream loop on its OWN toy
+#       data via docks/dietcorp_dock.run_smoke_iters(source="upstream") and diff
+#       against tools/dietcorp_paper_oracle.yaml.
+#   (b) Reusable port — drop the native recalibration projector below onto our
+#       (B,T,512) neural data inside the normal Stack pipeline.
+#
+# This spec wires path (b): the DietCorp corrupted-input + per-day affine
+# recalibration projector replaces the baseline MLP projector. The encoder and
+# decoder are the standard BIT + Qwen baseline, so any WER delta is attributable
+# to the recalibration projector alone.
+#
+# SKELETON STATUS: the recalibration projector is real and runnable; the
+# faithful upstream reproduction (path a) is pending `git submodule add` of the
+# upstream repo (see docks/dietcorp_upstream/README.md).
+#
+# Run (native smoke):  python -c "from docks.dietcorp_dock import run_smoke_iters; print(run_smoke_iters(2))"
+# Run (toy E2E):        python run.py --expt G1 --profile toy --train_h5 data/toy_train.hdf5 --val_h5 data/val.hdf5
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+projector:
+  variant:      dietcorp_recal
+  input_dim:    384            # BIT encoder output dim
+  output_dim:   1536           # must match decoder llm_dim
+  n_days:       8              # number of recording sessions / days
+  corrupt_std:  0.1            # Gaussian corruption strength (train only)
+  corrupt_drop: 0.1            # dropout corruption (train only)
+
+decoder:
+  variant:      qwen15
+  llm_name:     Qwen/Qwen2.5-1.5B-Instruct
+  quantize:     true
+  lora_r:       8
+  lora_alpha:   32
+  lora_dropout: 0.2
+
+loss:
+  - variant: ce
+  - variant: ctc_anneal
+    start_weight:  0.3
+    anneal_epochs: null
+  - variant: contrastive
+    weight: 1.0

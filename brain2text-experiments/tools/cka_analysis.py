@@ -114,12 +114,24 @@ def collect_text_embeddings(
 def run_cka(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # ── Detect embedding dimension from checkpoint ──────────────────
+    embed_dim = 2048  # default
+    if args.ckpt:
+        ckpt = torch.load(args.ckpt, map_location="cpu", weights_only=False)
+        sd   = ckpt.get("model_state_dict", ckpt)
+        # Extract embedding dimension from checkpoint
+        for key, val in sd.items():
+            if "patch_embedding.weight" in key:
+                embed_dim = val.shape[1]
+                print(f"Detected embed_dim={embed_dim} from checkpoint")
+                break
+
     # ── Load encoder ──────────────────────────────────────────────────
-    encoder   = BIT_Transformer(patch_size=args.patch_size).to(device)
+    encoder   = BIT_Transformer(patch_size=args.patch_size, embed_dim=embed_dim).to(device)
     projector = MLPProjector().to(device)   # output_dim=1536 default
 
     if args.ckpt:
-        ckpt = torch.load(args.ckpt, map_location=device)
+        ckpt = torch.load(args.ckpt, map_location=device, weights_only=False)
         sd   = ckpt.get("model_state_dict", ckpt)
         enc_sd = {k.replace("encoder.","",1): v for k,v in sd.items() if not k.startswith("head.")}
         encoder.load_state_dict(enc_sd, strict=False)

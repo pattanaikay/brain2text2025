@@ -9,3 +9,9 @@
 
 brain2text-modeltraining               ../brain2text-modeltraining                HEAD
 brain2text-modeltraining-multiarch     ../brain2text-modeltraining-multiarchitectures   HEAD
+
+# Track G — vendored external repo (git submodule under docks/dietcorp_upstream/).
+# After `git submodule add`, replace SHA_PENDING with the pinned commit SHA and
+# record the content hash from `docks.dietcorp_dock.upstream_hash()` as a comment.
+# CI re-hashes and emits a dated DRIFT warning rather than auto-bumping.
+dietcorp_upstream                      ./dietcorp_upstream                        SHA_PENDING   # content-hash: PENDING

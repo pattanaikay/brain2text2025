@@ -278,3 +278,118 @@ experiments:
     depends_on: [E2b]
     expected_runtime_min: 120      # 6 toy runs
     expected_wer_band: [0.18, 0.38]
+
+  # ── Track F: JEPA Self-Supervised Pretraining (audio vs visual) ─────────
+  # Controlled A/B — F1/F2/F3 differ in exactly the `modality:` line.
+  # EMA target-encoder + stop-grad + masked-latent prediction is REAL; the
+  # per-modality patchifier is a random-init stub (swap for wav2vec2/DINOv2).
+
+  F1:
+    track: F
+    name: "Audio-JEPA Backbone"
+    description: "1D-conv patchifier; EMA+stop-grad masked-latent prediction"
+    spec_ref: specs/F1_audio_jepa.yaml
+    train_required: true
+    local_ok: true
+    state: skeleton                # patchifier stubbed; pretrain loop real
+    smoke_test: tests/test_jepa_smoke.py
+    expected_runtime_min: 25
+    expected_wer_band: null        # pretraining — produces a backbone, not WER
+
+  F2:
+    track: F
+    name: "Video-JEPA Backbone"
+    description: "2D-conv patchifier; identical to F1 except modality"
+    spec_ref: specs/F2_video_jepa.yaml
+    train_required: true
+    local_ok: true
+    state: skeleton
+    smoke_test: tests/test_jepa_smoke.py
+    depends_on: [F1]
+    expected_runtime_min: 25
+    expected_wer_band: null
+
+  F3:
+    track: F
+    name: "Neural-JEPA Backbone (provocation arm)"
+    description: "JEPA-pretrain on the BCI signal itself — 3-way controlled test"
+    spec_ref: specs/F3_neural_jepa.yaml
+    train_required: true
+    local_ok: true
+    state: skeleton
+    smoke_test: tests/test_jepa_smoke.py
+    depends_on: [F1]
+    expected_runtime_min: 25
+    expected_wer_band: null
+
+  # ── Track G: DietCorp reproduction (transformers_with_dietcorp) ──────────
+
+  G1:
+    track: G
+    name: "DietCorp Recalibration Projector (toy)"
+    description: "Corrupted-input reg + per-day affine recal as a projector stage"
+    spec_ref: specs/G1_dietcorp_smoke.yaml
+    train_required: true
+    local_ok: true
+    state: partial                 # native projector real; upstream repro pending vendoring
+    upstream: "github.com/ebrahimfeghhi/transformers_with_dietcorp"
+    smoke_cmd: "python -c \"from docks.dietcorp_dock import run_smoke_iters; print(run_smoke_iters(2))\""
+    expected_runtime_min: 22
+    expected_wer_band: [0.22, 0.42]
+
+  G2:
+    track: G
+    name: "DietCorp TTA — native reproduction (N=1)"
+    description: "Per-trial test-time adaptation: 64 time-masked augs → CTC pseudo-label → 1 AdamW step on patch-embed. Drift-eval (--adapt) path, LLM-free."
+    spec_ref: specs/G2_dietcorp_tta.yaml
+    mode: adapt                    # uses run.py --adapt, not the training loop
+    train_required: false
+    local_ok: true
+    state: partial
+    upstream: "github.com/ebrahimfeghhi/transformers_with_dietcorp"
+    smoke_cmd: "python -m pytest tests/test_dietcorp_tta.py -q"
+    expected_runtime_min: 10
+    expected_wer_band: null        # produces a PER-vs-day drift curve, not a WER scalar
+
+  G3:
+    track: G
+    name: "Sleep consolidation — N-step TTA sweep (thesis)"
+    description: "Generalises DietCorp's single step to N consolidation passes; sweeps N to test whether deeper sleep reduces drift error at constant wake latency."
+    spec_ref: specs/G3_sleep_consolidation.yaml
+    mode: adapt
+    train_required: false
+    local_ok: true
+    state: partial
+    depends_on: [G2]
+    smoke_cmd: "python -m pytest tests/test_drift_eval.py -q"
+    expected_runtime_min: 20
+    expected_wer_band: null        # PER-vs-day curve per N + wake-latency table
+
+  # ── Track H: ZenBrain episodic memory (SKELETON — user designs experiment) ──
+
+  H1:
+    track: H
+    name: "ZenBrain Episodic Memory (live interface)"
+    description: "Ring-buffer + cross-attn read head; write policy resolved to session-keyed + confidence-gated. Stage is live and backprop-safe."
+    spec_ref: specs/H1_zenbrain_episodic.yaml
+    train_required: false          # interface/contract entry; H2 is the training experiment
+    local_ok: true
+    state: partial                 # was skeleton; memory forward + episodic loss now live
+    upstream: "github.com/zensation-ai/zenbrain"
+    health: specs/H1_zenbrain_episodic.health.json
+    tripwire_test: tests/test_zenbrain_stub_tripwire.py
+    expected_runtime_min: null
+    expected_wer_band: null
+
+  H2:
+    track: H
+    name: "ZenBrain Episodic Memory — E2E training (live)"
+    description: "BIT encoder → episodic memory stage → MLP → Qwen2.5; CE + live episodic-consistency loss. Tests whether episodic recall helps decoding."
+    spec_ref: specs/H2_zenbrain_live.yaml
+    train_required: true
+    local_ok: true
+    state: partial
+    depends_on: [H1]
+    upstream: "github.com/zensation-ai/zenbrain"
+    expected_runtime_min: 24
+    expected_wer_band: [0.20, 0.55]

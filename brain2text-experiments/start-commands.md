@@ -23,7 +23,7 @@ Here's the complete picture from `run.py`, the profiles, and the registry.
 Every experiment must follow this order — `run.py` enforces it:
 
 ```
-pytest (CPU) → toy run (local GPU, ~20 min) → full run (A100, 150 epochs)
+pytest (CPU) → toy run (local GPU, ~20 min) → full run (A100, 150 epochs)python tools/make_toy_dataset.py --full_path data/data_train.hdf5 --toy_path data/toy_train.hdf5
 ```
 
 The full run **hard-blocks** if no toy pass exists in `leaderboard.sqlite` within the last 7 days.

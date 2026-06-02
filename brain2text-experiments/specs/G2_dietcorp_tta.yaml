@@ -1,0 +1,44 @@
+# specs/G2_dietcorp_tta.yaml
+# Track G2: native DietCorp test-time adaptation (TTA) — the N=1 reproduction.
+#
+# This is the drift-eval ("--adapt") path, NOT the normal training path. run.py
+# builds ONLY the encoder + a CTC head (no Qwen LLM) and drives the DietCorp TTA
+# loop from adapt/dietcorp_tta.py across an ordered day sequence. It is fully
+# local and LLM-free.
+#
+# G2 vs G3: G2 pins n_steps_list = [0, 1] (no-adapt control vs DietCorp's single
+# AdamW step). G3 sweeps N to test the sleep-consolidation hypothesis.
+#
+# Run:
+#   py -3 run.py --expt G2 --profile toy --adapt \
+#       --val_h5 data/toy_val.hdf5
+# (omit --val_h5 to fall back to a synthetic-random base trial set)
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+adapt:
+  n_phonemes:           42          # CTC head output classes (incl. blank=0)
+  blank:                0
+  n_steps_list:         [0, 1]      # 0 = no-adaptation control; 1 = DietCorp
+  n_aug:                64          # DietCorp's 64 time-masked augmentations
+  mask_frac:            0.53        # ~53% time-masking
+  mask_span:            4
+  lr:                   1.0e-3
+  grad_clip:            1.0
+  confidence_threshold: 0.0         # adapt on every trial (raise to gate)
+  target_param_hints:   [patch, read_in, embed]   # DietCorp: input patch-embed only
+  drift:
+    source:     synthetic           # synthetic | session
+    n_days:     8
+    scale_std:  0.15
+    shift_std:  0.15
+    noise_std:  0.05
+    seed:       0
+    max_trials: 32                  # cap trials/day for local speed

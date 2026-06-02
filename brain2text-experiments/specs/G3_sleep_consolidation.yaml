@@ -1,0 +1,44 @@
+# specs/G3_sleep_consolidation.yaml
+# Track G3: sleep-style memory consolidation — the THESIS experiment.
+#
+# Identical to G2 except n_steps_list sweeps the consolidation depth N. N=0 is
+# the no-adaptation control, N=1 is DietCorp, N>1 is "sleep" (the offline
+# recurrent consolidation from arXiv:2605.26099 applied to the BCI drift problem).
+#
+# H_main is read off the output curve: error@last-day should fall as N rises
+# while wake_latency_ms stays ~flat across N and consolidate_ms grows ~linearly.
+#
+# Run:
+#   py -3 run.py --expt G3 --profile toy --adapt \
+#       --val_h5 data/toy_val.hdf5
+#   # override the sweep on the CLI:
+#   py -3 run.py --expt G3 --profile toy --adapt --n_steps 0 1 2 4 8
+
+encoder:
+  variant:     bit
+  input_dim:   512
+  embed_dim:   384
+  num_layers:  7
+  num_heads:   6
+  patch_size:  4
+  pretrained_ckpt: null
+
+adapt:
+  n_phonemes:           42
+  blank:                0
+  n_steps_list:         [0, 1, 2, 4, 8]   # the sleep-duration sweep
+  n_aug:                64
+  mask_frac:            0.53
+  mask_span:            4
+  lr:                   1.0e-3
+  grad_clip:            1.0
+  confidence_threshold: 0.0
+  target_param_hints:   [patch, read_in, embed]
+  drift:
+    source:     synthetic
+    n_days:     8
+    scale_std:  0.15
+    shift_std:  0.15
+    noise_std:  0.05
+    seed:       0
+    max_trials: 32

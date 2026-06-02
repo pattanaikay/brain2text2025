@@ -40,11 +40,15 @@ _STAGE_MODULES = {
     ("encoder", "mamba"):     "stages.encoder.mamba",
     ("encoder", "moe"):       "stages.encoder.moe",
     ("encoder", "zenbrain"):  "stages.encoder.zenbrain",
+    ("encoder", "jepa"):      "stages.encoder.jepa",          # Track F
+    # Memory (optional stage between encoder and projector)
+    ("memory", "episodic_buffer"): "stages.memory.episodic_buffer",  # Track H
     # Projectors
-    ("projector", "mlp"):      "stages.projector.mlp",
-    ("projector", "deep_mlp"): "stages.projector.deep_mlp",
-    ("projector", "gated"):    "stages.projector.gated",
-    ("projector", "qformer"):  "stages.projector.qformer",
+    ("projector", "mlp"):            "stages.projector.mlp",
+    ("projector", "deep_mlp"):       "stages.projector.deep_mlp",
+    ("projector", "gated"):          "stages.projector.gated",
+    ("projector", "qformer"):        "stages.projector.qformer",
+    ("projector", "dietcorp_recal"): "stages.projector.dietcorp_recal",  # Track G
     # Decoders
     ("decoder", "qwen15"):       "stages.decoder.qwen15",
     ("decoder", "qwen2_audio"):  "stages.decoder.qwen2_audio",
@@ -56,6 +60,8 @@ _STAGE_MODULES = {
     ("loss", "contrastive"):   "stages.loss.contrastive",
     ("loss", "topo"):          "stages.loss.topo",
     ("loss", "label_smooth"):  "stages.loss.label_smooth",
+    ("loss", "jepa_varcov"):          "stages.loss.jepa_varcov",          # Track F
+    ("loss", "episodic_consistency"): "stages.loss.episodic_consistency", # Track H
 }
 
 
@@ -107,7 +113,10 @@ class Stack(nn.Module):
         stack = cls()
         current_shape = prev_shape
 
-        stage_order = ["encoder", "projector", "decoder"]
+        # "memory" is an OPTIONAL stage between encoder and projector (Track H).
+        # Specs without a `memory:` block skip it, so the 25 existing
+        # experiments are unaffected.
+        stage_order = ["encoder", "memory", "projector", "decoder"]
         for stage_kind in stage_order:
             if stage_kind not in spec:
                 continue
@@ -115,7 +124,13 @@ class Stack(nn.Module):
             variant = stage_spec.pop("variant")
             mod = _import_stage_module(stage_kind, variant)
             module, out_shape = mod.build(stage_spec, current_shape)
-            stack.add_module(stage_kind, module)
+            # NOTE: register directly into _modules instead of add_module().
+            # The convenience @property accessors (encoder/projector/decoder)
+            # shadow those names, so add_module()'s `hasattr(self, name)` check
+            # invokes the property getter, which raises KeyError before the
+            # module is registered. Direct assignment to _modules is the
+            # standard nn.Module storage and sidesteps that collision.
+            stack._modules[stage_kind] = module
             stack._stage_order.append(stage_kind)
             stack._shapes[stage_kind] = out_shape
             current_shape = out_shape

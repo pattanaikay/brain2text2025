@@ -12,3 +12,13 @@ Error stack trace.txt
 Training Issues.txt
 node_modules
 local_checkpoints
+__pycache__
+
+# Large datasets and model checkpoints
+*.hdf5
+*.pth
+brain2text-experiments/results/runs/
+brain2text-experiments/data/
+brain2text-experiments/.sleep_paper.txt
+brain2text-experiments/.zenbrain_paper.txt
+brain2text-experiments/*.log
