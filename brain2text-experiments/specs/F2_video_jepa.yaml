@@ -6,10 +6,11 @@
 # scientific point of the track is that ONLY the input modality differs.
 # tools/diff_specs.py enforces this (and tests/test_jepa_smoke.py runs it).
 #
-# SKELETON STATUS: the EMA target-encoder + stop-grad + masked-latent
-# prediction is real; the per-modality patchifier is a random-init stub.
-# Swap stubs for real backbones (wav2vec2 1D / DINOv2 2D) later — the seam
-# below the projector never changes.
+# BACKBONES (real): the EMA target-encoder + stop-grad + masked-latent prediction
+# is real, and the per-modality patchifier is now a real backbone — wav2vec2-style
+# 1D conv (audio) / DINOv2-style 2D conv (video) / native patch-embed (neural).
+# Pretrained audio/image weights are not used (input is neural (B,T,512)); the
+# modality is the inductive bias. The seam below the projector is unchanged.
 #
 # Run (pretrain smoke):  python -m pytest tests/test_jepa_smoke.py -v
 

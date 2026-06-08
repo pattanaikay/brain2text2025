@@ -291,7 +291,7 @@ experiments:
     spec_ref: specs/F1_audio_jepa.yaml
     train_required: true
     local_ok: true
-    state: skeleton                # patchifier stubbed; pretrain loop real
+    state: active                  # real backbones: wav2vec2-1D / DINOv2-2D / native patchifiers
     smoke_test: tests/test_jepa_smoke.py
     expected_runtime_min: 25
     expected_wer_band: null        # pretraining — produces a backbone, not WER
@@ -303,7 +303,7 @@ experiments:
     spec_ref: specs/F2_video_jepa.yaml
     train_required: true
     local_ok: true
-    state: skeleton
+    state: active                  # real backbones: wav2vec2-1D / DINOv2-2D / native
     smoke_test: tests/test_jepa_smoke.py
     depends_on: [F1]
     expected_runtime_min: 25
@@ -316,7 +316,7 @@ experiments:
     spec_ref: specs/F3_neural_jepa.yaml
     train_required: true
     local_ok: true
-    state: skeleton
+    state: active                  # real backbones: wav2vec2-1D / DINOv2-2D / native
     smoke_test: tests/test_jepa_smoke.py
     depends_on: [F1]
     expected_runtime_min: 25

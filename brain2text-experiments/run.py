@@ -15,6 +15,15 @@ Usage:
     # Analysis experiment (no training):
     python run.py --expt A1 --val_h5 data/val.hdf5
 
+IMPORTANT NOTE on A100 instance pause/resume:
+  The instance's home directory persists across pause/resume, and run.py AUTOMATICALLY loads
+  the latest checkpoint (checkpoint_latest.pth) if it exists. So if the instance pauses or
+  is interrupted mid-training (e.g., Ctrl-C, network hiccup), re-running the same command
+  will resume from the saved epoch, optimizer state, etc. This requires run.py to complete
+  its checkpoint save before the pause happens. For safety, the toy and full profiles use
+  patience=50 (epochs) to enable clean checkpoints; if you interrupt, the checkpoint is
+  written to run_dir/checkpoint_latest.pth.
+
 Responsibilities:
   1. Load registry.yaml + spec YAML
   2. Apply profile overrides (toy/full)
@@ -175,6 +184,43 @@ def _validate(model_stack, val_loader, device, compute_dtype, composed_loss,
 
 # ── Main ────────────────────────────────────────────────────────────────────
 
+def _apply_overrides(spec: dict, overrides) -> dict:
+    """Apply CLI --override "dotted.key=value" entries into spec (mutates + returns).
+
+    Supports nested dict paths (encoder.patch_size=5, encoder.pretrained_ckpt=path,
+    projector.n_queries=32, batch_size=2) and the loss list keyed by variant
+    (loss.contrastive.weight=0.0 → the {variant: contrastive} entry). Values are
+    parsed with yaml.safe_load so 5→int, 0.0→float, true→bool, else str."""
+    if not overrides:
+        return spec
+    import yaml as _yaml
+    for item in overrides:
+        if "=" not in item:
+            raise ValueError(f"--override '{item}' must be of the form dotted.key=value")
+        path, raw = item.split("=", 1)
+        try:
+            value = _yaml.safe_load(raw)
+        except Exception:
+            value = raw
+        keys = path.split(".")
+        # loss-list special case: loss.<variant>.<leaf>
+        if keys[0] == "loss" and len(keys) == 3 and isinstance(spec.get("loss"), list):
+            variant, leaf = keys[1], keys[2]
+            entry = next((e for e in spec["loss"] if e.get("variant") == variant), None)
+            if entry is None:
+                entry = {"variant": variant}
+                spec["loss"].append(entry)
+            entry[leaf] = value
+            continue
+        node = spec
+        for k in keys[:-1]:
+            if not isinstance(node.get(k), dict):
+                node[k] = {}
+            node = node[k]
+        node[keys[-1]] = value
+    return spec
+
+
 def run(args):
     # 1. Load registry + spec
     registry = _load_yaml(_HERE / "registry.yaml")
@@ -194,6 +240,8 @@ def run(args):
     spec         = _deep_merge(spec, {k: v for k, v in profile.items()
                                        if k not in ("profile", "smoke_assert",
                                                      "ranking", "auto_pause")})
+    # 2c. Apply CLI --override entries (win over both spec and profile)
+    spec = _apply_overrides(spec, getattr(args, "override", None))
     smoke_cfg    = profile.get("smoke_assert", {})
     ranking_cfg  = profile.get("ranking", {})
     auto_pause   = profile.get("auto_pause", False)
@@ -227,6 +275,15 @@ def run(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
+    # 5b. Track F: encoder-only JEPA self-supervised pretraining (no LLM is built).
+    # Triggered for a jepa encoder WITHOUT a pretrained_ckpt. Supplying
+    # encoder.pretrained_ckpt (via --override) instead falls through to the standard
+    # E2E loop below — i.e. the downstream fine-tune of a pretrained JEPA backbone.
+    _enc_spec = spec.get("encoder", {})
+    if _enc_spec.get("variant") == "jepa" and not _enc_spec.get("pretrained_ckpt"):
+        _run_jepa_pretrain(args.expt, spec, args, run_dir, logger, device, compute_dtype)
+        return
+
     # 6. Data
     train_h5s = _find_h5(args.train_h5, "data_train.hdf5")
     val_h5s   = _find_h5(args.val_h5,   "data_val.hdf5")
@@ -256,16 +313,22 @@ def run(args):
     stack = Stack.from_spec(spec)
     logger.info(str(stack))
 
-    enc  = stack.encoder.to(device)
+    enc  = stack.encoder.to(device).to(compute_dtype)  # cast to bf16: fixes HRM DEQ backward dtype mismatch
     proj = stack.projector.to(device)
     dec  = stack.decoder  # decoder manages its own device_map
     mem  = stack._modules["memory"].to(device) if stack.has_stage("memory") else None  # Track H
+
+    # C3 Whisper-Qwen bridge modules live on decoder but don't use device_map — move explicitly
+    for _bridge_attr in ("neural_to_whisper", "whisper_encoder", "whisper_to_llm"):
+        if hasattr(dec, _bridge_attr):
+            getattr(dec, _bridge_attr).to(device)
 
     # 8. Wire CTC head + TopoLoss if in loss spec
     composed_loss = compose_from_spec(spec.get("loss", [{"variant": "ce"}]))
     for loss_fn in composed_loss._fns:
         if hasattr(loss_fn, "attach"):   # TopoLossStage
             loss_fn.attach(enc)
+            loss_fn.to(device)           # move topo conv kernel to GPU
         if hasattr(loss_fn, "ctc_head"):  # CTCAnnealLoss
             loss_fn.ctc_head = loss_fn.ctc_head.to(device)
 
@@ -596,18 +659,165 @@ def _run_adapt(expt_id: str, spec: dict, args):
 
 
 def _run_analysis(expt_id: str, spec: dict, args):
-    """Dispatch to the appropriate analysis tool."""
-    dispatch = {
-        "A1": "tools.cka_analysis",
-        "A2": "tools.perplexity_test",
-        "A3": "tools.phoneme_probe",
-    }
-    if expt_id not in dispatch:
-        raise NotImplementedError(f"Analysis dispatch for {expt_id} not implemented")
+    """Dispatch an analysis experiment (A1/A2/A3) to its tool.
+
+    Each tool has a bespoke argparse, so we translate the spec `analysis:` block
+    + run.py args into the tool's own CLI and swap sys.argv before calling main()
+    (the previous version called main() with run.py's argv, which crashed the
+    tool's parser on --expt/--profile)."""
     import importlib
-    mod = importlib.import_module(dispatch[expt_id])
-    # Each analysis tool has its own argparse; call main() with sys.argv untouched
-    mod.main()
+    import os
+
+    a = spec.get("analysis", {})
+    os.makedirs("results", exist_ok=True)
+
+    if expt_id == "A1":
+        mod_name = "tools.cka_analysis"
+        argv = ["cka_analysis", "--val_h5", str(args.val_h5),
+                "--out", "results/A1_cka_scores.json"]
+        if a.get("encoder_ckpt"):
+            argv += ["--ckpt", str(a["encoder_ckpt"])]
+        if a.get("batch_size"):
+            argv += ["--batch_size", str(a["batch_size"])]
+    elif expt_id == "A2":
+        mod_name = "tools.perplexity_test"
+        spoken  = os.path.expandvars(str(a.get("spoken_corpus", "")))
+        written = os.path.expandvars(str(a.get("written_corpus", "")))
+        for label, p in (("spoken_corpus", spoken), ("written_corpus", written)):
+            if (not p) or ("${" in p) or (not os.path.exists(p)):
+                raise FileNotFoundError(
+                    f"[A2] {label} resolved to {p!r}, which is missing. Set BCI_DATA_ROOT "
+                    f"to a directory holding the corpora, or run tools/perplexity_test.py "
+                    f"directly. Skipping A2 is fine — it is not on the core sweep path."
+                )
+        argv = ["perplexity_test", "--spoken_file", spoken,
+                "--written_file", written, "--out", "results/A2_perplexity.json"]
+    elif expt_id == "A3":
+        mod_name = "tools.phoneme_probe"
+        argv = ["phoneme_probe", "--val_h5", str(args.val_h5),
+                "--out", "results/A3_phoneme_probe.json"]
+        if a.get("epochs"):
+            argv += ["--epochs", str(a["epochs"])]
+    else:
+        raise NotImplementedError(f"Analysis dispatch for {expt_id} not implemented")
+
+    mod = importlib.import_module(mod_name)
+    _old_argv = sys.argv
+    try:
+        sys.argv = argv
+        mod.main()
+    finally:
+        sys.argv = _old_argv
+
+
+def _run_jepa_pretrain(expt_id, spec, args, run_dir, logger, device, compute_dtype):
+    """Track F: encoder-only JEPA self-supervised pretraining.
+
+    The standard E2E loop would train the JEPA encoder via CE through the LLM and
+    leave the masked-latent objective + VICReg anti-collapse unused. This path runs
+    the REAL objective: per batch, encoder.pretrain_step(x) does masked-latent
+    prediction + EMA target update, and the VICReg loss on the unmasked context
+    embeddings guards against representation collapse. No LLM is built. Saves a
+    pretrained backbone + collapse-health metrics; the cross-modality WER comparison
+    is the downstream fine-tune (run.py --expt F* --override encoder.pretrained_ckpt=<saved>)."""
+    import json as _json
+    from stages.encoder.jepa import build as jepa_build
+    from stages.loss.jepa_varcov import build as varcov_build
+
+    train_h5s = _find_h5(args.train_h5, "data_train.hdf5")
+    val_h5s   = _find_h5(args.val_h5,   "data_val.hdf5")
+    if not train_h5s:
+        raise FileNotFoundError(f"No training HDF5 found in {args.train_h5}")
+
+    enc_spec   = spec.get("encoder", {})
+    patch_size = enc_spec.get("patch_size", 4)
+    bs = spec.get("batch_size", 4)
+    nw = spec.get("num_workers", 0)
+    train_loader = DataLoader(
+        Preprocessed_BCI_Dataset(train_h5s, patch_size=patch_size, augment=True),
+        batch_size=bs, shuffle=True, collate_fn=bci_collate_fn, num_workers=nw)
+    val_loader = DataLoader(
+        Preprocessed_BCI_Dataset(val_h5s, patch_size=patch_size, augment=False),
+        batch_size=bs, shuffle=False, collate_fn=bci_collate_fn, num_workers=nw) if val_h5s else None
+
+    encoder, _ = jepa_build(enc_spec, prev_shape=(240, enc_spec.get("input_dim", 512)))
+    encoder = encoder.to(device)
+    modality = enc_spec.get("modality", "audio")
+
+    varcov_spec   = next((dict(l) for l in spec.get("loss", []) if l.get("variant") == "jepa_varcov"), {})
+    varcov_fn, _  = varcov_build(varcov_spec, None)
+
+    optimizer = AdamW([p for p in encoder.parameters() if p.requires_grad],
+                      lr=spec.get("lr", 5e-4), weight_decay=spec.get("weight_decay", 1e-5))
+    epochs      = spec.get("epochs", 20)
+    max_batches = spec.get("max_batches_per_epoch")
+    logger.info(f"[jepa] Pretraining modality={modality} for {epochs} epochs "
+                f"(batch_size={bs}, max_batches={max_batches})")
+
+    hist = {"pred_loss": [], "varcov_loss": [], "std_mean": []}
+    for epoch in range(1, epochs + 1):
+        encoder.train()
+        agg = [0.0, 0.0, 0.0, 0]
+        pbar = tqdm(train_loader, desc=f"[jepa:{modality}] ep{epoch}/{epochs}")
+        for step, batch in enumerate(pbar):
+            if max_batches and step >= max_batches:
+                break
+            neural = batch["neural"].to(device)
+            with torch.autocast(device_type=device.type, dtype=compute_dtype,
+                                enabled=(device.type == "cuda")):
+                pred_loss = encoder.pretrain_step(neural)     # masked-latent + EMA update
+                z = encoder(neural)                           # unmasked context embeddings
+                vc = varcov_fn(batch, None, {"jepa_embeds": z})["loss_jepa_varcov"]
+                loss = pred_loss + vc
+            optimizer.zero_grad()
+            loss.backward()
+            nn.utils.clip_grad_norm_(encoder.parameters(), 1.0)
+            optimizer.step()
+            with torch.no_grad():
+                std = z.reshape(-1, z.shape[-1]).float().std(0).mean().item()
+            agg[0] += float(pred_loss); agg[1] += float(vc); agg[2] += std; agg[3] += 1
+            pbar.set_postfix(pred=f"{float(pred_loss):.3f}", vc=f"{float(vc):.3f}", std=f"{std:.2f}")
+        n = max(agg[3], 1)
+        hist["pred_loss"].append(agg[0] / n)
+        hist["varcov_loss"].append(agg[1] / n)
+        hist["std_mean"].append(agg[2] / n)
+        logger.info(f"[jepa] ep{epoch} pred={agg[0]/n:.4f} varcov={agg[1]/n:.4f} "
+                    f"std={agg[2]/n:.3f} ({'OK' if agg[2]/n > 0.5 else 'COLLAPSE-RISK'})")
+
+    # Held-out collapse check (no EMA, no grad)
+    val_std = None
+    if val_loader is not None:
+        encoder.eval(); s = 0.0; c = 0
+        with torch.no_grad():
+            for step, batch in enumerate(val_loader):
+                if step >= 10:
+                    break
+                z = encoder(batch["neural"].to(device))
+                s += z.reshape(-1, z.shape[-1]).float().std(0).mean().item(); c += 1
+        val_std = s / max(c, 1)
+
+    ckpt = run_dir / "pretrained_encoder.pth"
+    torch.save({f"encoder.{k}": v for k, v in encoder.state_dict().items()}, str(ckpt))
+    collapse_ok = bool((hist["std_mean"][-1] if hist["std_mean"] else 0.0) > 0.5)
+    metrics = {
+        "modality": modality, "epochs": epochs,
+        "final_pred_loss":  hist["pred_loss"][-1] if hist["pred_loss"] else None,
+        "final_train_std":  hist["std_mean"][-1] if hist["std_mean"] else None,
+        "val_std": val_std, "collapse_ok": collapse_ok,
+        "history": hist, "backbone": str(ckpt),
+    }
+    with open(run_dir / "metrics.json", "w", encoding="utf-8") as f:
+        _json.dump(metrics, f, indent=2)
+
+    record_run(expt_id=expt_id, profile=args.profile, spec_hash=_spec_hash(spec),
+               best_wer=None, run_dir=str(run_dir),
+               notes=(f"JEPA pretrain modality={modality}; collapse_ok={collapse_ok}; "
+                      f"final_pred_loss={metrics['final_pred_loss']}; downstream WER via "
+                      f"--override encoder.pretrained_ckpt={ckpt.name}"))
+    logger.info(f"[jepa] DONE modality={modality} collapse_ok={collapse_ok} -> {ckpt}")
+    logger.info(f"[jepa] Downstream comparison (real WER): python run.py --expt {expt_id} "
+                f"--profile {args.profile} --override encoder.pretrained_ckpt={ckpt} "
+                f"--train_h5 {args.train_h5} --val_h5 {args.val_h5}")
 
 
 def main():

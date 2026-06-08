@@ -11,8 +11,9 @@
 # F2_video_jepa.yaml except for the single `modality:` line below.
 # tools/diff_specs.py enforces this (and tests/test_jepa_smoke.py runs it).
 #
-# SKELETON STATUS: the EMA target-encoder + stop-grad + masked-latent
-# prediction is real; the per-modality patchifier is a random-init stub.
+# BACKBONES (real): EMA target-encoder + stop-grad + masked-latent prediction is
+# real, and the per-modality patchifier is now a real backbone (wav2vec2-style 1D
+# / DINOv2-style 2D / native). Pretrained weights unused — input is neural.
 #
 # Run (pretrain smoke):  python -m pytest tests/test_jepa_smoke.py -v
 

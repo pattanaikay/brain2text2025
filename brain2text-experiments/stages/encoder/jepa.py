@@ -6,10 +6,13 @@ Track F: JEPA (Joint-Embedding Predictive Architecture) encoder.
 Audio-vs-Visual self-supervised pretraining study. The SCIENTIFICALLY
 load-bearing part of JEPA — the EMA target-encoder, the stop-gradient, and
 masked-latent prediction — is implemented FOR REAL here. The part that
-distinguishes "audio" from "visual" is intentionally a STUB: a single
-`modality:` spec flag swaps a 1D-conv (audio) vs 2D-conv (video) patchifier,
-both random-init, so the A/B *wiring* is provable while the perceptual
-backbone is filled in later (see child ideas in the spec headers).
+distinguishes "audio" from "visual" is the per-modality PATCHIFIER, now a real
+architecture in each case: a single `modality:` spec flag swaps a wav2vec2-style
+1D temporal conv stack (audio), a DINOv2-style 2D patch conv (video), or a
+native single-layer patch-embed (neural — the control arm). All are random-init
+and learned via JEPA; the modality IS the inductive bias under controlled A/B
+test. (Pretrained wav2vec2/DINOv2 *weights* are not used: the input is neural
+data (B,T,512), not audio/images, so only the architectural bias transfers.)
 
 build(spec, prev_shape) -> (JEPAEncoder, (T_patch, embed_dim))
 
@@ -33,48 +36,93 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# ── Modality patchifiers (STUB — random init, shape-faithful only) ───────────
+# ── Modality patchifiers (REAL backbones — modality = inductive bias) ─────────
+#
+# All three consume neural input (B, T, 512) and emit (B, T_patch, embed_dim)
+# with T_patch = floor(T / patch_size), so they are drop-in swappable and the
+# controlled A/B stays clean (specs differ ONLY in `modality:`). The modality IS
+# the architecture. Receptive fields are kept LOCAL on purpose: JEPA masks the
+# patchifier outputs (exactly as wav2vec2 masks its conv-encoder outputs), so no
+# global mixing may precede the mask or the masked-prediction objective leaks.
+
 
 class AudioPatchifier1D(nn.Module):
-    """1D temporal conv over (B, T, C). STUB: real audio-JEPA would patch a
-    log-mel / waveform encoder here. We only guarantee output shape."""
+    """wav2vec2-style 1D temporal conv feature-encoder.
+
+    A stack of stride-1 temporal convolutions (local feature extraction over
+    time; the 512 neural channels are the conv's input features) followed by a
+    strided conv that downsamples to T_patch. This is the wav2vec2 conv-encoder
+    inductive bias — deep temporal locality — adapted to neural input."""
+
     def __init__(self, in_dim: int, embed_dim: int, patch_size: int):
         super().__init__()
-        self.proj = nn.Conv1d(in_dim, embed_dim, kernel_size=patch_size,
-                              stride=patch_size)
+        self.features = nn.Sequential(
+            nn.Conv1d(in_dim, embed_dim, kernel_size=3, padding=1), nn.GELU(),
+            nn.Conv1d(embed_dim, embed_dim, kernel_size=3, padding=1), nn.GELU(),
+            nn.Conv1d(embed_dim, embed_dim, kernel_size=3, padding=1), nn.GELU(),
+        )
+        self.downsample = nn.Conv1d(embed_dim, embed_dim,
+                                    kernel_size=patch_size, stride=patch_size)
+        self.norm = nn.LayerNorm(embed_dim)
 
-    def forward(self, x):                       # x: (B, T, C)
+    def forward(self, x):                        # x: (B, T, C)
         x = x.transpose(1, 2)                    # (B, C, T)
-        x = self.proj(x)                         # (B, E, T_patch)
-        return x.transpose(1, 2)                 # (B, T_patch, E)
+        x = self.features(x)                     # (B, E, T)   local temporal feats
+        x = self.downsample(x)                   # (B, E, T_patch)
+        return self.norm(x.transpose(1, 2))      # (B, T_patch, E)
 
 
 class VideoPatchifier2D(nn.Module):
-    """2D conv patchifier. STUB: real video-JEPA would patch frame tubelets.
-    We reshape (B, T, C) into a pseudo-image (B, 1, T, C) so a Conv2d runs and
-    the output collapses back to (B, T_patch, embed_dim) — identical contract
-    to the audio path, which is the whole point of the controlled A/B."""
+    """DINOv2-style 2D patch embedding.
+
+    Treats (B, T, C) as a single-channel image (B, 1, T, C), applies a local 2D
+    convolution (joint time×channel locality — the "seeing" inductive bias),
+    then a patch-embed conv that spans the full channel axis and strides
+    patch_size on time. 2D spatial locality is what distinguishes the visual
+    lens from the audio lens. Local receptive field → JEPA-mask-safe."""
+
     def __init__(self, in_dim: int, embed_dim: int, patch_size: int):
         super().__init__()
-        # kernel spans the full channel axis, strides patch_size on time axis
-        self.proj = nn.Conv2d(
-            1, embed_dim,
+        self.local = nn.Sequential(
+            nn.Conv2d(1, embed_dim // 4, kernel_size=3, padding=1), nn.GELU(),
+        )
+        # patch-embed: span the full channel axis, stride patch_size on time
+        self.patch = nn.Conv2d(
+            embed_dim // 4, embed_dim,
             kernel_size=(patch_size, in_dim),
             stride=(patch_size, in_dim),
         )
+        self.norm = nn.LayerNorm(embed_dim)
 
     def forward(self, x):                        # x: (B, T, C)
         x = x.unsqueeze(1)                       # (B, 1, T, C)
-        x = self.proj(x)                         # (B, E, T_patch, 1)
-        return x.squeeze(-1).transpose(1, 2)     # (B, T_patch, E)
+        x = self.local(x)                        # (B, E/4, T, C)  2D local feats
+        x = self.patch(x)                        # (B, E, T_patch, 1)
+        x = x.squeeze(-1).transpose(1, 2)        # (B, T_patch, E)
+        return self.norm(x)
+
+
+class NativePatchifier(nn.Module):
+    """Provocation arm (neural): a single-layer native patch-embed — no borrowed
+    perceptual prior. Models the neural signal on its own terms; the control
+    against which the audio/visual inductive biases are judged."""
+
+    def __init__(self, in_dim: int, embed_dim: int, patch_size: int):
+        super().__init__()
+        self.proj = nn.Conv1d(in_dim, embed_dim,
+                              kernel_size=patch_size, stride=patch_size)
+        self.norm = nn.LayerNorm(embed_dim)
+
+    def forward(self, x):                        # x: (B, T, C)
+        x = x.transpose(1, 2)                    # (B, C, T)
+        x = self.proj(x)                         # (B, E, T_patch)
+        return self.norm(x.transpose(1, 2))      # (B, T_patch, E)
 
 
 _PATCHIFIERS = {
-    "audio": AudioPatchifier1D,
-    "video": VideoPatchifier2D,
-    # Provocation arm (ADHD child idea): JEPA-pretrain on the neural signal
-    # itself, so audio-vs-visual becomes a 3-way controlled test. One YAML line.
-    "neural": AudioPatchifier1D,
+    "audio":  AudioPatchifier1D,    # wav2vec2-style temporal conv stack
+    "video":  VideoPatchifier2D,    # DINOv2-style 2D patch conv
+    "neural": NativePatchifier,     # native single-layer patch-embed (control arm)
 }
 
 
@@ -91,10 +139,15 @@ class JEPAEncoder(nn.Module):
           target representation at masked positions, returns a smooth-L1 loss.
         - _update_target() does the momentum update.
 
-    STUB (filled in later):
-        - The patchifier per modality (random init).
-        - The context-encoder body is a tiny TransformerEncoder, not a real
-          audio/video backbone.
+    REAL backbones:
+        - The patchifier per modality is a real architecture (wav2vec2-style 1D
+          temporal conv stack / DINOv2-style 2D patch conv / native patch-embed);
+          the modality is the inductive bias under controlled A/B test. Random
+          init, learned via JEPA (pretrained audio/image weights do not apply to
+          neural input).
+    NOTE:
+        - The shared context-encoder body is a compact TransformerEncoder,
+          sufficient for the toy/controlled comparison.
     """
 
     def __init__(
@@ -216,6 +269,17 @@ def build(spec: dict, prev_shape: tuple) -> tuple:
         mask_ratio   = spec.get("mask_ratio", 0.5),
         ema_momentum = spec.get("ema_momentum", 0.996),
     )
+
+    # Downstream fine-tune: load a JEPA-pretrained backbone if pointed at one.
+    # (The pretraining path in run.py saves "encoder."-prefixed weights.)
+    ckpt_path = spec.get("pretrained_ckpt")
+    if ckpt_path:
+        import os
+        if os.path.exists(str(ckpt_path)):
+            sd = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+            clean = {(k[len("encoder."):] if k.startswith("encoder.") else k): v
+                     for k, v in sd.items()}
+            encoder.load_state_dict(clean, strict=False)
 
     T_bins  = prev_shape[0] if prev_shape else 240
     T_patch = math.ceil(T_bins / patch_size)

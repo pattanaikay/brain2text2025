@@ -1,0 +1,513 @@
+{
+  "generated": "2026-06-06T15:44:29",
+  "env": {
+    "torch_version": "2.5.1+cu121",
+    "cuda_available": true,
+    "cuda_device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "vram_total_mb": 6140,
+    "cuda_version": "12.1",
+    "bnb_4bit": "ok",
+    "mamba_ssm": "unavailable",
+    "pkg_transformers": "ok",
+    "pkg_peft": "ok",
+    "pkg_h5py": "ok",
+    "pkg_yaml": "ok"
+  },
+  "shape_gate": {
+    "passed": null,
+    "skipped": true,
+    "output": "skipped by --skip-shape-gate"
+  },
+  "runnable": [
+    {
+      "expt": "A1",
+      "track": "A",
+      "name": "CKA Embedding Alignment",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 30,
+      "expected_wer_band": null,
+      "train_required": false,
+      "spec_ref": "specs/A1_cka.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "A2",
+      "track": "A",
+      "name": "Spoken Language Perplexity Test",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 15,
+      "expected_wer_band": null,
+      "train_required": false,
+      "spec_ref": "specs/A2_perplexity.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "A3",
+      "track": "A",
+      "name": "Phoneme Probing Accuracy",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 45,
+      "expected_wer_band": null,
+      "train_required": true,
+      "spec_ref": "specs/A3_phoneme_probe.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B0_baseline",
+      "track": "B",
+      "name": "BIT Baseline (no SSL checkpoint)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.25,
+        0.6
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B0_bit_scratch.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B1",
+      "track": "B",
+      "name": "ConformerXL Encoder",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "B0_baseline"
+      ],
+      "expected_runtime_min": 25,
+      "expected_wer_band": [
+        0.2,
+        0.55
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B1_conformer.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B2",
+      "track": "B",
+      "name": "HRM Dual-Timescale Encoder",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "B0_baseline"
+      ],
+      "expected_runtime_min": 30,
+      "expected_wer_band": [
+        0.2,
+        0.55
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B2_hrm.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B3",
+      "track": "B",
+      "name": "MambaPOSSM Encoder (GRU fallback)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "B0_baseline"
+      ],
+      "expected_runtime_min": 22,
+      "expected_wer_band": [
+        0.2,
+        0.55
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B3_mamba_gru.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B4",
+      "track": "B",
+      "name": "MoE Encoder (6 experts)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "B0_baseline"
+      ],
+      "expected_runtime_min": 25,
+      "expected_wer_band": [
+        0.18,
+        0.5
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B4_moe.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B5",
+      "track": "B",
+      "name": "ZenBrain Memory-Augmented Encoder",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "B0_baseline"
+      ],
+      "expected_runtime_min": 22,
+      "expected_wer_band": [
+        0.18,
+        0.52
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B5_zenbrain.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "C3",
+      "track": "C",
+      "name": "Whisper-Qwen Split Stack",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 30,
+      "expected_wer_band": [
+        0.24,
+        0.38
+      ],
+      "train_required": true,
+      "spec_ref": "specs/C3_whisper_qwen.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D1b",
+      "track": "D",
+      "name": "CTC Linear Anneal",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.4
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D1b_ctc_anneal.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D1d",
+      "track": "D",
+      "name": "CTC Ablation (weight=0)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.45
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D1d_ctc_zero.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D2a",
+      "track": "D",
+      "name": "Contrastive Loss Ablation (weight=0)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.42
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D2a_contrastive_zero.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D2d",
+      "track": "D",
+      "name": "Contrastive Loss Upweighted (weight=2)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.42
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D2d_contrastive_2x.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D3b",
+      "track": "D",
+      "name": "TopoLoss (weight=0.001)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 21,
+      "expected_wer_band": [
+        0.22,
+        0.4
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D3b_topo_001.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D3c",
+      "track": "D",
+      "name": "TopoLoss (weight=0.01)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 21,
+      "expected_wer_band": [
+        0.22,
+        0.4
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D3c_topo_01.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "D4",
+      "track": "D",
+      "name": "Label Smoothing CE (eps=0.1)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.4
+      ],
+      "train_required": true,
+      "spec_ref": "specs/D4_label_smooth.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "E1a",
+      "track": "E",
+      "name": "Deep MLP Projector (5-layer)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.4
+      ],
+      "train_required": true,
+      "spec_ref": "specs/E1a_deep_mlp.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "E1b",
+      "track": "E",
+      "name": "Gated MLP Projector",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 20,
+      "expected_wer_band": [
+        0.22,
+        0.4
+      ],
+      "train_required": true,
+      "spec_ref": "specs/E1b_gated_mlp.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "E2b",
+      "track": "E",
+      "name": "Q-Former Projector (32 queries)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 22,
+      "expected_wer_band": [
+        0.18,
+        0.38
+      ],
+      "train_required": true,
+      "spec_ref": "specs/E2b_qformer_32.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "E3",
+      "track": "E",
+      "name": "Patch Size \u00d7 Q-Former Grid Search",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "E2b"
+      ],
+      "expected_runtime_min": 120,
+      "expected_wer_band": [
+        0.18,
+        0.38
+      ],
+      "train_required": true,
+      "spec_ref": "specs/E3_patch_qformer_grid.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "F1",
+      "track": "F",
+      "name": "Audio-JEPA Backbone",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [],
+      "expected_runtime_min": 25,
+      "expected_wer_band": null,
+      "train_required": true,
+      "spec_ref": "specs/F1_audio_jepa.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "F2",
+      "track": "F",
+      "name": "Video-JEPA Backbone",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "F1"
+      ],
+      "expected_runtime_min": 25,
+      "expected_wer_band": null,
+      "train_required": true,
+      "spec_ref": "specs/F2_video_jepa.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "F3",
+      "track": "F",
+      "name": "Neural-JEPA Backbone (provocation arm)",
+      "runnable_local": true,
+      "blockers": [],
+      "depends_on": [
+        "F1"
+      ],
+      "expected_runtime_min": 25,
+      "expected_wer_band": null,
+      "train_required": true,
+      "spec_ref": "specs/F3_neural_jepa.yaml",
+      "notes": ""
+    }
+  ],
+  "deferred": [
+    {
+      "expt": "A4",
+      "track": "A",
+      "name": "Audio vs Vision E2E WER",
+      "runnable_local": false,
+      "blockers": [
+        "cloud_required or local_ok=false in registry"
+      ],
+      "depends_on": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "expected_runtime_min": 180,
+      "expected_wer_band": [
+        0.22,
+        0.38
+      ],
+      "train_required": true,
+      "spec_ref": "specs/A4_audio_vision_e2e.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "B3_mamba",
+      "track": "B",
+      "name": "MambaPOSSM Encoder (true Mamba SSM)",
+      "runnable_local": false,
+      "blockers": [
+        "mamba-ssm unavailable \u2014 run B3 (GRU fallback) locally"
+      ],
+      "depends_on": [
+        "B3"
+      ],
+      "expected_runtime_min": 22,
+      "expected_wer_band": [
+        0.18,
+        0.5
+      ],
+      "train_required": true,
+      "spec_ref": "specs/B3_mamba_ssm.yaml",
+      "notes": "defer B3_mamba to cloud/Linux"
+    },
+    {
+      "expt": "C1",
+      "track": "C",
+      "name": "Qwen2-Audio-7B Decoder",
+      "runnable_local": false,
+      "blockers": [
+        "cloud_required or local_ok=false in registry"
+      ],
+      "depends_on": [],
+      "expected_runtime_min": 180,
+      "expected_wer_band": [
+        0.22,
+        0.32
+      ],
+      "train_required": true,
+      "spec_ref": "specs/C1_qwen2_audio.yaml",
+      "notes": ""
+    },
+    {
+      "expt": "C2",
+      "track": "C",
+      "name": "Phi-4-Multimodal Decoder",
+      "runnable_local": false,
+      "blockers": [
+        "cloud_required or local_ok=false in registry"
+      ],
+      "depends_on": [],
+      "expected_runtime_min": 160,
+      "expected_wer_band": [
+        0.22,
+        0.34
+      ],
+      "train_required": true,
+      "spec_ref": "specs/C2_phi4mm.yaml",
+      "notes": ""
+    }
+  ],
+  "skipped": [
+    {
+      "expt": "G1",
+      "track": "G",
+      "reason": "out of A/B/D/E scope"
+    },
+    {
+      "expt": "G2",
+      "track": "G",
+      "reason": "out of A/B/D/E scope"
+    },
+    {
+      "expt": "G3",
+      "track": "G",
+      "reason": "out of A/B/D/E scope"
+    },
+    {
+      "expt": "H1",
+      "track": "H",
+      "reason": "out of A/B/D/E scope"
+    },
+    {
+      "expt": "H2",
+      "track": "H",
+      "reason": "out of A/B/D/E scope"
+    }
+  ],
+  "estimated_local_sweep_min": 663
+}

@@ -1,0 +1,14 @@
+# dietcorp-sleep-study — pinned deps
+# Local (Windows) dev installs torch from the cu121 index; A100 uses the same.
+torch==2.5.1
+numpy<2.0
+h5py>=3.10
+scipy>=1.11
+jiwer>=3.0            # WER/PER (same metric lib as the training repo)
+pyyaml>=6.0
+tqdm>=4.66
+matplotlib>=3.8       # collect_and_plot.py figure
+# Word-level WER decoding (lexicon build via g2p). A100/Linux:
+g2p_en>=2.1            # pronunciations for the lexicon (pulls nltk cmudict)
+# Optional, A100/Linux only — pseudo-label LM refinement (pure-Python fallback if absent):
+# kenlm

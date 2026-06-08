@@ -30,7 +30,7 @@ adapt:
   n_aug:                64
   mask_frac:            0.53
   mask_span:            4
-  lr:                   1.0e-3
+  lr:                   1.0e-5
   grad_clip:            1.0
   confidence_threshold: 0.0
   target_param_hints:   [patch, read_in, embed]

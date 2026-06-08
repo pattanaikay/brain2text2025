@@ -62,13 +62,14 @@ and (b) **`--override`** mutations that compose or tune winners.
 The harness/agent may only change the run in these three ways. Nothing else.
 
 1. **Pick a registry experiment**: `python run.py --expt <ID> --profile toy --train_h5 data/toy_train.hdf5 --val_h5 data/toy_val.hdf5`
-2. **Override spec scalars**: `--override encoder.patch_size=5 projector.n_queries=32 loss.ctc.weight=0.15`
+2. **Override spec scalars**: `--override encoder.patch_size=5 projector.n_queries=32 loss.ctc_anneal.start_weight=0.15`
    — used to *tune* a winner or *compose* two winners (the combination phase, §5.3).
 3. **Adapt-mode** (Track G/drift only, out of A/B/D/E scope): `--adapt --n_steps 0 1 2 4`.
 
-`run.py` enforces the **pytest → toy → full** progression and refuses a `--profile full`
-run with no toy pass in `leaderboard.sqlite` in the last 7 days. The autoresearch loop
-**never** calls `--profile full` directly — promotion to cloud is a human decision (§5).
+`run.py` enforces the **pytest → toy → full** progression, but this loop is **toy-only**: it
+**never** runs `--profile full` or any 150-epoch run. Every experiment is a short, diagnostic
+toy run on the A100. The aim is to identify the best building block per stage; training the
+winning combination to convergence is a **separate** downstream goal, not part of this loop.
 
 ---
 
@@ -78,25 +79,34 @@ run with no toy pass in `leaderboard.sqlite` in the last 7 days. The autoresearc
 
 ## 3. What to run, in what order
 
-Run **only** experiments with `local_ok: true` and `state` unset/`full` (skip `skeleton`;
-treat `partial` as opt-in, human-flagged). Respect `depends_on`. Scope = Tracks **A, B, D, E**.
-Tracks C1/C2 and A4 are `cloud_required` — never queue them locally. Track F is `skeleton`.
-Tracks G/H are the separate DietCorp/ZenBrain thesis (driven by `run_thesis.ps1`), not this loop.
+Everything runs **on the A100** (40 GB) — nothing local. Respect `depends_on`. Scope = Tracks
+**A, B, C, D, E, F** (Track C — C1/C2/C3 — fits the A100; A4 and B3_mamba likewise). **Track F
+(JEPA) is ACTIVE:** `stages/encoder/jepa.py` now has real per-modality backbones — a wav2vec2-style
+1D temporal conv stack (audio), a DINOv2-style 2D patch conv (video), and a native patch-embed
+(neural control) — trained via JEPA under the controlled A/B (F1/F2/F3 byte-identical except
+`modality:`). F is a *pretraining* track: it yields a backbone + downstream eval, not a single toy
+WER (phase 6). The loop stays toy-only throughout. Tracks G/H are the separate DietCorp/ZenBrain
+thesis (driven by `run_thesis.ps1`).
 
 **Phase order (cheap → expensive):**
 
-1. **Track A — analysis, no training (~1.5 h total).** `A1` CKA, `A2` perplexity, `A3`
-   phoneme probe. These answer "does pretraining modality matter" without spending a
-   training budget. `A1`/`A2` are tools (`tools/cka_analysis.py`); `A3` trains a tiny probe.
-   *Local caveat:* only the 1.5B/3B LLM rows fit 6 GB — the 7B rows are cloud (see §7 H2).
-2. **Track B — encoder sweep.** Run `B0_baseline` **first** (it is the fair from-scratch
-   control every B1–B5 is judged against). Then `B1 B2 B3 B4 B5` in any order.
-3. **Track D — loss sweep.** `D1b D1d D2a D2d D3b D3c D4`. Same architecture (BIT), so
+1. **Track A — analysis (~1.5 h).** `A1` CKA, `A2` perplexity, `A3` phoneme probe, plus `A4`
+   (E2E decoder-modality comparison). `A1`/`A2` are tools (`tools/cka_analysis.py`,
+   `tools/perplexity_test.py`); `A3` trains a tiny probe. All rows fit the A100 (incl. 7B).
+2. **Track B — encoder sweep.** Run `B0_baseline` **first** (the fair from-scratch control every
+   B1–B5 is judged against). Then `B1 B2 B3 B3_mamba B4 B5` in any order.
+3. **Track C — decoder sweep.** `C1` Qwen2-Audio-7B, `C2` Phi-4-MM, `C3` Whisper-Qwen. BIT
+   encoder fixed; only the LLM decoder changes.
+4. **Track D — loss sweep.** `D1b D1d D2a D2d D3b D3c D4`. Same architecture (BIT), so
    differences isolate the loss term. Independent — any order.
-4. **Track E — projector sweep.** `E1a E1b E2b`, then `E3` (depends on `E2b`; it is a
-   6-cell patch×query grid, ~2 h — run last).
-5. **Combination phase (§5.3).** Compose the Track-B/D/E winners via `--override` and re-run
-   toy. This is where the "optimal E2E model" is actually assembled.
+5. **Track E — projector sweep.** `E1a E1b E2b`, then `E3` (depends on `E2b`; 6-cell
+   patch×query grid, run last).
+6. **Track F — JEPA pretraining (controlled A/B/C).** Integrity gate FIRST
+   (`tests/test_jepa_smoke.py` + `tools/diff_specs.py` — specs differ only in `modality:`), then
+   pretrain `F1` (audio) → `F2` (video) → `F3` (neural); evaluate each backbone downstream. Ranked
+   on pretraining health (no collapse) + downstream decoding, not a single toy WER.
+7. **Combination phase (§5.3).** Compose the Track-B/C/D/E winners via `--override` and re-run
+   toy. This is where the "optimal E2E model" is assembled.
 
 After each run, read the new `leaderboard.sqlite` row and apply §5.
 
@@ -126,11 +136,15 @@ Computed on **toy slope improvement vs. the track baseline** (Track B vs `B0_bas
 Tracks D/E vs the BIT+default-loss+MLP baseline row):
 
 ```
-slope improvement ≥ 5% relative   → PROMOTE: flag for a --profile full A100 run (human approves)
-slope improvement   3–5% relative  → COMBINE: carry into the combination phase, re-run toy
-slope improvement   1–3% relative  → HOLD: keep only if compute is free
-slope improvement  < 1% relative   → DISCARD: log the negative result, move on
+slope improvement ≥ 5% relative   → STRONG:    flag as a best-building-block for the separate
+                                                long-term goal (NO full run executed here)
+slope improvement   3–5% relative  → PROMISING: carry into the combination phase, re-run toy
+slope improvement   1–3% relative  → WEAK:      keep only if it helps a combination
+slope improvement  < 1% relative   → INERT:     log the negative result, move on
 ```
+
+**No full runs.** "STRONG" never triggers a 150-epoch run in this loop — it only marks the
+component as a winner to hand off to the separate long-term-implementation effort.
 
 Additional rules:
 - **Negative results are kept**, not deleted — a clean "D2a (no contrastive) ties D2c" is a
@@ -145,9 +159,11 @@ Take the **best encoder** (Track B), **best projector** (Track E), **best loss c
 
 ```
 python run.py --expt B1 --profile toy \
-  --override projector.kind=qformer projector.n_queries=32 \
-             loss.ctc.anneal_epochs=75 loss.contrastive.weight=0.0 \
+  --override projector.variant=qformer projector.n_queries=32 \
+             loss.ctc_anneal.anneal_epochs=75 loss.contrastive.weight=0.0 \
   --train_h5 data/toy_train.hdf5 --val_h5 data/toy_val.hdf5
+# override keys must match the specs: projector.variant (not "kind");
+# loss entries keyed by variant — loss.ctc_anneal.* / loss.contrastive.*
 ```
 
 If the combination's slope beats each ingredient alone → that is the candidate for the
@@ -180,9 +196,9 @@ negatively; report it and promote the best single lever instead.
 
 | ID | Where | What | Action |
 |---|---|---|---|
-| H1 | **B3_mamba** | `mamba-ssm`/`causal-conv1d` do not build on native Windows. | Run **`B3`** (GRU fallback) locally; queue **`B3_mamba`** only on cloud/Linux. The registry already splits these. |
-| H2 | **A1/A4 7B rows** | 7B LLMs exceed 6 GB; A1 forbids quantization (it measures embedding geometry). | Run 1.5B/3B rows locally; route 7B CKA + `A4` to cloud. |
-| H3 | **bitsandbytes 4-bit on Windows** | The whole E2E LLM path depends on it; only exercised on A100 so far. | Preflight must do one 4-bit forward before the sweep. If it fails, run the encoder-only/`--adapt` experiments and defer LLM-decoder runs to cloud. |
+| H1 | **B3_mamba**, Track C | `mamba-ssm`/`causal-conv1d` don't build on Windows; 7B decoders exceed 6 GB. | **Resolved on A100:** `pip install mamba-ssm causal-conv1d` works on Linux; 7B fits 40 GB. Preflight confirms both. |
+| H2 | **A1/A4 7B rows** | A1 forbids quantization (it measures embedding geometry); 7B fp16 ≈ 14 GB. | **Resolved on A100** (40 GB holds 7B in fp16). |
+| H3 | **bitsandbytes 4-bit** | The E2E LLM path depends on it. | Works out-of-box on the A100 PyTorch template; preflight does one 4-bit forward to confirm. |
 | H4 | **B2 HRM cost** | DEQ iterations inflate runtime. | Perf cap (§6). |
 | H5 | **B4 MoE** | Expert collapse without the load-balance aux loss. | The `B4` spec already sets `aux_loss_weight`; preflight asserts it is > 0. |
 
@@ -192,14 +208,15 @@ Full reasoning: `autoresearch/FEASIBILITY_AUDIT.md`.
 
 ## 8. Definition of done for one autoresearch cycle
 
-1. Every `local_ok`, non-skeleton A/B/D/E experiment has a `leaderboard.sqlite` toy row
-   (or a logged skip-reason).
+1. Every `local_ok` A/B/C/D/E experiment has a `leaderboard.sqlite` toy row (or a logged
+   skip-reason); each Track-F experiment has a JEPA pretraining record + downstream eval
+   (F yields a backbone, not a toy WER).
 2. Each track has a ranked winner with a slope-vs-baseline number.
 3. The combination phase has produced one composed candidate.
 4. A short results digest is written for the presentation layer (tables + a tufte/seaborn
    WER-by-track chart + a slope scatter) and folded into `research_summary.html`.
-5. The PROMOTE list (experiments clearing the 5% bar) is handed to the human for the A100
-   `--profile full` decision.
+5. The BEST-BUILDING-BLOCKS list (the single best encoder / decoder / loss / projector by slope)
+   is handed off for the separate long-term-implementation goal. No full run is executed here.
 
 ---
 
