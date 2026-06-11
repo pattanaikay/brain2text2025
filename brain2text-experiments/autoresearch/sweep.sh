@@ -11,9 +11,8 @@ set -euo pipefail
 REPO=/home/brain2text-experiments
 TRAIN=data/toy_train.hdf5
 VAL=data/toy_val.hdf5
-SLACK_URL="https://hooks.slack.com/services/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"
-
-export SLACK_WEBHOOK_URL="$SLACK_URL"
+# SLACK_WEBHOOK_URL should be set via environment variable
+export SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
 export PYTHONIOENCODING=utf-8
 
 cd "$REPO"
