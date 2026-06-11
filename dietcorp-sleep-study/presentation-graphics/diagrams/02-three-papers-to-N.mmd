@@ -1,0 +1,16 @@
+flowchart LR
+    DC["DietCorp<br/>single-step TTA on<br/>patch-embedding (N=1)"]:::p1
+    SL["Do LMs Need Sleep?<br/>N offline passes ·<br/>wake latency preserved"]:::p2
+    ZB["ZenBrain<br/>episodic memory +<br/>Simulation-Selection replay"]:::p3
+
+    DC --> AX
+    SL --> AX
+    ZB --> AX
+    AX{{"N = CONSOLIDATION DEPTH<br/>the single experimental axis"}}:::axis
+    AX --> OUT["WER[ day , N , condition ]<br/>at constant wake latency"]:::out
+
+    classDef p1 fill:#e8f0fe,stroke:#1a73e8,color:#10306b;
+    classDef p2 fill:#e6f4ea,stroke:#138a4a,color:#0f3d23;
+    classDef p3 fill:#f1ebfa,stroke:#6b3fa0,color:#33205c;
+    classDef axis fill:#152244,stroke:#0a1228,color:#ffffff;
+    classDef out fill:#fff2cc,stroke:#b25e00,color:#5a3c00;

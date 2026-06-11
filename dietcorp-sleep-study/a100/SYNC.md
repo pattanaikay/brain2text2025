@@ -25,8 +25,9 @@ This study needs per-trial **neural + `seq_class_ids` + session** (the format `t
   - **A. Reuse formatted data** you already trained on (per-session `data_train.hdf5`/
     `data_val.hdf5` with `seq_class_ids`) → put under `data/sessions/`. This is the path that
     enables **all** conditions C0–C4.
-  - **B. From Dryad**: download `doi:10.5061/dryad.x69p8czpq`, then format with DietCorp's
-    `notebooks/formatCompetitionData.ipynb` to produce per-session files with `seq_class_ids`.
+  - **B. From Dryad**: download `doi:10.5061/dryad.dncjsxm85` (T15 `t15_copyTask_neuralData.zip`,
+    Card et al. NEJM 2024) — already per-session `data_{train,val}.hdf5` with `seq_class_ids`
+    (use `nejm-brain-to-text/download_data.py` or `a100/download_data.py`). NOT `x69p8czpq` (that is T12).
 
 > Note: the local `preprocessed_data.h5` (17 GB) has only `neural` + `transcription` (no
 > `seq_class_ids`). It supports C0/C1 (self-reference PER) but **not** C2/C4 directly. Use a

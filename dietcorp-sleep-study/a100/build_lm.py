@@ -131,8 +131,15 @@ def main():
     if texts:
         print(f"Building lexicon from {len(texts)} transcriptions...")
         build_lexicon(texts, os.path.join(args.out_dir, "lexicon.json"))
+        # 3. word n-gram LM (canonical WER decoding context)
+        from core.word_lm_decode import WordNGramLM
+        sents = [re.findall(r"[a-zA-Z']+", t.lower()) for t in texts]
+        sents = [s for s in sents if s]
+        wlm = WordNGramLM(order=args.order).fit(sents)
+        wlm.save(os.path.join(args.out_dir, f"word_{args.order}gram.json"))
+        print(f"Saved word LM (vocab={len(wlm.vocab)}) -> word_{args.order}gram.json")
     else:
-        print("No transcriptions found -> no lexicon (WER decode unavailable).")
+        print("No transcriptions found -> no lexicon/word LM (WER decode unavailable).")
 
 
 if __name__ == "__main__":

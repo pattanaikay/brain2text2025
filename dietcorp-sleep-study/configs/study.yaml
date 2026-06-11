@@ -6,11 +6,14 @@ data:           /workspace/dietcorp-sleep-study/data/sessions      # dir or .h5 
 session_stats:  /workspace/dietcorp-sleep-study/data/session_stats.json
 lm:             /workspace/dietcorp-sleep-study/data/lm/phoneme_3gram.json
 lexicon:        /workspace/dietcorp-sleep-study/data/lm/lexicon.json
+word_lm:        /workspace/dietcorp-sleep-study/data/lm/word_3gram.json
 word_decode:    true          # also compute word-level WER (needs lexicon)
+canonical_wer:  true          # decode words with the word n-gram LM (citable WER)
 wer_lm_weight:  1.0
+word_lm_weight: 1.0
 
 # Experiment grid
-conditions:   [C0, C1, C2, C3, C4]
+conditions:   [C0, C1, C2, C3a, C3b, C4]
 n_steps:      [0, 1, 2, 4, 8]
 
 # Scale (null = all)

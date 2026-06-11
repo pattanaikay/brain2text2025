@@ -1,0 +1,10 @@
+flowchart LR
+    M["Decoder trained once<br/>then frozen"]:::fix
+    M --> D1
+    D1["Day 1<br/>WER 22.7%"]:::good --> D2["Day 2<br/>shift Δ"]:::warn --> D3["Day 3<br/>shift 2Δ"]:::warn --> Dk["Days 4–7<br/>error compounds"]:::bad --> D8["Day 8<br/>WER 66.5%"]:::bad
+    D1 -. "stats(d) depend on stats(d−1)" .-> D2
+    D2 -. "cumulative impedance drift" .-> D3
+    classDef good fill:#e6f4ea,stroke:#34a853,color:#10341f;
+    classDef warn fill:#fef6e6,stroke:#f9ab00,color:#5a3c00;
+    classDef bad fill:#fce8e6,stroke:#ea4335,color:#5c1411;
+    classDef fix fill:#e8f0fe,stroke:#1a73e8,color:#10306b;

@@ -44,10 +44,11 @@ tests/       CPU unit tests
 # Local CPU tests
 py -3 -m pytest tests -q
 
-# A100 (see a100/SYNC.md for instance create + data formatting first)
+# A100 (see a100/SYNC.md for instance create + data download first)
 bash a100/env_setup.sh
-python a100/prepare_data.py --data_root /data/hdf5_data_final --out data/sessions
-python a100/build_lm.py --data_root data/sessions --out data/lm
+python a100/download_data.py --out data/sessions          # Dryad dncjsxm85 (T15)
+python a100/prepare_data.py --data data/sessions          # verify seq_class_ids present
+python a100/build_lm.py     --data data/sessions --out_dir data/lm
 bash a100/run_matrix.sh
 python a100/collect_and_plot.py results/
 ```

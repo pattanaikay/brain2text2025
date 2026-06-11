@@ -1,0 +1,24 @@
+flowchart TB
+    subgraph WAKE["WAKE — single forward pass · latency independent of N"]
+      direction LR
+      NI["neural (T,512)"]:::w --> RI["read_in[session]"]:::w --> PE["patch embed<br/>LN1 → Linear → LN2"]:::tgt --> TF["7× RoPE Transformer<br/>(frozen)"]:::fz --> EM["episodic memory read<br/>cross-attn + gated fuse"]:::mem --> HD["CTC head<br/>Linear 384→42 (frozen)"]:::fz --> PH["phonemes"]:::w --> WD["words<br/>lexicon DP"]:::w
+    end
+
+    WD -. "trial ends → enter sleep" .-> PL
+
+    subgraph SLEEP["SLEEP — offline, between trials · cost ≈ linear in N"]
+      direction TB
+      PL["pseudo_label<br/>self | lm | oracle"]:::s --> AUG["64 time-masked augs (~53%)"]:::s --> LOOP["for n in 1..N:<br/>loss = CTC + MSE(latent, recalled.detach())<br/>AdamW step"]:::loop --> WR["confidence-gated write<br/>to episodic memory"]:::mem
+    end
+
+    RP["ReplayStore<br/>priority = |surprise| + (1−conf) + novelty"]:::rep --> LOOP
+    WR --> RP
+    LOOP == "updates ONLY patch-embed + read-in" ==> PE
+
+    classDef w fill:#eef3fd,stroke:#1a56db,color:#10306b;
+    classDef tgt fill:#fff2cc,stroke:#b25e00,color:#5a3c00;
+    classDef fz fill:#eceff4,stroke:#7a8699,color:#33404f;
+    classDef mem fill:#f1ebfa,stroke:#6b3fa0,color:#33205c;
+    classDef s fill:#e6f4ea,stroke:#138a4a,color:#0f3d23;
+    classDef loop fill:#152244,stroke:#0a1228,color:#ffffff;
+    classDef rep fill:#fde8e3,stroke:#c5221f,color:#5c1411;

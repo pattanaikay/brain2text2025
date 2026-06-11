@@ -37,13 +37,15 @@ from core.replay import ReplayStore, ReplayItem
 from core.drift_eval import load_real_sessions, decode_phonemes, per
 from core.lm_refine import PhonemeNGramLM
 from core.wer_decode import Lexicon, decode_words, compute_wer
+from core.word_lm_decode import decode_words_lm, WordNGramLM
 
 CONDITIONS = {
-    "C0": dict(mode="self", memory=False, replay=False, n_only=[0]),
-    "C1": dict(mode="self", memory=False, replay=False),
-    "C2": dict(mode="lm",   memory=False, replay=False),
-    "C3": dict(mode="lm",   memory=True,  replay=True),
-    "C4": dict(mode="oracle", memory=False, replay=False),
+    "C0":  dict(mode="self",   memory=False, replay=False, n_only=[0]),
+    "C1":  dict(mode="self",   memory=False, replay=False),
+    "C2":  dict(mode="lm",     memory=False, replay=False),
+    "C3a": dict(mode="lm",     memory=True,  replay=True, wake_read=False),  # sleep anchor only
+    "C3b": dict(mode="lm",     memory=True,  replay=True, wake_read=True),   # + wake-time read
+    "C4":  dict(mode="oracle", memory=False, replay=False),
 }
 
 
@@ -64,7 +66,9 @@ def run_condition(cond_id, base_state, model, days, target_param_names, lm, args
         memory = None
         if spec["memory"]:
             memory = EpisodicBuffer(embed_dim=model.encoder.embed_dim,
-                                    buffer_size=args.buffer_size).to(args.device)
+                                    buffer_size=args.buffer_size,
+                                    retrieval=args.retrieval,
+                                    fuse=spec.get("wake_read", False)).to(args.device)
         replay = ReplayStore(capacity=args.replay_capacity) if spec["replay"] else None
         tparams = patch_embed_params(model)
         cfg = TTAConfig(n_aug=args.n_aug, mask_frac=0.53, lr=args.lr,
@@ -88,11 +92,27 @@ def run_condition(cond_id, base_state, model, days, target_param_names, lm, args
                 ref = tr["ref"] if tr["ref"] is not None else self_refs.get(i, hyp)
                 pers.append(per(hyp, ref)); confs.append(conf)
                 if lexicon is not None and tr.get("text"):
-                    words = decode_words(hyp, lexicon, lm_weight=args.wer_lm_weight)
+                    if getattr(args, "canonical_wer", False) and getattr(args, "word_lm_obj", None):
+                        words = decode_words_lm(hyp, lexicon, args.word_lm_obj,
+                                                lm_weight=args.wer_lm_weight,
+                                                word_lm_weight=args.word_lm_weight)
+                    else:
+                        words = decode_words(hyp, lexicon, lm_weight=args.wer_lm_weight)
                     wers.append(compute_wer(words, tr["text"]))
             curve.append({"day": day, "per": float(np.mean(pers)),
                           "wer": float(np.mean(wers)) if wers else None,
-                          "confidence": float(np.mean(confs)), "n_trials": len(trials)})
+                          "confidence": float(np.mean(confs)), "n_trials": len(trials),
+                          # per-trial (within-day) errors -> warm-up / time-to-usable curve
+                          "trial_per": [float(x) for x in pers],
+                          "trial_wer": [float(x) for x in wers] if wers else None,
+                          # buffer fill going INTO this day (writes from earlier days)
+                          "buffer_occ": (int((memory.buf_session >= 0).sum().item())
+                                         if memory is not None else None)})
+
+            # relative (per-day) write gate: only the most confident fraction enters the buffer,
+            # so it keeps filling on heavy-drift days instead of starving at a fixed threshold.
+            if memory is not None and confs:
+                memory.write_policy.confidence_threshold = float(np.quantile(confs, args.write_quantile))
 
             if N > 0:
                 for i, tr in enumerate(trials):
@@ -165,7 +185,11 @@ def main():
     ap.add_argument("--validate_mapping", action="store_true",
                     help="decode oracle seq_class_ids -> words and report WER (mapping self-check)")
     ap.add_argument("--wer_lm_weight", type=float, default=1.0)
-    ap.add_argument("--conditions", nargs="*", default=["C0", "C1", "C2", "C3", "C4"])
+    ap.add_argument("--canonical_wer", action="store_true",
+                    help="decode words with a word n-gram LM (citable WER) instead of lexicon-DP")
+    ap.add_argument("--word_lm", default=None, help="word_Ngram.json for canonical WER decoding")
+    ap.add_argument("--word_lm_weight", type=float, default=1.0)
+    ap.add_argument("--conditions", nargs="*", default=["C0", "C1", "C2", "C3a", "C3b", "C4"])
     ap.add_argument("--n_steps", nargs="*", type=int, default=[0, 1, 2, 4, 8])
     ap.add_argument("--max_sessions", type=int, default=None)
     ap.add_argument("--max_trials", type=int, default=None)
@@ -175,6 +199,9 @@ def main():
     ap.add_argument("--buffer_size", type=int, default=256)
     ap.add_argument("--replay_capacity", type=int, default=512)
     ap.add_argument("--replay_k", type=int, default=2)
+    ap.add_argument("--retrieval", default="paramfree", choices=["paramfree", "learned"])
+    ap.add_argument("--write_quantile", type=float, default=0.5,
+                    help="per-day confidence quantile above which a trial is written to memory")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
 
@@ -203,7 +230,7 @@ def main():
     print(f"[study] {len(days)} sessions (days): {list(days.keys())}")
 
     lm = PhonemeNGramLM.load(args.lm) if (args.lm and os.path.exists(args.lm)) else None
-    if any(c in ("C2", "C3") for c in args.conditions) and lm is None:
+    if any(c in ("C2", "C3a", "C3b") for c in args.conditions) and lm is None:
         print("[study] WARNING: C2/C3 requested but no LM loaded — falling back to self-label.")
 
     lexicon = None
@@ -212,6 +239,13 @@ def main():
         print(f"[study] loaded lexicon ({len(lexicon.prons)} words) for WER decoding")
     elif args.word_decode:
         print("[study] WARNING: --word_decode set but no lexicon found — WER skipped.")
+
+    args.word_lm_obj = None
+    if args.canonical_wer and args.word_lm and os.path.exists(args.word_lm):
+        args.word_lm_obj = WordNGramLM.load(args.word_lm)
+        print(f"[study] loaded word LM (vocab={len(args.word_lm_obj.vocab)}) for canonical WER")
+    elif args.canonical_wer:
+        print("[study] WARNING: --canonical_wer set but no --word_lm found — using lexicon-DP WER.")
 
     if args.validate_mapping and lexicon is not None:
         validate_mapping(model, days, lexicon, args.device)

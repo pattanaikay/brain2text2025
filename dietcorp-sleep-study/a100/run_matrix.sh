@@ -13,8 +13,8 @@ echo "=== C0/C1 (baseline + self-label) + phoneme-inventory self-check ==="
 python3 run_study.py --config "$CFG" --conditions C0 C1 --validate_mapping --out results
 
 if [ -n "$LM" ] && [ -f "$LM" ]; then
-  echo "=== C2/C3/C4 (LM-refined, +memory+replay, oracle) ==="
-  python3 run_study.py --config "$CFG" --conditions C2 C3 C4 --out results
+  echo "=== C2/C3a/C3b/C4 (LM-refined, +mem anchor, +wake read, oracle) ==="
+  python3 run_study.py --config "$CFG" --conditions C2 C3a C3b C4 --out results
 else
   echo "LM not found ($LM) — skipping C2/C3. Run a100/build_lm.py first. Running C4 (oracle) only."
   python3 run_study.py --config "$CFG" --conditions C4 --out results

@@ -1,0 +1,16 @@
+{
+  "theme": "base",
+  "securityLevel": "loose",
+  "htmlLabels": false,
+  "flowchart": { "htmlLabels": false, "curve": "basis", "padding": 22, "nodeSpacing": 55, "rankSpacing": 65, "useMaxWidth": false },
+  "themeVariables": {
+    "fontFamily": "Segoe UI, Arial, Helvetica, sans-serif",
+    "fontSize": "20px",
+    "lineColor": "#5b6675",
+    "primaryColor": "#eef3fd",
+    "primaryBorderColor": "#1a56db",
+    "primaryTextColor": "#152244",
+    "clusterBkg": "#f8fafe",
+    "clusterBorder": "#c5d2ee"
+  }
+}

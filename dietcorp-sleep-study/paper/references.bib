@@ -1,0 +1,120 @@
+% references.bib — dietcorp-sleep-study preprint
+% NOTE: arXiv IDs marked "VERIFY" were taken from the project's source docs and must be
+% confirmed before submission (some appear future-dated).
+
+% ---- Dataset + task (the spine) ----
+@article{card2024t15,
+  author  = {Card, Nicholas S. and Wairagkar, Maitreyee and Iacobacci, Carrina and others},
+  title   = {An Accurate and Rapidly Calibrating Speech Neuroprosthesis},
+  journal = {New England Journal of Medicine},
+  year    = {2024},
+  doi     = {10.1056/NEJMoa2314132},
+  note    = {T15 copy-task dataset; Dryad doi:10.5061/dryad.dncjsxm85}
+}
+
+@article{willett2023speech,
+  author  = {Willett, Francis R. and Kunz, Erin M. and Fan, Chaofei and others},
+  title   = {A High-Performance Speech Neuroprosthesis},
+  journal = {Nature},
+  year    = {2023},
+  doi     = {10.1038/s41586-023-06377-x},
+  note    = {T12 dataset; Dryad doi:10.5061/dryad.x69p8czpq}
+}
+
+@misc{b2t_benchmark24,
+  author = {Willett, Francis R. and others},
+  title  = {Brain-to-Text Benchmark '24: Lessons Learned},
+  year   = {2024},
+  eprint = {2412.17227},
+  archivePrefix = {arXiv}
+}
+
+% ---- Core method lineage ----
+@misc{dietcorp,
+  author = {Feghhi, Ebrahim and others},
+  title  = {Time-Masked Transformers with Lightweight Test-Time Adaptation for Neural Speech Decoding},
+  year   = {2025},
+  eprint = {2507.02800},
+  archivePrefix = {arXiv},
+  note   = {DietCORP: single-step per-trial TTA on the patch-embedding; our N=1 special case. VERIFY full author list}
+}
+
+@misc{sleep_lms,
+  author = {Lee, Sangyun and McLeish, Sean and Goldstein, Tom and Fanti, Giulia},
+  title  = {Do Language Models Need Sleep? Offline Recurrence for Improved Online Inference},
+  year   = {2026},
+  eprint = {2605.26099},
+  archivePrefix = {arXiv},
+  note   = {Offline N-pass consolidation; wake/sleep separation; learned local rule (we use the structure, not the learned rule)}
+}
+
+@misc{zenbrain,
+  author = {Bering and others},
+  title  = {ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems},
+  year   = {2026},
+  eprint = {2604.23878},
+  archivePrefix = {arXiv},
+  note   = {Episodic buffer + Simulation-Selection replay; we use the episodic layer + replay only. VERIFY full author list}
+}
+
+% ---- Drift handling: the three families ----
+@article{nomad2025,
+  author  = {Karpowicz, Brianna M. and others},
+  title   = {Stabilizing Brain-Computer Interfaces Through Alignment of Latent Dynamics},
+  journal = {Nature Communications},
+  year    = {2025},
+  doi     = {10.1038/s41467-025-59652-y},
+  note    = {NoMAD; unsupervised latent-dynamics alignment, motor decoding}
+}
+
+@article{degenhart2020adan,
+  author  = {Degenhart, Alan D. and others},
+  title   = {Stabilization of a Brain-Computer Interface via the Alignment of Low-Dimensional Spaces of Neural Activity},
+  journal = {Nature Biomedical Engineering},
+  year    = {2020},
+  doi     = {10.1038/s41551-020-0542-9}
+}
+
+@misc{synchron_stability2025,
+  author = {Synchron and collaborators},
+  title  = {Signal Properties and Stability of a Chronically Implanted Endovascular Brain-Computer Interface},
+  year   = {2025},
+  note   = {medRxiv 2025.09.19.25335897; Stentrode chronic stability}
+}
+
+@misc{braingate_unsup_recal2023,
+  author = {Fan, Chaofei and others},
+  title  = {Long-Term Unsupervised Recalibration of Cursor BCIs},
+  year   = {2023},
+  note   = {bioRxiv 2023.02.03.527022; HMM/target-inference self-recalibration (BrainGate)}
+}
+
+@article{measuring_instability2024,
+  author  = {others},
+  title   = {Measuring Instability in Chronic Human Intracortical Neural Recordings Towards Stable, Long-Term Brain-Computer Interfaces},
+  journal = {Communications Biology},
+  year    = {2024},
+  doi     = {10.1038/s42003-024-06784-4}
+}
+
+% ---- Methods context ----
+@inproceedings{tent2021,
+  author    = {Wang, Dequan and Shelhamer, Evan and Liu, Shaoteng and Olshausen, Bruno and Darrell, Trevor},
+  title     = {Tent: Fully Test-Time Adaptation by Entropy Minimization},
+  booktitle = {ICLR},
+  year      = {2021}
+}
+
+@inproceedings{graves2006ctc,
+  author    = {Graves, Alex and Fern{\'a}ndez, Santiago and Gomez, Faustino and Schmidhuber, J{\"u}rgen},
+  title     = {Connectionist Temporal Classification: Labelling Unsegmented Sequence Data with Recurrent Neural Networks},
+  booktitle = {ICML},
+  year      = {2006}
+}
+
+@article{su2021rope,
+  author  = {Su, Jianlin and others},
+  title   = {RoFormer: Enhanced Transformer with Rotary Position Embedding},
+  journal = {arXiv:2104.09864},
+  year    = {2021}
+}

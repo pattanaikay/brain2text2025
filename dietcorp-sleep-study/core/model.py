@@ -42,18 +42,44 @@ def session_ids_from_checkpoint(state_dict: dict) -> list[str]:
     return sorted(sids)
 
 
+def infer_dims_from_state(state: dict, patch_size: int | None = None,
+                          input_dim: int | None = None) -> tuple[int, int]:
+    """Recover (input_dim, patch_size) from the checkpoint so weights load regardless of
+    defaults. The trained checkpoint uses patch_size=5 (patch_embedding in = input_dim * 5),
+    not the encoder's default of 4 — inferring avoids a size-mismatch on load."""
+    if input_dim is None:
+        for k, v in state.items():               # read-in is Linear(input_dim, input_dim)
+            if k.startswith("encoder.read_in.") and k.endswith(".weight") and v.dim() == 2:
+                input_dim = int(v.shape[1])
+                break
+        if input_dim is None:
+            input_dim = 512
+    pe_w = state.get("encoder.patch_embedding.weight")
+    if pe_w is not None:                          # patch_embedding is Linear(input_dim*P, embed)
+        inferred = int(pe_w.shape[1]) // input_dim
+        if patch_size is not None and patch_size != inferred:
+            print(f"[model] patch_size {patch_size} -> {inferred} (inferred from checkpoint)")
+        patch_size = inferred
+    elif patch_size is None:
+        patch_size = 4
+    return input_dim, patch_size
+
+
 def build_ctc_model(ckpt_path: str, device: torch.device | str = "cpu",
-                    patch_size: int = 4, num_phonemes: int = 42) -> CTCPhonemeModel:
+                    patch_size: int | None = None, num_phonemes: int = 42) -> CTCPhonemeModel:
     """
     Rebuild CTCPhonemeModel with the checkpoint's session read-in set and load weights.
-    Returns the model on `device`, in eval() mode.
+    `input_dim` and `patch_size` are inferred from the checkpoint (the trained model uses
+    patch_size=5); pass `patch_size` explicitly only to force an override. Returns the model
+    on `device`, in eval() mode.
     """
     state = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     if isinstance(state, dict) and "model_state_dict" in state:
         state = state["model_state_dict"]
 
     session_ids = session_ids_from_checkpoint(state)
-    encoder = BIT_Transformer(session_ids=session_ids, patch_size=patch_size)
+    input_dim, patch_size = infer_dims_from_state(state, patch_size=patch_size)
+    encoder = BIT_Transformer(input_dim=input_dim, session_ids=session_ids, patch_size=patch_size)
     model = CTCPhonemeModel(encoder, num_phonemes=num_phonemes)
 
     missing, unexpected = model.load_state_dict(state, strict=False)

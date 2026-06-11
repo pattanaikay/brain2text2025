@@ -49,10 +49,14 @@ class EpisodicWritePolicy:
 
 class EpisodicBuffer(nn.Module):
     def __init__(self, embed_dim: int = 384, buffer_size: int = 256, n_heads: int = 6,
-                 confidence_threshold: float = 0.5, gate_init: float = 0.1):
+                 confidence_threshold: float = 0.5, gate_init: float = 0.1,
+                 retrieval: str = "paramfree", fuse: bool = True, min_read: int = 8):
         super().__init__()
         self.embed_dim = embed_dim
         self.buffer_size = buffer_size
+        self.retrieval = retrieval     # "paramfree" (similarity attn, no training) | "learned"
+        self.fuse = fuse               # wake read: fuse recall into output (C3b) or keep clean (C3a)
+        self.min_read = min_read       # cold-buffer guard: need >= this many entries before reading
         self.register_buffer("buffer", torch.zeros(buffer_size, embed_dim))
         self.register_buffer("buf_session", torch.full((buffer_size,), -1, dtype=torch.long))
         self.register_buffer("write_ptr", torch.zeros(1, dtype=torch.long))
@@ -69,21 +73,35 @@ class EpisodicBuffer(nn.Module):
         return bool((self.buf_session < 0).all().item())
 
     def forward(self, x, write=True, confidence=None, session_id=None):
-        """x: (B,T,E) -> fused (B,T,E). Cross-attn read + gated fuse; optional write-back."""
-        B = x.size(0)
-        kv = self.buffer.unsqueeze(0).expand(B, -1, -1).to(x.dtype)   # (B,K,E)
-        attended, _ = self.read_head(x, kv, kv)
-        fused = x + torch.sigmoid(self.gate) * attended
+        """x: (B,T,E) -> (B,T,E). Recall nearest confident past latents from the buffer; fuse
+        them into the output only when `self.fuse` (the wake read, C3b). Always exposes
+        `last_read` for the sleep-time anchor loss (MSE(query, retrieved.detach()))."""
+        occ = self.buf_session >= 0
+        if int(occ.sum().item()) < self.min_read:        # cold buffer: nothing reliable to recall
+            self.last_read = {"memory_query": x, "memory_retrieved": x}   # -> anchor contributes 0
+            if write:
+                self._maybe_write(x, confidence, session_id)
+            return x
+        kv = self.buffer[occ].unsqueeze(0).expand(x.size(0), -1, -1).to(x.dtype)   # (B,K,E)
+        if self.retrieval == "learned":
+            attended, _ = self.read_head(x, kv, kv)
+        else:                                            # parameter-free similarity attention
+            scores = torch.matmul(x, kv.transpose(1, 2)) / (self.embed_dim ** 0.5)  # (B,T,K)
+            attended = torch.matmul(torch.softmax(scores, dim=-1), kv)              # (B,T,E)
         self.last_read = {"memory_query": x, "memory_retrieved": attended}
+        out = x + torch.sigmoid(self.gate) * attended if self.fuse else x
         if write:
-            sid = None
-            if isinstance(session_id, (list, tuple)) and session_id:
-                try: sid = int(session_id[0])
-                except (ValueError, TypeError): sid = None
-            elif isinstance(session_id, int):
-                sid = session_id
-            self.write_policy.write(self, x, confidence=confidence, session_id=sid)
-        return fused
+            self._maybe_write(x, confidence, session_id)
+        return out
+
+    def _maybe_write(self, x, confidence, session_id):
+        sid = None
+        if isinstance(session_id, (list, tuple)) and session_id:
+            try: sid = int(session_id[0])
+            except (ValueError, TypeError): sid = None
+        elif isinstance(session_id, int):
+            sid = session_id
+        self.write_policy.write(self, x, confidence=confidence, session_id=sid)
 
 
 def episodic_consistency_loss(query: torch.Tensor, retrieved: torch.Tensor,

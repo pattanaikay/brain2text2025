@@ -38,7 +38,7 @@ def main():
 
     # ── Read-off ───────────────────────────────────────────────────────────────
     print("\n=== H_main read-off ===")
-    for cond in ("C2", "C3"):
+    for cond in ("C2", "C3a", "C3b"):
         if cond not in data:
             continue
         by_n = data[cond]["by_n"]
@@ -47,12 +47,18 @@ def main():
             best_n = min(lasts, key=lasts.get)
             verdict = ("supported" if best_n > 1 and lasts[best_n] < lasts[1] else "not supported")
             print(f"  {cond}: best N={best_n} (PER@last={lasts[best_n]:.4f}) vs N=1 "
-                  f"({lasts[1]:.4f}) -> H_main {verdict}")
-    if "C2" in data and "C3" in data:
-        c2 = min((([c['per'] for c in data['C2']['by_n'][N]][-1]) for N in data['C2']['by_n']), default=None)
-        c3 = min((([c['per'] for c in data['C3']['by_n'][N]][-1]) for N in data['C3']['by_n']), default=None)
+                  f"({lasts[1]:.4f}) -> deeper-N {verdict}")
+
+    def _best_last(cond):
+        if cond not in data:
+            return None
+        return min((([c['per'] for c in data[cond]['by_n'][N]][-1]) for N in data[cond]['by_n']),
+                   default=None)
+    c2 = _best_last("C2")
+    for mem_cond in ("C3a", "C3b"):                # C3a = sleep anchor only, C3b = + wake read
+        c3 = _best_last(mem_cond)
         if c2 is not None and c3 is not None:
-            print(f"  Memory contribution: best C3 PER@last={c3:.4f} vs best C2={c2:.4f} "
+            print(f"  Memory contribution ({mem_cond}): best PER@last={c3:.4f} vs best C2={c2:.4f} "
                   f"-> memory {'helps' if c3 < c2 else 'does not help'}")
 
     # ── Figure ─────────────────────────────────────────────────────────────────
@@ -79,6 +85,55 @@ def main():
         print(f"\nSaved figure -> {out}")
     except Exception as e:
         print(f"\n(plot skipped: {e})")
+
+    # ── F2: warm-up curve (time-to-usable) — the headline usability figure ───────
+    try:
+        import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+        import numpy as np
+        warm_conds = [c for c in ("C2", "C3a", "C3b") if c in data]
+        if warm_conds:
+            K = 10
+            fig, ax = plt.subplots(figsize=(6, 4))
+            for cond in warm_conds:
+                by_n = data[cond]["by_n"]
+                N = max(by_n, key=int)                       # representative consolidation depth
+                cols = [[] for _ in range(K)]
+                for day in by_n[N]:
+                    seq = day.get("trial_wer") or day.get("trial_per") or []
+                    for p in range(min(K, len(seq))):
+                        cols[p].append(seq[p])
+                xs = [p + 1 for p in range(K) if cols[p]]
+                ys = [float(np.mean(cols[p])) for p in range(K) if cols[p]]
+                if xs:
+                    ax.plot(xs, ys, marker="o", label=f"{cond} (N={N})")
+            ax.set_xlabel("sentence index within day"); ax.set_ylabel("error (WER if available, else PER)")
+            ax.set_title("Warm-up curve (time-to-usable): memory vs no-memory")
+            ax.grid(alpha=0.3); ax.legend(fontsize=8)
+            fig.tight_layout(); out = results_dir / "warmup_curve.png"; fig.savefig(out, dpi=130)
+            print(f"Saved figure -> {out}")
+    except Exception as e:
+        print(f"(warm-up plot skipped: {e})")
+
+    # ── F3: wake latency (flat in N) + consolidate cost (linear in N) ────────────
+    try:
+        import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+        fig, (a1, a2) = plt.subplots(1, 2, figsize=(9, 4))
+        for cond in sorted(data.keys()):
+            wl = data[cond].get("wake_latency_ms", {}) or {}
+            cm = data[cond].get("consolidate_ms", {}) or {}
+            Ns = sorted((int(n) for n in wl), key=int)
+            if not Ns:
+                continue
+            a1.plot(Ns, [wl.get(str(n), wl.get(n)) for n in Ns], marker="o", label=cond)
+            a2.plot(Ns, [cm.get(str(n), cm.get(n)) for n in Ns], marker="o", label=cond)
+        a1.set_title("wake latency vs N (expect flat)"); a1.set_xlabel("N"); a1.set_ylabel("ms")
+        a1.grid(alpha=0.3); a1.legend(fontsize=8)
+        a2.set_title("consolidate cost vs N (expect ~linear)"); a2.set_xlabel("N"); a2.set_ylabel("ms")
+        a2.grid(alpha=0.3)
+        fig.tight_layout(); out = results_dir / "latency_vs_n.png"; fig.savefig(out, dpi=130)
+        print(f"Saved figure -> {out}")
+    except Exception as e:
+        print(f"(latency plot skipped: {e})")
 
 
 if __name__ == "__main__":

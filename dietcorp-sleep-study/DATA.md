@@ -37,8 +37,10 @@ python a100/make_seq_class_ids.py --in data/sessions_g2p.h5 \
 ### Option B — re-obtain the authors' formatted data (faithful)
 - **Restore** the per-session `data_train.hdf5`/`data_val.hdf5` (with `seq_class_ids`) from the
   training volume — `h5_list.json` shows they lived at `/home/data/.../hdf5_data_final/t15.*/`.
-- **Or** download Dryad `doi:10.5061/dryad.x69p8czpq` and run DietCorp's
-  `notebooks/formatCompetitionData.ipynb` to regenerate them. Guaranteed-correct labels.
+- **Or** download Dryad `doi:10.5061/dryad.dncjsxm85` (the T15 `t15_copyTask_neuralData.zip`;
+  Card et al., NEJM 2024) — it already contains per-session `data_{train,val}.hdf5` with
+  `seq_class_ids`. Use the official `nejm-brain-to-text` `download_data.py`. Guaranteed-correct labels.
+  (Note: the older `doi:10.5061/dryad.x69p8czpq` is the **T12**/Willett-2023 set, used only for LM files.)
 
 ## Recommendation
 1. Run **C0/C1 now** on the 17 GB file to confirm the drift curve + the pipeline end-to-end.
