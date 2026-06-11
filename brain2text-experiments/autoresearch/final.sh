@@ -9,9 +9,10 @@ REPO=/home/brain2text-experiments
 TRAIN="$REPO/data/toy_train.hdf5"
 VAL="$REPO/data/toy_val.hdf5"
 MACHINE_ID=422377
-JL_TOKEN="7H1cs4uhE6xRrzz7XsIHbodxFMleyd3h3wlHXE_A1oM"
+# JL_TOKEN and SLACK_WEBHOOK_URL should be set via environment variables
+JL_TOKEN="${JL_TOKEN:-}"
 JL_API="https://backendn.jarvislabs.net"
-export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/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"
+export SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
 export PYTHONIOENCODING=utf-8
 
 cd "$REPO"
