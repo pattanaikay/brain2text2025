@@ -1,8 +1,47 @@
-# Brain-to-Text 2025: Approach #2 - CNN + BiLSTM + N-gram Language Model
+# Approach #2: CNN + BiLSTM + N-gram Language Model
+
+**[← Back to Main README](../README.md)**
+
+This folder implements a **CNN-BiLSTM neural decoder with integrated n-gram language model** for the Kaggle Brain-to-Text 2025 Competition, combining neural sequence modeling with linguistic priors for improved accuracy.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Setup Environment
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Prepare Data
+Place the HDF5 data files in `data/` or update paths in `scripts/train.py`
+
+### 3. Train Neural Model
+```bash
+python scripts/train.py \
+    --epochs 50 \
+    --batch-size 32 \
+    --learning-rate 0.001
+```
+
+### 4. Evaluate with Beam Search + N-gram
+```bash
+python scripts/submission.py \
+    --checkpoint models/best_checkpoint.pt \
+    --beam-width 10 \
+    --ngram-model utils/ngram_3gram.pkl
+```
+
+### 5. Diagnose Beam Search (Optional)
+```bash
+python diagnose_beam.py --test-file data/test_sample.hdf5
+```
+
+---
+
+## 📚 Overview
 
 This repository contains Approach #2 for the **[Kaggle Brain-to-Text 2025 Competition](https://www.kaggle.com/competitions/brain-to-text-25)**, which aims to decode speech directly from intracortical neural activity. This approach enhances the CNN-BiLSTM architecture with n-gram language model integration for improved decoding accuracy.
-
-## Overview
 
 ### Competition Challenge
 
@@ -25,6 +64,20 @@ From the UC Davis Neuroprosthetics Lab, the dataset includes:
 - **Data Format**: HDF5 files organized by session date
 
 **Data Source**: https://doi.org/10.5061/dryad.dncjsxm85
+
+---
+
+## 🔄 Key Changes & Updates
+
+- ✅ Added comprehensive README with setup and usage instructions
+- ✅ N-gram language model integration for post-decoding rescoring
+- ✅ Beam search decoder implementation with configurable beam width
+- ✅ Diagnostic tools (`diagnose_beam.py`) for debugging decoder behavior
+- ✅ Session-aware statistics computation for robust normalization
+- ✅ Integrated submission pipeline for Kaggle competition
+- ✅ Pretrained 3-gram language model included (`utils/ngram_3gram.pkl`)
+
+---
 
 ## Project Structure
 

@@ -1,6 +1,64 @@
 # Brain-to-Text 2025: End-to-End Neural Decoding with BIT (Brain-to-Text Integration Transformer)
 
-This repository implements the **BIT Framework** — a complete end-to-end neural decoding system that converts brain neural activity into natural English text. The model combines a Transformer-based neural encoder with a fine-tuned language model (Qwen2.5-1.5B-Instruct) using advanced alignment techniques.
+**[← Back to Main README](../README.md)**
+
+🏆 **MAIN PRODUCTION FRAMEWORK**: This repository implements the **BIT Framework** — a complete end-to-end neural decoding system that converts brain neural activity into natural English text. The model combines a Transformer-based neural encoder with a fine-tuned language model (Qwen2.5-1.5B-Instruct) using advanced alignment techniques.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Setup Environment
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Compute Session Statistics
+```bash
+python src/preprocessing/compute_session_stats.py --h5_list data/h5_list.json
+```
+
+### 3. (Optional) Validate Setup
+```bash
+python scripts/dry_run.py
+```
+
+### 4. Train End-to-End Model
+```bash
+python scripts/train_e2e.py \
+    --train_h5 path/to/train.hdf5 \
+    --val_h5 path/to/val.hdf5 \
+    --epochs 50
+```
+
+### 5. Evaluate on Test Set
+```bash
+python scripts/evaluate.py \
+    --test_h5 path/to/test.hdf5 \
+    --checkpoint outputs/best_model_wer.pth
+```
+
+### 6. Visualize Results
+```bash
+python scripts/plot_metrics.py --history outputs/training_history.json
+```
+
+---
+
+## 🔄 Key Changes & Updates (This Release)
+
+- ✅ **Phase 1 (SSL Pretraining)**: Masked Neural Modeling — COMPLETE (PER=0.5202)
+- ✅ **Phase 2 (End-to-End)**: Full BIT fine-tuning pipeline with comprehensive debugging guides
+- ✅ **Phase 3 (CTC)**: Phoneme recognition module ready for integration
+- ✅ **Checkpoint Management**: Automatic best model selection based on WER and validation metrics
+- ✅ **SQLite Leaderboard**: Experiment tracking with reproducibility hashes
+- ✅ **Session-Specific Read-in**: Drift correction for multi-session data
+- ✅ **Contrastive Loss**: Multimodal alignment for neural-text spaces
+- ✅ **Comprehensive Documentation**: Technical specification and troubleshooting guides
+- ✅ **Metrics Visualization**: Training curves, loss dynamics, WER progression
+- ✅ **Robustness**: Error handling, data validation, checkpoint recovery
+
+---
 
 ## 🎯 Overview
 

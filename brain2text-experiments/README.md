@@ -1,6 +1,61 @@
 # Brain2Text Experiments Framework
 
-A modular, multi-track experimentation platform for training and evaluating brain-to-text neural pipelines. Designed to systematically explore encoder architectures, decoder variants, loss combinations, and projector designs through a structured registry of 25+ experiments.
+**[← Back to Main README](../README.md)**
+
+🧪 **MAIN RESEARCH FRAMEWORK**: A modular, multi-track experimentation platform for training and evaluating brain-to-text neural pipelines. Designed to systematically explore encoder architectures, decoder variants, loss combinations, and projector designs through a structured registry of 25+ experiments.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Setup Environment
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Shape Gate (CPU, ~10 sec)
+Verify all architectures have compatible tensor shapes:
+```bash
+python -m pytest tests/test_stage_shapes.py -v
+```
+
+### 3. Toy Run (Local GPU, ~20 min)
+Test the baseline (B0) on a small subset:
+```bash
+python run.py --expt B0_baseline --profile toy \
+    --train_h5 data/toy_train.hdf5 \
+    --val_h5 data/val.hdf5
+```
+
+### 4. Full Run (Cloud A100, ~2 hours)
+After toy pass succeeds:
+```bash
+python run.py --expt B0_baseline --profile full \
+    --train_h5 data/data_train.hdf5 \
+    --val_h5 data/val.hdf5
+```
+
+### 5. View Results
+```bash
+sqlite3 leaderboard.sqlite "SELECT expt_id, wer, best_epoch FROM results ORDER BY wer LIMIT 10;"
+```
+
+---
+
+## 🔄 Key Changes & Updates
+
+- ✅ **25+ Experiments Defined**: Comprehensive registry with 5 tracks (A–E)
+- ✅ **Modular Architecture**: Swappable encoders, projectors, decoders, losses
+- ✅ **Profile System**: Toy (local, fast) and Full (cloud, production) profiles with auto-override
+- ✅ **Three-Stage Progression**: Shape tests → toy runs → full runs (enforced order)
+- ✅ **Composed Losses**: Multi-loss ablation via forward hooks
+- ✅ **SQLite Leaderboard**: Automatic experiment tracking with reproducibility hashes
+- ✅ **Registry-Based Configuration**: YAML-driven experiment definitions
+- ✅ **Stage Builders**: Complete implementations for all encoder/decoder variants
+- ✅ **Shape Testing Framework**: Validates tensor compatibility before training
+- ✅ **Auto-Pause Integration**: JarvisLabs auto-pause on completion
+
+---
 
 ## Overview
 
@@ -19,42 +74,6 @@ Each component is modular and composable, allowing rapid experimentation across:
 
 **Baseline Performance**: 36.73% WER (BIT + Qwen2.5-1.5B)  
 **Target**: 10% WER
-
-## Quick Start
-
-### 1. Setup Environment
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Shape Gate (CPU, ~10 sec)
-
-Verify all architectures have compatible tensor shapes:
-
-```bash
-python -m pytest tests/test_stage_shapes.py -v
-```
-
-### 3. Toy Run (Local GPU, ~20 min)
-
-Test the baseline (B0) on a small subset:
-
-```bash
-python run.py --expt B0_baseline --profile toy \
-    --train_h5 data/toy_train.hdf5 \
-    --val_h5   data/val.hdf5
-```
-
-### 4. Full Run (Cloud A100, ~2 hours)
-
-After toy pass succeeds:
-
-```bash
-python run.py --expt B0_baseline --profile full \
-    --train_h5 data/data_train.hdf5 \
-    --val_h5   data/val.hdf5
-```
 
 ## Core Components
 

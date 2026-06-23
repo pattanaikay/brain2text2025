@@ -1,11 +1,61 @@
 # DietCorp + ZenBrain Edge-Device Feasibility Study
 
-Research investigation into the feasibility of real-time, on-device neural speech decoding for edge deployment. This project uses **Google Coral NPU simulators** as an instrumentation platform to characterize how DietCorp-Compact (a lightweight causal Transformer-based neural decoder) behaves under realistic edge constraints, and explores potential extensions using ZenBrain-inspired memory layers.
+**[← Back to Main README](../README.md)**
+
+🌐 **EDGE DEPLOYMENT RESEARCH**: Investigation into the feasibility of real-time, on-device neural speech decoding for edge deployment. This project uses **Google Coral NPU simulators** as an instrumentation platform to characterize how DietCorp-Compact (a lightweight causal Transformer-based neural decoder) behaves under realistic edge constraints, and explores potential extensions using ZenBrain-inspired memory layers.
 
 **Project Status**: 🔬 Feasibility audit complete; entering reproduction phase  
 **Date Started**: May 28, 2026  
 **Target Hardware**: Google Coral NPU (first-gen Edge TPU, Coral NPU reference IP)  
 **Deployment Goal**: Phone/laptop NPU execution for ALS/brainstem-stroke BCIs
+
+---
+
+## 🚀 Quick Start
+
+### 1. Setup Environment
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Prepare DietCorp Model
+```bash
+python scripts/prepare_dietcorp.py --config configs/dietcorp_compact.yaml
+```
+
+### 3. Simulate Coral Deployment
+```bash
+python scripts/simulate_coral_execution.py \
+    --model dietcorp_compact.pth \
+    --quantization int8 \
+    --batch_size 1
+```
+
+### 4. Analyze Feasibility Metrics
+```bash
+python scripts/analyze_feasibility.py \
+    --results outputs/coral_simulation.json
+```
+
+### 5. Run ZenBrain Memory Extension (Optional)
+```bash
+python scripts/train_zenbrain_extension.py \
+    --base_model dietcorp_compact.pth \
+    --config configs/zenbrain_memory.yaml
+```
+
+---
+
+## 🔄 Key Changes & Updates
+
+- ✅ **Edge Feasibility Framework**: Complete pipeline for evaluating NPU deployment constraints
+- ✅ **Coral Simulation**: Cycle-accurate Verilator simulator for architectural analysis
+- ✅ **Int8 Quantization**: Model compression for 10x parameter reduction on edge devices
+- ✅ **Test-Time Adaptation (TTA)**: DietCorp TTA strategy for on-device adaptation
+- ✅ **ZenBrain Extension**: Multi-tier memory architecture for improved robustness
+- ✅ **Latency Analysis**: Real-time decoding feasibility (streaming budget)
+- ✅ **Hardware Simulation**: Characterization of memory, compute, and power constraints
+- ✅ **Benchmarking Suite**: Comparative analysis across deployment targets
 
 ---
 

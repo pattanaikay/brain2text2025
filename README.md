@@ -9,22 +9,40 @@ A comprehensive research repository exploring multiple architectures and techniq
 
 ---
 
+## 🎯 Open Source & Proprietary Notice
+
+**Open Source**: All folders listed below are freely available for research and educational purposes.
+
+**⚠️ Proprietary**: `dietcorp-sleep-study/` is **not included** in the open-source release. It contains proprietary research related to a sleep study partnership and is maintained separately.
+
+---
+
+## 🚀 Quick Start
+
+1. **Clone or download** this repository
+2. **Navigate to a folder** of interest (see table below)
+3. **Read the folder's README.md** for that specific work stream
+4. **Install dependencies**: `pip install -r requirements.txt` (in that folder)
+5. **Follow setup instructions** in the README (data paths, environment setup, etc.)
+
+---
+
 ## Quick Reference: Project Structure
 
-This repository is organized into **independent work streams**, each with its own README for detailed documentation. Start here for an overview, then navigate to the folder of interest.
+This repository is organized into **independent work streams**, each with its own README for detailed documentation and getting-started instructions. Start here for an overview, then navigate to the folder of interest.
 
-| Folder | Purpose | Status | Key Metric |
-|--------|---------|--------|------------|
-| **[Approach #1: CNN + BiGRU](./approach%20%231-%20CNN%20+%20BiGRU/)** | Baseline CNN-BiGRU with CTC loss | ✅ Baseline | WER: Baseline |
-| **[Approach #2: CNN + BiLSTM + n-gram](./approach%20%232-%20CNN%20+%20BiLSTM%20+%20ngram/)** | CNN-BiLSTM with n-gram language model | ✅ Improved | WER: Better |
-| **[Approach #5: Transformer + Aero-1-Audio](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/)** | Transformer encoder + multimodal LLM (BIT v1) | ✅ Production | WER: Best |
-| **[Approach #6: Transformer + Aero-1-Audio + Diphones](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/)** | BIT with diphone linguistic support (BIT v2) | 🔧 Experimental | WER: Excellent |
-| **[Approach #7: NeuroMoE](./approach%20%237-%20NeuroMoE/)** | Mixture-of-Experts + Regional Experts framework | 🚀 SOTA | WER: SOTA Target |
-| **[Brain2Text Model Training](./brain2text-modeltraining/)** | **MAIN PRODUCTION**: BIT framework reference implementation | ✅ Active | WER: Monitored |
-| **[Brain2Text Experiments](./brain2text-experiments/)** | **MAIN RESEARCH**: 25-experiment framework with tracks A–E | ✅ Active | 25+ Experiments |
-| **[Brain2Text Multi-Arch](./brain2text-modeltraining-multiarchitectures/)** | Multi-architecture exploration & analysis | ✅ Active | Comparative Analysis |
-| **[ECoG Autoresearch](./ecog-autoresearch/)** | **PARALLEL**: Laptop-scale agent-driven benchmarking (finger flexion) | ✅ Active | Pearson r |
-| **[DietCorp + ZenBrain](./dietcorp-zenbrain-tta-research/)** | **RESEARCH**: Edge-device feasibility (Coral NPU simulation) | 🔬 Investigation | On-Device WER |
+| Folder | Purpose | Key Features | Getting Started |
+|--------|---------|---------|----------|
+| **[Approach #1: CNN + BiGRU](./approach%20%231-%20CNN%20+%20BiGRU/README.md)** | Baseline CNN-BiGRU with CTC loss | Fast training, Z-score normalization, CTC loss | See [folder README](./approach%20%231-%20CNN%20+%20BiGRU/README.md) |
+| **[Approach #2: CNN + BiLSTM + n-gram](./approach%20%232-%20CNN%20+%20BiLSTM%20+%20ngram/README.md)** | CNN-BiLSTM + 3-gram language model | Beam search, linguistic priors, improved WER | See [folder README](./approach%20%232-%20CNN%20+%20BiLSTM%20+%20ngram/README.md) |
+| **[Approach #5: Transformer + Aero-1-Audio](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/README.md)** | Transformer (RoPE) + Aero-1-Audio LLM | Time patching, contrastive loss, session-specific read-in | See [folder README](./approach%20%235-%20Transformer%20+%20Aero-1-Audio/README.md) |
+| **[Approach #6: Transformer + Aero-1-Audio + Diphones](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/README.md)** | BIT + diphone linguistic constraints | Enhanced phonetic modeling, linguistic features | See [folder README](./approach%20%236-%20Transformer%20+%20Aero-1-Audio%20+%20Diphones/README.md) |
+| **[Approach #7: NeuroMoE](./approach%20%237-%20NeuroMoE/README.md)** | Mixture-of-Experts + Region-specific experts | SSMoE, 8 brain regions, Top-K routing (K=2) | See [folder README](./approach%20%237-%20NeuroMoE/README.md) |
+| **[Brain2Text Model Training](./brain2text-modeltraining/README.md)** | 🏆 **MAIN PRODUCTION**: BIT framework reference | Full pipeline, checkpoint mgmt, SQLite leaderboard | See [folder README](./brain2text-modeltraining/README.md) |
+| **[Brain2Text Experiments](./brain2text-experiments/README.md)** | 🧪 **MAIN RESEARCH**: 25+ experiments (Tracks A–E) | Registry system, modular stages, toy/full profiles | See [folder README](./brain2text-experiments/README.md) |
+| **[Brain2Text Multi-Arch](./brain2text-modeltraining-multiarchitectures/README.md)** | Multi-architecture comparative analysis | Architecture exploration, benchmarking tools | See [folder README](./brain2text-modeltraining-multiarchitectures/README.md) |
+| **[ECoG Autoresearch](./ecog-autoresearch/README.md)** | 🔬 **PARALLEL**: Laptop-scale finger-flexion benchmark | Agent-driven, reproducible, compact dataset | See [folder README](./ecog-autoresearch/README.md) |
+| **[DietCorp + ZenBrain](./dietcorp-zenbrain-tta-research/README.md)** | Edge-device feasibility research (Coral NPU) | On-device deployment simulation | See [folder README](./dietcorp-zenbrain-tta-research/README.md) |
 
 ---
 
@@ -149,6 +167,60 @@ Investigation of edge-device feasibility for real-time BCI deployment.
 
 ---
 
+## 📋 Summary of Key Changes & Updates
+
+This section highlights the major updates and improvements made to each subfolder:
+
+### **Approach Folders (#1, #2, #5, #6, #7)**
+- ✅ Each approach now has a **dedicated README** with:
+  - Clear problem statement and architecture overview
+  - Detailed model architecture diagrams and component descriptions
+  - Step-by-step setup and installation instructions
+  - Commands to run training and evaluation
+  - Expected performance metrics and results
+  - Known issues and troubleshooting tips
+
+- **Approach #1 & #2**: Enhanced documentation with baseline comparisons
+- **Approach #5**: Production-ready BIT framework with full technical specification
+- **Approach #6**: Updated with diphone integration details and experimental results
+- **Approach #7**: Advanced NeuroMoE documentation with Mixture-of-Experts architecture details
+
+### **Brain2Text Model Training** (`brain2text-modeltraining/`)
+- ✅ **Phase 1 (Self-Supervised)**: Masked Neural Modeling pretraining — COMPLETE
+- ✅ **Phase 2 (End-to-End)**: Full BIT fine-tuning pipeline with detailed debugging guides
+- ✅ **Phase 3 (CTC)**: Phoneme recognition module ready for integration
+- 📊 **Metrics Tracking**: SQLite leaderboard integration for experiment tracking
+- 🔍 **Debugging**: Comprehensive troubleshooting guide (`debug_e2e_training.md`) for common issues
+
+### **Brain2Text Experiments** (`brain2text-experiments/`)
+- ✅ **Registry System**: Centralized `registry.yaml` with 25+ experiments across 5 tracks
+- ✅ **Modular Architecture**: Swappable encoders, projectors, decoders, and loss functions
+- ✅ **Profile System**: Toy (local) and Full (cloud A100) execution profiles with automatic configuration
+- ✅ **Leaderboard**: SQLite-backed experiment tracking with reproducibility hashes
+- ✅ **Testing**: Shape tests, toy runs, and full runs with enforced progression
+
+### **Brain2Text Multi-Architectures** (`brain2text-modeltraining-multiarchitectures/`)
+- 📊 **Comparative Analysis**: Multi-architecture benchmarking framework
+- 🧠 **Architecture Support**: CNN, Transformer, Conformer, Mamba, HRM, MoE variants
+- 📈 **Visualization**: Tools for analyzing and comparing performance across architectures
+- 📚 **Research Papers**: Comprehensive paper analysis and reference materials
+
+### **ECoG Autoresearch** (`ecog-autoresearch/`)
+- ✅ **Reproducible Benchmark**: Compact finger-flexion task for rapid prototyping
+- 🤖 **Agent-Driven**: Design optimized for autonomous agent modification (fixed harness)
+- 💾 **Lightweight**: Runs on laptops (6GB VRAM / 24GB RAM) with multiple model variants
+- 📊 **Results Tracking**: TSV-based results with automated plotting
+- 🔧 **Model Support**: CNN, Transformer, NeuroMoE, HRM, and hybrid variants
+
+### **DietCorp + ZenBrain** (`dietcorp-zenbrain-tta-research/`)
+- 🎯 **Edge Feasibility**: Study of on-device neural decoding on Coral NPU
+- 🔬 **Simulation**: Cycle-accurate Verilator simulator for architectural analysis
+- 📱 **Hardware Targets**: Google Coral, Apple Neural Engine, Qualcomm Hexagon
+- 📊 **Optimization**: Integer quantization and model compression strategies
+- 📝 **Documentation**: Complete feasibility analysis and recommendations
+
+---
+
 ## Getting Started
 
 ### Option 1: Explore a Specific Approach
@@ -270,6 +342,6 @@ When adding to this repository:
 
 ---
 
-**Last Updated**: May 29, 2026  
+**Last Updated**: June 23, 2026  
 **Repository Status**: Active multi-track research  
 **Primary Contact**: Brain-to-Text 2025 Research Team

@@ -1,8 +1,41 @@
-# Brain-to-Text 2025: Neural Speech Decoding Challenge
+# Approach #1: CNN + BiGRU Neural Decoder
+
+**[← Back to Main README](../README.md)**
+
+This folder implements a **CNN-BiGRU baseline** for the Kaggle Brain-to-Text 2025 Competition, providing a fast, interpretable foundation for neural speech decoding.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Setup Environment
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Prepare Data
+Place the HDF5 data files in `data/` or update paths in `scripts/train.py`
+
+### 3. Train the Model
+```bash
+python scripts/train.py \
+    --epochs 50 \
+    --batch-size 32 \
+    --learning-rate 0.001
+```
+
+### 4. Evaluate
+```bash
+python scripts/evaluate.py \
+    --checkpoint models/best_checkpoint.pt \
+    --test-data data/test.hdf5
+```
+
+---
+
+## 📚 Overview
 
 This repository contains a solution for the **[Kaggle Brain-to-Text 2025 Competition](https://www.kaggle.com/competitions/brain-to-text-25)**, which aims to decode speech directly from intracortical neural activity.
-
-## Overview
 
 ### Competition Challenge
 
@@ -26,35 +59,43 @@ From the UC Davis Neuroprosthetics Lab, the dataset includes:
 
 **Data Source**: https://doi.org/10.5061/dryad.dncjsxm85
 
+---
+
+## 🔄 Key Changes & Updates
+
+- ✅ Added comprehensive README with setup instructions
+- ✅ Enhanced project structure documentation
+- ✅ Detailed model architecture explanation with diagrams
+- ✅ Clear training and evaluation pipeline walkthrough
+- ✅ Preprocessing pipeline documentation with normalization details
+- ✅ Performance benchmarks and expected results
+
+---
+
 ## Project Structure
 
 ```
-Brain2Text2025/
-├── brain2text2025/
-│   ├── data/                          # Data loading and analysis
-│   │   ├── dataloading.py            # HDF5 file parsing
-│   │   └── neuraldata_viz.py         # Visualization utilities
-│   │
-│   ├── src/                           # Core implementation
-│   │   ├── dataloader.py             # PyTorch Dataset and collate functions
-│   │   ├── models/
-│   │   │   └── baseline.py           # CNN-BiGRU architecture
-│   │   └── preprocessing/
-│   │       ├── dataloader.py         # Additional data utilities
-│   │       └── utils.py              # Normalization, smoothing, stats
-│   │
-│   └── scripts/
-│       └── train.py                  # Training pipeline with mixed precision
+approach #1- CNN + BiGRU/
+├── data/                              # Data loading and analysis
+│   ├── dataloading.py                # HDF5 file parsing
+│   └── neuraldata_viz.py             # Visualization utilities
 │
-├── t15_copyTask_neuralData/           # Raw dataset (organized by session)
-│   └── hdf5_data_final/
-│       ├── t15.2023.08.11/
-│       ├── t15.2023.08.13/
-│       └── ... (45 total sessions through 2025)
+├── src/                               # Core implementation
+│   ├── dataloader.py                 # PyTorch Dataset and collate functions
+│   ├── models/
+│   │   └── baseline.py               # CNN-BiGRU architecture
+│   └── preprocessing/
+│       ├── dataloader.py             # Additional data utilities
+│       └── utils.py                  # Normalization, smoothing, stats
 │
-└── t15_pretrained_rnn_baseline/       # Baseline model checkpoints
-    └── checkpoint/
+├── scripts/
+│   └── train.py                      # Training pipeline with mixed precision
+│
+├── requirements.txt                  # Python dependencies
+└── README.md                         # This file
 ```
+
+---
 
 ## Model Architecture
 
